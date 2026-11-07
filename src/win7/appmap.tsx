@@ -12,6 +12,9 @@ import { GadgetGallery } from "./gadgets";
 import { MsgBox, Uac, Progress, Props, Run, FileDialog, Winver, Setup, InputBox } from "./dialogs";
 import { Solitaire, Spider, Hearts, GamesExplorer } from "./apps/Games";
 import { FreeCell, Mahjong, Chess, Purble } from "./apps/Games7";
+import { SystemDiagnostics } from "./apps/Kernel";
+import { EventViewer, DiskCleanup, Regedit } from "./apps/Tools";
+import { WindowsFeatures } from "./apps/Features";
 import { Journal, XpsViewer, StickyNotes2, SpeechRecognition, Mobility, Reliability, AnytimeUpgrade } from "./apps/Utilities";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
@@ -27,6 +30,11 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   sticky: StickyNotes,
   recorder: SoundRecorder,
   cmd: Cmd,
+  sysdiag: SystemDiagnostics,
+  features: WindowsFeatures,
+  eventvwr: EventViewer,
+  cleanmgr: DiskCleanup,
+  regedit: Regedit,
   taskmgr: TaskManager,
   photos: PhotoViewer,
   magnifier: Magnifier,

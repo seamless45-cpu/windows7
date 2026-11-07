@@ -52,8 +52,9 @@ sounds are the real Windows 7 ones**:
   `wordpad.exe`, `iexplore.exe`, `wmplayer.exe`, the built-in games and Control Panel
   applets) and are served as 96 px lossless PNGs. `Icon` renders that artwork and falls back
   to the hand-drawn SVG glyphs for anything without a resource.
-* **Sounds** — `public/sounds/<scheme>/*.mp3` are all **fourteen sound schemes Windows 7
-  shipped with** (Windows Default, Afternoon, Calligraphy, Characters, Cityscape, Delta,
+* **Sounds** — `public/sounds/<scheme>/*.mp3` were normalised from the original media
+  (peak-normalised with silence trimmed, so the four-second Startup chime is as audible as the
+  logon sound) and are all **fourteen sound schemes Windows 7 shipped with** (Windows Default, Afternoon, Calligraphy, Characters, Cityscape, Delta,
   Festival, Garden, Heritage, Landscape, Quirky, Raga, Savannah, Sonata) plus *No Sounds*.
   Each scheme covers the full list of program events — logon/logoff, startup/shutdown,
   minimize/restore, Default Beep, Ding, Error, Exclamation, Notification, Notify, Recycle,
@@ -79,6 +80,22 @@ sounds are the real Windows 7 ones**:
   and melt into the four panes of the Windows flag, which settles and pulses. It follows the
   real 105-frame / 15 fps / 200×200 timeline, with the first four seconds playing once and
   the last three looping.
+* **Kernel** — the boot really runs: `src/win7/kernel.ts` models the Windows 7 boot
+  sequence (firmware → bootmgr → winload → ntoskrnl Phase 0/1 → smss → wininit → services →
+  winlogon) with the boot-start and system drivers, their service groups and start types, and
+  the services `services.exe` starts. The boot screen prints the stage the kernel is on, a
+  driver can be made to fail and produce a genuine bug check (`0x0000007B` etc.) with the
+  classic blue screen and crash-dump progress. The kernel also writes the **Windows Event
+  Log**, which Event Viewer reads back.
+* **Custom photo and video backgrounds** — Control Panel → Personalization → Desktop
+  Background accepts any photo or video (JPG/PNG/GIF/WebP/MP4/WebM/MOV), stored locally in
+  IndexedDB. Videos autoplay and loop, and their audio can be switched on or off. The picture
+  position offers **Fill, Fit, Center and Tile — never Stretch**, because stretching a photo
+  or video destroys its clarity.
+* **More programs** — Event Viewer, Disk Cleanup, Registry Editor (edits the real settings
+  behind the shell: wallpaper, position, theme, sounds, Explorer options, UAC), System
+  Diagnostics (boot log, drivers, services, bug checks) and Windows Features (optional
+  features plus a directory of everything this PC can do, with shortcuts).
 * **Games** — Solitaire, Spider Solitaire, Hearts, Minesweeper, FreeCell (with Microsoft's
   numbered deals and supermove limit), Mahjong Titans (144-tile turtle layout), Chess Titans
   (a real move generator with castling, en passant, promotion and a searching opponent) and

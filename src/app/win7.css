@@ -41,7 +41,23 @@
 .win.dragging, .win.resizing { transition-duration: 0s; }
 .win.changing { will-change: left, top, width, height; }
 .glass .win { backdrop-filter: blur(9px) saturate(1.4); -webkit-backdrop-filter: blur(9px) saturate(1.4); }
-.win::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(112deg, rgba(255,255,255,.4) 0%, rgba(255,255,255,.1) 26%, rgba(255,255,255,0) 27%, rgba(255,255,255,.2) 52%, rgba(255,255,255,0) 53%, rgba(255,255,255,.08) 100%); }
+/* Aero glass: a vertical sheen on the top half of the frame, the diagonal
+   reflection band across the caption, and a bright 1 px rim — three layers, the
+   same structure DWM draws. The client area sits above all of it. */
+.win::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background:
+    linear-gradient(112deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,.12) 26%, rgba(255,255,255,0) 27%, rgba(255,255,255,.22) 52%, rgba(255,255,255,0) 53%, rgba(255,255,255,.08) 100%),
+    radial-gradient(120% 70% at 50% -20%, rgba(255,255,255,.55) 0%, rgba(255,255,255,.14) 45%, rgba(255,255,255,0) 72%);
+}
+/* the reflection and inner glow that only Aero (not Basic) adds */
+.glass .win::before { opacity: 1; }
+.win::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.5), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -1px 0 rgba(0,0,0,.22);
+}
+.glass .win { box-shadow: 0 0 0 1px rgba(0,0,0,.62), inset 0 0 0 1px rgba(255,255,255,.7), inset 0 0 22px rgba(255,255,255,.10), 0 14px 36px rgba(0,0,0,.55); }
+.win.active { box-shadow: 0 0 0 1px rgba(0,0,0,.62), inset 0 0 0 1px rgba(255,255,255,.82), inset 0 0 26px rgba(255,255,255,.16), 0 16px 40px rgba(0,0,0,.6); }
 .win.inactive { background: rgba(var(--gc), calc(var(--ga) * .62)); box-shadow: 0 0 0 1px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.4), 0 6px 18px rgba(0,0,0,.35); }
 .win.inactive::before { opacity: .55; }
 .win.max { padding: 0; border-radius: 0; }
@@ -57,7 +73,8 @@
 .w-title { position: relative; z-index: 1; height: 30px; flex: none; display: flex; align-items: center; gap: 5px; padding: 0 140px 0 2px; touch-action: none; cursor: default; overflow: hidden; }
 .win.fixed .w-title { padding-right: 56px; }
 .win.max .w-title { padding-left: 8px; }
-.w-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000; text-shadow: 0 0 6px #fff, 0 0 8px #fff, 0 0 10px #fff, 0 0 12px #fff; font-size: 12px; }
+.w-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #16222f; text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 7px #fff, 0 0 10px #fff, 0 0 14px #fff; font-size: 12px; }
+.win.inactive .w-title-text { color: #59646f; text-shadow: 0 0 2px #fff, 0 0 5px #fff, 0 0 9px #fff; }
 .win.inactive .w-title-text { color: #3a3f48; text-shadow: 0 0 6px #fff, 0 0 8px #fff; }
 .w-btns { position: absolute; top: 1px; right: 6px; z-index: 5; display: flex; }
 .win.max .w-btns { right: 4px; }
@@ -291,10 +308,42 @@
 .mb-item.on { background: linear-gradient(#e2edfa, #c8def5); border-color: #8fb7e8; }
 
 /* ---------- controls ---------- */
-.w7btn { min-width: 75px; height: 23px; padding: 0 10px; color: #000; border: 1px solid #707070; border-radius: 3px; background: linear-gradient(#f4f4f4 0, #ebebeb 49%, #dddddd 50%, #cfcfcf 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.85); cursor: default; white-space: nowrap; }
-.w7btn:hover:not(:disabled) { border-color: #3c7fb1; background: linear-gradient(#eaf6fd 0, #d9f0fc 49%, #bee6fd 50%, #a7d9f5 100%); }
-.w7btn:active:not(:disabled) { background: linear-gradient(#e5f4fc, #c4e5f6 49%, #98d1ef 50%, #68b3db); box-shadow: inset 0 1px 3px rgba(0,0,0,.3); }
-.w7btn.def { border-color: #3c7fb1; box-shadow: inset 0 0 0 1px #8ec9f0, inset 0 0 3px 1px rgba(110,190,240,.6); }
+/* ---- Aero push button -------------------------------------------------
+   Windows 7 buttons are not flat gradients: they are a translucent glass
+   shell with a bright rim, a hard "waterline" at 50%, a soft inner glow and a
+   subtle blue halo in the default state. Hovering washes the whole shell with
+   the Aero cyan; pressing collapses the gradient and adds a top shadow. */
+.w7btn {
+  position: relative; min-width: 75px; height: 23px; padding: 0 11px; color: #0b1a2b;
+  border: 1px solid #6d7c90; border-radius: 3px;
+  background:
+    linear-gradient(rgba(255,255,255,.92) 0, rgba(255,255,255,.28) 47%, rgba(255,255,255,0) 48%),
+    linear-gradient(#f6f8fa 0%, #eef1f5 47%, #dfe4ea 48%, #e9edf2 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.85), inset 0 1px 0 rgba(255,255,255,.95), 0 1px 1px rgba(0,0,0,.10);
+  text-shadow: 0 0 2px rgba(255,255,255,.9);
+  cursor: default; white-space: nowrap;
+  transition: background-color .12s ease-out, border-color .12s ease-out, box-shadow .12s ease-out;
+}
+.w7btn:hover:not(:disabled) {
+  border-color: #2f7cb0;
+  background:
+    linear-gradient(rgba(255,255,255,.95) 0, rgba(255,255,255,.38) 47%, rgba(255,255,255,0) 48%),
+    linear-gradient(#f2fbff 0%, #e2f5fe 47%, #c3e9fb 48%, #a9dcf7 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.9), inset 0 0 6px rgba(150,220,255,.7), 0 0 7px rgba(120,200,255,.75);
+}
+.w7btn:active:not(:disabled) {
+  border-color: #2b6f9e;
+  background:
+    linear-gradient(rgba(255,255,255,.55) 0, rgba(255,255,255,.12) 46%, rgba(255,255,255,0) 47%),
+    linear-gradient(#dceffa 0%, #bfe2f5 47%, #8fc9e8 48%, #6fb4da 100%);
+  box-shadow: inset 0 1px 3px rgba(0,40,70,.35), inset 0 0 0 1px rgba(255,255,255,.45);
+}
+/* the default button gets the Aero focus ring: a soft outer glow inside its
+   own rim, which is what makes "OK" look pressable */
+.w7btn.def {
+  border-color: #3f7fae;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.9), inset 0 0 0 2px rgba(150,215,250,.85), inset 0 0 7px rgba(120,195,250,.85), 0 0 5px rgba(120,190,240,.55);
+}
 .w7btn:disabled { color: #838383; border-color: #adb2b5; background: #f4f4f4; }
 .w7btn:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
 .w7input { height: 22px; padding: 0 4px; color: #000; background: #fff; border: 1px solid #abadb3; border-top-color: #8d8f94; outline: none; }
@@ -534,3 +583,154 @@ textarea.w7input { height: auto; padding: 3px; }
   animation: pop .15s cubic-bezier(.2,.7,.3,1) both;
   transform-origin: bottom right;
 }
+
+/* ===================== custom photo/video desktop backgrounds ============ */
+.wp-layer { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
+.wp-media { overflow: hidden; }
+.wp-media img { display: block; }
+.wp-tile { position: absolute; inset: 0; background-repeat: repeat; background-position: center; }
+.wp-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.wp-media-loading { background: #000; }
+/* the desktop itself paints black behind a media background so letterboxing
+   is clean and the video never shows through a transparent gradient */
+.desktop.has-media { background: #000; }
+
+/* Upload controls in Control Panel → Personalization → Desktop Background */
+.wp-drop {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin: 4px 0 10px;
+  border: 2px dashed #a9b7c9; border-radius: 6px; background: linear-gradient(#fdfeff, #eef4fb);
+  transition: border-color .13s ease-out, background .13s ease-out;
+}
+.wp-drop.drag { border-color: #3f97e8; background: linear-gradient(#eaf5ff, #dbeafb); }
+.wp-drop p { margin: 2px 0 0; font-size: 11.5px; color: #4a5a6d; }
+.wp-drop b { font-size: 12.5px; color: #17324f; }
+.cp-err { color: #a11212; font-size: 11.5px; }
+.wp-item { position: relative; overflow: hidden; }
+.wp-item.media { background: #000; }
+.wp-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.wp-thumb-empty { position: absolute; inset: 0; background: #223; }
+.wp-badge {
+  position: absolute; left: 3px; bottom: 3px; padding: 1px 5px; border-radius: 3px;
+  background: rgba(0,0,0,.62); color: #fff; font-size: 10px; letter-spacing: .2px; pointer-events: none;
+}
+.wp-del {
+  position: absolute; right: 2px; top: 2px; width: 17px; height: 17px; padding: 0; line-height: 15px;
+  border: 1px solid rgba(0,0,0,.55); border-radius: 3px; color: #fff; font-size: 10px;
+  background: rgba(30,30,30,.6); visibility: hidden;
+}
+.wp-item:hover .wp-del { visibility: visible; }
+.wp-del:hover { background: rgba(190,40,30,.9); }
+
+/* ===================== Aero buttons, check boxes and radios ============== */
+/* Classic/Basic themes keep flat buttons — the glass shell is Aero only. */
+.theme-classic .w7btn, .theme-basic .w7btn, .theme-hc .w7btn {
+  background: linear-gradient(#f4f4f4 0, #ebebeb 49%, #dddddd 50%, #cfcfcf 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.85); border-color: #707070;
+}
+.theme-classic .w7btn:hover, .theme-basic .w7btn:hover, .theme-hc .w7btn:hover {
+  background: linear-gradient(#eaf6fd 0, #d9f0fc 49%, #bee6fd 50%, #a7d9f5 100%); box-shadow: none;
+}
+.theme-hc .w7btn { background: #000; color: #fff; border-color: #fff; }
+.theme-hc .w7btn:hover { background: #ff0; color: #000; }
+
+/* The window caption buttons get the same glass treatment as the shell. */
+.cb {
+  background:
+    linear-gradient(rgba(255,255,255,.85) 0, rgba(255,255,255,.22) 46%, rgba(255,255,255,0) 47%),
+    linear-gradient(#eef4fa 0, #ccdaec 46%, #aec3dd 50%, #cfe0f2 100%);
+}
+.cb:hover {
+  background:
+    linear-gradient(rgba(255,255,255,.95) 0, rgba(255,255,255,.3) 46%, rgba(255,255,255,0) 47%),
+    linear-gradient(#f5fbff 0, #cfeeff 46%, #8ed2f5 50%, #d3f1ff 100%);
+}
+.cclose {
+  background:
+    linear-gradient(rgba(255,255,255,.8) 0, rgba(255,255,255,.2) 46%, rgba(255,255,255,0) 47%),
+    linear-gradient(#eda99c 0, #d4664c 46%, #b63318 50%, #e08b73 100%);
+}
+.cclose:hover {
+  background:
+    linear-gradient(rgba(255,255,255,.9) 0, rgba(255,255,255,.28) 46%, rgba(255,255,255,0) 47%),
+    linear-gradient(#fcc0b0 0, #ee7152 46%, #d6381a 50%, #f9a68c 100%);
+}
+
+/* Aero scrollbars: a thin glass thumb in a translucent track. */
+.w7 ::-webkit-scrollbar { width: 15px; height: 15px; }
+.w7 ::-webkit-scrollbar-track { background: linear-gradient(90deg, rgba(228,236,245,.9), rgba(246,250,254,.9)); border-left: 1px solid rgba(140,160,180,.5); }
+.w7 ::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.9) 0, rgba(255,255,255,.25) 45%, rgba(255,255,255,0) 46%),
+    linear-gradient(90deg, #f2f7fc, #cadcee 55%, #a9c2dc);
+  border: 1px solid rgba(110,135,160,.75);
+}
+.w7 ::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #eaf7ff, #b8e2fa 55%, #86c8ec); border-color: #4f86ac; }
+.w7 ::-webkit-scrollbar-button:single-button {
+  background: linear-gradient(#f6fafd, #d6e4f2); border: 1px solid rgba(110,135,160,.7);
+  height: 15px; width: 15px;
+}
+.w7 ::-webkit-scrollbar-corner { background: #eef4fa; }
+
+/* ===================== kernel: boot readout and bug check ================ */
+/* The tiny status line the boot screen prints under the flag, as the kernel
+   initialises its stages one by one. */
+.boot-stage {
+  position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%);
+  max-width: min(760px, 92vw); text-align: center; color: #9fb2c6; font-size: 11px;
+  font-family: Consolas, "Courier New", monospace; line-height: 1.5; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; opacity: 0; animation: bootstage .4s ease-out .9s forwards;
+}
+@keyframes bootstage { to { opacity: .9; } }
+.boot-stage-name { color: #d9e6f2; margin-right: 8px; }
+.boot-stage-name::after { content: "›"; margin-left: 8px; color: #57708c; }
+.boot-safe { margin-top: 4px; padding: 1px 8px; border: 1px solid #7a8fa6; border-radius: 3px; color: #dfe9f3; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* The Windows 7 bug check: the classic full-screen blue with white Consolas. */
+.bsod {
+  position: fixed; inset: 0; z-index: 100004; background: #0000aa; color: #fff;
+  font: 13px/1.55 Consolas, "Lucida Console", "Courier New", monospace;
+  padding: 8vh 9vw; cursor: pointer; overflow: auto;
+}
+.bsod-inner { max-width: 860px; margin: 0 auto; }
+.bsod p { margin: 0 0 12px; }
+.bsod-code { white-space: pre-wrap; background: rgba(0,0,0,.18); padding: 6px 8px; }
+.bsod-tech { white-space: pre-wrap; }
+.bsod-count b { color: #ffff9e; }
+.bsod-hint { margin-top: 22px; color: #b9b9ff; }
+@media (max-width: 720px) { .bsod { padding: 6vh 5vw; font-size: 12px; } }
+
+/* ===================== window chrome: accuracy pass ====================== */
+/* Aero glass depth: the frame's colour is deepest at the caption and fades
+   towards the client edge; the active window also carries a thin bright line
+   along its bottom rim. */
+.win { background-clip: padding-box; }
+.win.active::after {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.62), inset 0 1px 0 rgba(255,255,255,.9),
+              inset 0 -1px 0 rgba(255,255,255,.28), inset 0 -2px 0 rgba(0,0,0,.18);
+}
+.win.inactive::after { box-shadow: inset 0 0 0 1px rgba(255,255,255,.4), inset 0 1px 0 rgba(255,255,255,.55); }
+
+/* the caption buttons sit in their own glass strip, separated from the title */
+.w-btns { border-radius: 0 5px 0 0; overflow: hidden; }
+.w-btns::before {
+  content: ""; position: absolute; left: -1px; top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(rgba(255,255,255,.75), rgba(255,255,255,.15));
+}
+.cb { height: 20px; }
+.cmin, .cmax, .cclose { border-top: none; }
+.cb:active { padding-top: 1px; }
+
+/* the title's icon keeps its own drop shadow so it reads on the glass */
+.w-ico { filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+
+/* maximised windows have no caption rounding and a slightly shorter caption */
+.win.max .w-btns { border-radius: 0; }
+.win.max .w-title { height: 28px; }
+
+/* resize handles: a wider, quieter hit area, as DWM uses */
+.rz { z-index: 7; }
+
+/* High Contrast must never show glass gradients */
+.theme-hc .win::before, .theme-hc .win::after { display: none; }
+.theme-hc .w-btns::before { display: none; }
