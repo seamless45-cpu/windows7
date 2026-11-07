@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { ShellBoundary } from "./ShellBoundary";
+import { BootAnimation } from "./BootAnimation";
 
 // The shell is browser-only (it reads localStorage, layout size and pointer
 // state), so it is loaded dynamically. `ssr: false` keeps the server render
@@ -11,14 +12,9 @@ const Shell = dynamic(() => import("./Shell"), {
   ssr: false,
   loading: () => (
     <div className="boot" aria-busy="true">
-      <div className="boot-logo">
-        <div className="boot-orbs">
-          {[0, 1, 2, 3].map((i) => (
-            <i key={i} style={{ animationDelay: `${i * 0.18}s` }} />
-          ))}
-        </div>
-      </div>
+      <BootAnimation />
       <div className="boot-text">Starting Windows</div>
+      <div className="boot-copy">© Microsoft Corporation</div>
     </div>
   ),
 });

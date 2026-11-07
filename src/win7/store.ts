@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { APPS } from "./registry";
 import { seedFs, WALLPAPERS } from "./data";
-import { snd, playSys } from "./sound";
+import { snd, playSys, SCHEMES, clearCache, preload } from "./sound";
 
 /* ------------------------------------------------------------------ types */
 export interface FsNode {
@@ -47,7 +47,7 @@ export interface Settings {
   colorKey: string;
   transparency: boolean;
   intensity: number;
-  soundScheme: "default" | "none";
+  soundScheme: string;
   screensaver: "none" | "bubbles" | "ribbons" | "photos" | "blank";
   ssWait: number;
   showIcons: boolean;
@@ -152,7 +152,7 @@ export const DEFAULTS: Settings = {
   colorKey: "sky",
   transparency: true,
   intensity: 50,
-  soundScheme: "default",
+  soundScheme: "Windows Default",
   screensaver: "none",
   ssWait: 10,
   showIcons: true,
@@ -320,7 +320,10 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     colorKey: str(saved.colorKey, d.colorKey),
     transparency: bool(saved.transparency, d.transparency),
     intensity: num(saved.intensity, d.intensity, 0, 100),
-    soundScheme: saved.soundScheme === "none" ? "none" : "default",
+    // legacy saves stored "default"/"none"; the scheme names are Windows' own
+    soundScheme: saved.soundScheme === "none" ? "No Sounds"
+      : SCHEMES.includes(saved.soundScheme as (typeof SCHEMES)[number]) ? (saved.soundScheme as string)
+      : "Windows Default",
     screensaver: oneOf(saved.screensaver, SCREENSAVERS, d.screensaver),
     ssWait: num(saved.ssWait, d.ssWait, 1, 240),
     showIcons: bool(saved.showIcons, d.showIcons),
@@ -518,7 +521,11 @@ export function setSettings(patch: Partial<Settings>) {
   if (patch.region) locale = patch.region;
   if ("volume" in patch) snd.vol = settings.volume / 100;
   if ("muted" in patch) snd.muted = settings.muted;
-  if ("soundScheme" in patch) snd.scheme = settings.soundScheme;
+  if ("soundScheme" in patch) {
+    snd.scheme = settings.soundScheme;
+    clearCache();
+    preload();
+  }
   if ("keyClick" in patch) snd.keyClick = settings.keyClick;
   setState({ settings });
 }
@@ -907,6 +914,28 @@ export function snapWin(id: string, side: "l" | "r") {
   animateChange(id, 175);
   patchWin(id, { max: false, snap: side, prev: w.prev || { x: w.x, y: w.y, w: w.w, h: w.h }, x: side === "l" ? wa.x : wa.x + hw, y: wa.y, w: hw, h: wa.h });
 }
+/**
+ * Aero Shake — grab a window and shake it and every other window minimises.
+ * Shaking again is not required: Windows restores with the same gesture, so a
+ * second shake brings back the windows it hid.
+ */
+export function shakeWin(id: string) {
+  if (state.desktopShown) {
+    setState({ windows: state.windows.map((w) => (state.hiddenIds.includes(w.id) ? { ...w, min: false } : w)), desktopShown: false, hiddenIds: [], peek: null });
+    return;
+  }
+  const others = state.windows.filter((w) => !w.min && !w.closing && w.id !== id && !APPS[w.app].noTask).map((w) => w.id);
+  if (!others.length) return;
+  playSys("minimize");
+  setState({
+    windows: state.windows.map((w) => (others.includes(w.id) ? { ...w, min: true } : w)),
+    desktopShown: true,
+    hiddenIds: others,
+    focus: id,
+    peek: null,
+  });
+}
+
 export function showDesktop() {
   if (state.desktopShown) {
     setState({ windows: state.windows.map((w) => (state.hiddenIds.includes(w.id) ? { ...w, min: false } : w)), desktopShown: false, hiddenIds: [], peek: null });
@@ -1025,6 +1054,12 @@ export function snappedHalf(): string | null {
 /* ------------------------------------------------------------- lock/sleep */
 /* ----------------------------------------------------------- dialogs etc */
 let notifSeq = 1;
+/** Windows' "device connected" announcement for removable drives. */
+export function deviceConnected(name: string) {
+  playSys("hardware-insert");
+  notify({ title: "Device connected", text: `${name} was connected. Click to see what happens with this device.`, icon: "info" });
+}
+
 export function notify(o: { title: string; text: string; icon?: string }) {
   const n: Notif = { id: notifSeq++, title: o.title, text: o.text, icon: o.icon || "info", time: Date.now() };
   setState({ notifications: [n, ...state.notifications].slice(0, 30), balloon: n });

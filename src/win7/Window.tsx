@@ -1,6 +1,6 @@
 "use client";
 import React, { memo, useEffect, useRef, useState } from "react";
-import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, setGeom, view, getState, workArea } from "./store";
+import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, setGeom, view, getState, workArea, shakeWin } from "./store";
 import { APPS } from "./registry";
 import { Icon } from "./icons";
 import { COMPONENTS } from "./appmap";
@@ -36,14 +36,19 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
 
   const geom = win.max ? { left: wx, top: wy, width: ww, height: wh } : { left: win.x, top: win.y, width: win.w, height: win.h };
 
+  // The snap overlay fades in and out (Windows 7 does not pop it).
   const prev = (side: "l" | "r" | "m" | null) => {
     const el = document.getElementById("snap-prev");
     if (!el) return;
     if (!side) {
-      el.style.display = "none";
+      el.style.opacity = "0";
+      window.setTimeout(() => {
+        if (el.style.opacity === "0") el.style.display = "none";
+      }, 130);
       return;
     }
     el.style.display = "block";
+    requestAnimationFrame(() => (el.style.opacity = "1"));
     el.style.top = wy + "px";
     el.style.height = wh + "px";
     el.style.left = side === "r" ? wx + ww / 2 + "px" : wx + "px";
@@ -81,11 +86,33 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     const oy = y;
     let moved = false;
     let snap: "l" | "r" | "m" | null = null;
+    // Aero Shake: four quick horizontal reversals while dragging minimises the
+    // other windows. Tracked here because it needs the pointer's direction.
+    let dir = 0;
+    let reversals = 0;
+    let lastX = e.clientX;
+    let lastTurn = 0;
     const mv = (ev: PointerEvent) => {
       const dx = (ev.clientX - sx) / sc;
       const dy = (ev.clientY - sy) / sc;
       if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
       moved = true;
+      const step = ev.clientX - lastX;
+      lastX = ev.clientX;
+      if (Math.abs(step) > 2) {
+        const nd = step > 0 ? 1 : -1;
+        if (dir && nd !== dir) {
+          const now = Date.now();
+          if (now - lastTurn < 400) reversals += 1;
+          else reversals = 1;
+          lastTurn = now;
+          if (reversals >= 4) {
+            reversals = 0;
+            shakeWin(win.id);
+          }
+        }
+        dir = nd;
+      }
       const nx = ox + dx;
       const ny = Math.min(Math.max(wy, oy + dy), sh - 30);
       el.style.left = nx + "px";

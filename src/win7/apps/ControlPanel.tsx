@@ -8,7 +8,7 @@ import { Icon, nodeIcon } from "../icons";
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
 import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
-import { playSys } from "../sound";
+import { playSys, playPreview, SCHEMES, SOUND_EVENTS, isNoSounds, type SysSound } from "../sound";
 import { wpStyle } from "../fileops";
 
 interface PageDef { title: string; icon: string; cat: string }
@@ -232,10 +232,8 @@ function Power() {
 function SoundPage({ nav }: { nav: (p: string) => void }) {
   void nav;
   const s = useStore((st) => st.settings);
-  const [tab, setTab] = useState("Playback");
-  const events = ["Windows Logon", "Windows Logoff", "Exclamation", "Critical Stop", "Notification", "Empty Recycle Bin", "Minimize"];
-  const snds: Record<string, () => void> = { "Windows Logon": () => playSys("startup"), "Windows Logoff": () => playSys("logoff"), Exclamation: () => playSys("exclaim"), "Critical Stop": () => playSys("error"), Notification: () => playSys("balloon"), "Empty Recycle Bin": () => playSys("recycle"), Minimize: () => playSys("minimize") };
-  const [ev, setEv] = useState(events[0]);
+  const [tab, setTab] = useState("Sounds");
+  const [ev, setEv] = useState<SysSound>("logon");
   return (
     <div className="cp-dialog">
       <Tabs tabs={["Playback", "Recording", "Sounds", "Communications"]} value={tab} onChange={setTab} />
@@ -243,7 +241,7 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
         {tab === "Playback" && (
           <div>
             <p>Select a playback device below to modify its settings:</p>
-            <div className="dev-card sel"><Icon name="sound" size={40} /><div><b>Speakers</b><br />High Definition Audio Device<br />Default Device</div></div>
+            <div className="dev-card sel"><Icon name="audio" size={40} /><div><b>Speakers</b><br />High Definition Audio Device<br />Default Device</div></div>
             <p>Master volume: <Slider value={s.volume} onChange={(v) => setSettings({ volume: v, muted: false })} style={{ width: 220 }} /> {s.muted ? "Muted" : s.volume + "%"}</p>
             <Check checked={s.muted} onChange={(v) => setSettings({ muted: v })} label="Mute" />
             <p><Btn onClick={() => playSys("ding")}>Test</Btn></p>
@@ -251,12 +249,31 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
         )}
         {tab === "Recording" && <div><div className="dev-card sel"><Icon name="recorder" size={40} /><div><b>Microphone</b><br />High Definition Audio Device<br />Default Device</div></div><p><Btn onClick={() => openApp("recorder")}>Open Sound Recorder</Btn></p></div>}
         {tab === "Sounds" && (
-          <div>
-            <p>A sound theme is a set of sounds applied to events in Windows and programs.</p>
-            <p>Sound Scheme: <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={[["default", "Windows Default"], ["none", "No Sounds"]]} /></p>
-            <p>Program Events:</p>
-            <div className="ev-list">{events.map((e) => <div key={e} className={ev === e ? "sel" : ""} onClick={() => setEv(e)}><Icon name="sound" size={14} /> {e}</div>)}</div>
-            <p><Btn onClick={() => snds[ev]()}>Test</Btn></p>
+          <div className="sound-page">
+            <p>A sound scheme is a set of sounds applied to events in Windows and programs. You can select Windows Default, one of the extra schemes, or No Sounds.</p>
+            <p>
+              Sound Scheme:{" "}
+              <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={SCHEMES.map((x) => [x, x]) as [string, string][]} />
+              {s.soundScheme !== "Windows Default" && s.soundScheme !== "No Sounds" ? <span className="dim"> (modified)</span> : null}
+            </p>
+            <div className="sound-grid">
+              <div className="ev-list">
+                <div className="ev-head">Program Events</div>
+                {SOUND_EVENTS.map((e) => (
+                  <div key={e.key} className={"ev-row" + (ev === e.key ? " sel" : "")} onClick={() => setEv(e.key)}>
+                    <Icon name="audio" size={14} /> {e.label}
+                  </div>
+                ))}
+              </div>
+              <div className="ev-side">
+                <p className="dim">Sounds:</p>
+                <div className="ev-sound">{SOUND_EVENTS.find((e) => e.key === ev)?.label}</div>
+                <p><Btn onClick={() => playPreview(s.soundScheme, ev)} disabled={isNoSounds(s.soundScheme)}>Test</Btn></p>
+                <p className="dim">Click an event to select it, then press Test to hear it in the current scheme.</p>
+                <p className="dim">Schemes: {SCHEMES.length - 1} sound schemes plus No Sounds.</p>
+              </div>
+            </div>
+            <p><Check checked={!s.muted} onChange={(v) => setSettings({ muted: !v })} label="Play Windows Startup sound" /></p>
           </div>
         )}
         {tab === "Communications" && <div><p>When Windows detects communications activity:</p><Radio checked label="Do nothing" onChange={() => {}} /><br /><Radio checked={false} label="Reduce the volume of other sounds by 80%" onChange={() => {}} /></div>}
@@ -265,16 +282,16 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
   );
 }
 
-const THEMES: { name: string; theme: Settings["theme"]; wp: string; color: string; group: string }[] = [
-  { name: "Windows 7", theme: "aero", wp: "win7", color: "sky", group: "Aero Themes" },
-  { name: "Architecture", theme: "aero", wp: "architecture", color: "slate", group: "Aero Themes" },
-  { name: "Landscapes", theme: "aero", wp: "landscape", color: "leaf", group: "Aero Themes" },
-  { name: "Dusk", theme: "aero", wp: "dusk", color: "pumpkin", group: "Aero Themes" },
-  { name: "Harmony", theme: "aero", wp: "harmony", color: "violet", group: "Aero Themes" },
-  { name: "Coast", theme: "aero", wp: "coast", color: "sea", group: "Aero Themes" },
-  { name: "Windows 7 Basic", theme: "basic", wp: "win7", color: "twilight", group: "Basic and High Contrast Themes" },
-  { name: "Windows Classic", theme: "classic", wp: "bluesolid", color: "twilight", group: "Basic and High Contrast Themes" },
-  { name: "High Contrast #1", theme: "hc", wp: "blacksolid", color: "smoke", group: "Basic and High Contrast Themes" },
+const THEMES: { name: string; theme: Settings["theme"]; wp: string; color: string; group: string; sound: string }[] = [
+  { name: "Windows 7", theme: "aero", wp: "win7", color: "sky", group: "Aero Themes", sound: "Windows Default" },
+  { name: "Architecture", theme: "aero", wp: "architecture", color: "slate", group: "Aero Themes", sound: "Cityscape" },
+  { name: "Landscapes", theme: "aero", wp: "landscape", color: "leaf", group: "Aero Themes", sound: "Landscape" },
+  { name: "Dusk", theme: "aero", wp: "dusk", color: "pumpkin", group: "Aero Themes", sound: "Delta" },
+  { name: "Harmony", theme: "aero", wp: "harmony", color: "violet", group: "Aero Themes", sound: "Raga" },
+  { name: "Coast", theme: "aero", wp: "coast", color: "sea", group: "Aero Themes", sound: "Sonata" },
+  { name: "Windows 7 Basic", theme: "basic", wp: "win7", color: "twilight", group: "Basic and High Contrast Themes", sound: "Windows Default" },
+  { name: "Windows Classic", theme: "classic", wp: "bluesolid", color: "twilight", group: "Basic and High Contrast Themes", sound: "No Sounds" },
+  { name: "High Contrast #1", theme: "hc", wp: "blacksolid", color: "smoke", group: "Basic and High Contrast Themes", sound: "No Sounds" },
 ];
 function Personalization({ nav }: { nav: (p: string) => void }) {
   const s = useStore((st) => st.settings);
@@ -287,7 +304,7 @@ function Personalization({ nav }: { nav: (p: string) => void }) {
           <div className="cp-sec">{g}</div>
           <div className="theme-grid">
             {THEMES.filter((t) => t.group === g).map((t) => (
-              <div key={t.name} className={"theme-card" + (cur?.name === t.name ? " sel" : "")} onClick={() => setSettings({ theme: t.theme, wallpaper: t.wp, colorKey: t.color, transparency: t.theme === "aero" ? true : s.transparency })}>
+              <div key={t.name} className={"theme-card" + (cur?.name === t.name ? " sel" : "")} onClick={() => setSettings({ theme: t.theme, wallpaper: t.wp, colorKey: t.color, soundScheme: t.sound, transparency: t.theme === "aero" ? true : s.transparency })}>
                 <div className={"theme-prev t-" + t.theme} style={wpStyle(t.wp, "fill")}>
                   <div className="tp-win" style={{ background: t.theme === "aero" ? `rgba(${COLORS.find((c) => c.key === t.color)!.rgb.join(",")},.7)` : undefined }}><i /></div>
                 </div>
@@ -796,7 +813,7 @@ function AeroPage() {
         <p>Change picture every <Sel value={s.wpInterval} onChange={(v) => setSettings({ wpInterval: Number(v) })} opts={[[1, "1 minute"], [5, "5 minutes"], [10, "10 minutes"], [30, "30 minutes"], [60, "1 hour"]]} /></p>
       </GroupBox>
       <GroupBox title="Sound scheme">
-        <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={[["default", "Windows Default"], ["none", "No Sounds"]]} />
+        <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={SCHEMES.map((x) => [x, x]) as [string, string][]} />
       </GroupBox>
       <p><Btn onClick={() => setSettings({ theme: s.theme === "aero" ? "basic" : "aero" })}>Switch to Windows {s.theme === "aero" ? "7 Basic" : "Aero"}</Btn></p>
     </div>

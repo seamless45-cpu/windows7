@@ -11,6 +11,7 @@ import { Cmd, TaskManager, HelpApp, SnippingTool, Minesweeper } from "./apps/Sys
 import { GadgetGallery } from "./gadgets";
 import { MsgBox, Uac, Progress, Props, Run, FileDialog, Winver, Setup, InputBox } from "./dialogs";
 import { Solitaire, Spider, Hearts, GamesExplorer } from "./apps/Games";
+import { FreeCell, Mahjong, Chess, Purble } from "./apps/Games7";
 import { Journal, XpsViewer, StickyNotes2, SpeechRecognition, Mobility, Reliability, AnytimeUpgrade } from "./apps/Utilities";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
@@ -46,6 +47,10 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   solitaire: Solitaire,
   spider: Spider,
   hearts: Hearts,
+  freecell: FreeCell,
+  mahjong: Mahjong,
+  chess: Chess,
+  purble: Purble,
   gamecenter: GamesExplorer,
   journal: Journal,
   xps: XpsViewer,

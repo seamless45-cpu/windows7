@@ -296,12 +296,22 @@ const G: Record<string, () => React.ReactNode> = {
   zip: () => <Folder g={<path d="M24 20v18M21 22h6M21 26h6M21 30h6M21 34h6" stroke="#6a4a00" strokeWidth="2" />} />,
   font: () => <Paper g={<text x="24" y="38" textAnchor="middle" fontSize="26" fontWeight="bold" fill="#c22" fontFamily="Georgia">A</text>} />,
   iso: () => <Paper g={<circle cx="24" cy="30" r="10" fill="url(#iSilver)" stroke="#556" />} />,
+  // The Windows 7 logo: four waving panes — orange-red, green, blue, yellow —
+  // each shaded with the vertical gradient the real flag artwork uses. It is
+  // drawn in vector so it stays crisp at any size on the logon screen, in
+  // winver and in Control Panel.
   flag: () => (
     <>
-      <path d="M6 9c6-3 11-2 17 1v14c-6-3-11-4-17-1z" fill="#f25022" />
-      <path d="M25 10c6 3 11 4 17 1v14c-6 3-11 2-17-1z" fill="#7fba00" />
-      <path d="M6 26c6-3 11-2 17 1v14c-6-3-11-4-17-1z" fill="#00a4ef" />
-      <path d="M25 27c6 3 11 4 17 1v14c-6 3-11 2-17-1z" fill="#ffb900" />
+      <defs>
+        <linearGradient id="w7paneRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f89a3f" /><stop offset=".45" stopColor="#f2691c" /><stop offset="1" stopColor="#d94b0b" /></linearGradient>
+        <linearGradient id="w7paneGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#a8dc3b" /><stop offset=".45" stopColor="#7bbb0b" /><stop offset="1" stopColor="#5c9a00" /></linearGradient>
+        <linearGradient id="w7paneBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#63cdfb" /><stop offset=".45" stopColor="#139df0" /><stop offset="1" stopColor="#0a7fc4" /></linearGradient>
+        <linearGradient id="w7paneYellow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffdc63" /><stop offset=".45" stopColor="#ffbb13" /><stop offset="1" stopColor="#e09b00" /></linearGradient>
+      </defs>
+      <path d="M5 8.6c5.6-2.9 10.6-1.9 15.6 1 .7.4 1 .9 1 1.6v12.9c0 1.7-.5 2.1-2 1.3-5-2.7-9.8-3.5-14.6-1.2-.9.4-1.2-.1-1.2-1.1V9.7c0-.5.4-1 1.2-1.1z" fill="url(#w7paneRed)" />
+      <path d="M27 9.9c5-2.9 10-3.9 15.6-1 .8.1 1.2.6 1.2 1.1v13.4c0 1-.3 1.5-1.2 1.1-4.8-2.3-9.6-1.5-14.6 1.2-1.5.8-2 .4-2-1.3V11.5c0-.7.3-1.2 1-1.6z" fill="url(#w7paneGreen)" />
+      <path d="M5 27.4c4.8-2.3 9.6-1.5 14.6 1.2 1.5.8 2 .4 2 2.1v11.2c0 1-.3 1.5-1.2 1.1-4.8-2.3-9.6-1.5-14.2.9-.8.4-1.2 0-1.2-1V28.5c0-.5.4-1 0-1.1z" fill="url(#w7paneBlue)" />
+      <path d="M27 28.6c5-2.7 9.8-3.5 14.6-1.2.9.4 1.2.6 1.2 1.1v9.6c0 1-.4 1.4-1.2 1-4.6-2.4-9.4-3.2-14.2-.9-.9.4-1.2.1-1.2-1.1V30c0-1.7.3-2.1.8-1.4z" fill="url(#w7paneYellow)" />
     </>
   ),
   shield: () => (
@@ -419,7 +429,7 @@ const ICON_BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
 /** Every icon name that has real Windows 7 artwork in public/icons. */
 export const ART: ReadonlySet<string> = new Set([
   "actioncenter", "audio", "cd", "charmap", "cmd", "computer", "controlpanel", "defender", "docs", "downloads",
-  "drive", "driveFixed", "dvd", "dvdmaker", "error", "exe", "explorer", "file", "flag", "folder", "folderOpen",
+  "drive", "driveFixed", "dvd", "dvdmaker", "error", "exe", "explorer", "file", "folder", "folderOpen",
   "gadgets", "gamecenter", "games", "hearts", "help", "html", "ie", "image", "info", "iso", "journal", "magnifier",
   "mines", "music", "network", "networkConn", "notepad", "paint", "photos", "pictures", "printer", "programs",
   "question", "recorder", "recycle", "recycleFull", "reliability", "rtf", "run", "search", "share", "shield", "snip", "solitaire",
