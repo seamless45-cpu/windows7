@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
     "localhost",
     "127.0.0.1",
   ],
+  // Public assets (icons, sounds) are referenced by URL, so the base path has
+  // to be available to client code as well.
+  env: { NEXT_PUBLIC_BASE_PATH: basePath },
   // ---- static export for GitHub Pages ----
   output: "export",
   basePath,

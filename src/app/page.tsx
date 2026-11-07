@@ -1,5 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
+import "../win7/icon-art.css";
 
 // The desktop is a single-page, browser-only application. It is imported on
 // the client only because it depends on localStorage, screen size and pointer

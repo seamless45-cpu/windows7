@@ -302,8 +302,20 @@ td.ok { color: #1a7a1a; } td.bad { color: #b00; font-weight: 600; }
 .ie-fav { flex: none; display: flex; align-items: center; gap: 2px; padding: 2px 6px; background: linear-gradient(#f9fbfe, #e9eff7); border-bottom: 1px solid #cdd7e5; color: #1e395b; overflow: hidden; white-space: nowrap; }
 .ie-favbtn { display: inline-flex; gap: 4px; align-items: center; padding: 2px 8px; border: 1px solid transparent; border-radius: 3px; } .ie-favbtn:hover { background: linear-gradient(#fcfeff, #dcebfb); border-color: #9bbbe4; }
 .ie-tabs { flex: none; background: linear-gradient(#eaf0f9, #dce6f3); border-bottom: 1px solid #aebdd3; display: flex; align-items: flex-end; justify-content: space-between; padding: 3px 4px 0; gap: 8px; }
-.ie-tabrow { display: flex; align-items: flex-end; min-width: 0; overflow: hidden; }
-.ie-tab { display: flex; align-items: center; gap: 5px; width: 170px; padding: 3px 6px; border: 1px solid #9aa9c0; border-bottom: none; border-radius: 3px 3px 0 0; background: linear-gradient(#f4f7fb, #d8e2ef); margin-right: 2px; color: #223; } .ie-tab span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ie-tab.sel { background: #fff; padding-top: 5px; } .ie-tab i { font-style: normal; font-size: 10px; padding: 0 3px; border-radius: 2px; } .ie-tab i:hover { background: #e55; color: #fff; }
+.ie-tabrow { position: relative; display: flex; align-items: flex-end; min-width: 0; flex: 1; overflow: hidden; padding-right: 8px; }
+.ie-tabrow.dragging .ie-tab { transition: transform .12s ease-out, background .2s, margin .12s; }
+/* the tab being dragged follows the pointer; the others slide aside */
+.ie-tab { position: relative; transform: translateX(var(--shift, 0)); transition: transform .12s ease-out, background .2s; }
+.ie-tab.dragging { transform: translateX(var(--dx, 0px)) !important; transition: none; opacity: .92; box-shadow: 0 6px 14px rgba(0,0,0,.28); z-index: 5; cursor: grabbing; }
+.ie-tab.dragging.torn { opacity: .55; outline: 1px dashed #5a7aa8; outline-offset: -3px; }
+.ie-tab.x-closing { animation: tabclose .14s ease-in both; }
+@keyframes tabclose { to { opacity: 0; transform: translateY(6px) scaleX(.9); } }
+.ie-tabgrip { position: absolute; right: 2px; bottom: 0; width: 6px; height: 22px; cursor: col-resize; }
+.ie-tabgrip::before { content: ""; position: absolute; left: 2px; top: 3px; bottom: 3px; width: 2px; border-left: 1px solid #9aa9c0; }
+body.col-resize { cursor: col-resize; }
+.ie-tab { display: flex; align-items: center; gap: 5px; width: var(--tw, 170px); flex: none; padding: 3px 6px; border: 1px solid #9aa9c0; border-bottom: none; border-radius: 3px 3px 0 0; background: linear-gradient(#f4f7fb, #d8e2ef); margin-right: 2px; color: #223; touch-action: none; } .ie-tab span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ie-tab.sel { background: #fff; padding-top: 5px; } .ie-tab i { font-style: normal; font-size: 10px; padding: 0 3px; border-radius: 2px; } .ie-tab i:hover { background: #e55; color: #fff; }
+/* Windows 7 marks the tab with a soft vertical sheen instead of a hard border */
+.ie-tab.sel { background: linear-gradient(#fff, #f6f9fd); box-shadow: inset 0 0 0 1px rgba(255,255,255,.9); }
 .ie-newtab { width: 28px; height: 22px; text-align: center; border: 1px solid #9aa9c0; border-bottom: none; background: linear-gradient(#f4f7fb, #d8e2ef); border-radius: 3px 3px 0 0; font-size: 15px; line-height: 20px; } .ie-newtab:hover { background: #fff; }
 .ie-cmds { display: flex; gap: 2px; padding-bottom: 3px; color: #1e395b; white-space: nowrap; } .ie-cmds span { padding: 2px 7px; border: 1px solid transparent; border-radius: 3px; } .ie-cmds span:hover { background: linear-gradient(#fcfeff, #dcebfb); border-color: #9bbbe4; }
 .ie-main { flex: 1; display: flex; min-height: 0; background: #fff; } .ie-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: auto; background: #fff; color: #000; user-select: text; }
