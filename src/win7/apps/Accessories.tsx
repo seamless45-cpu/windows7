@@ -1,15 +1,14 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Win, useStore, getState, setWin, setGuard, closeWin, msgBox, mkfile, writeFile, lsGet, lsSet, openApp, MenuItem, setState, uid, notify, extOf,
+  Win, useStore, getState, setWin, setGuard, closeWin, msgBox, mkfile, writeFile, lsGet, lsSet, openApp, MenuItem, setState, uid, notify, extOf, jumpTouch,
 } from "../store";
 import { MenuBar, Btn, Check } from "../ui";
 import { openFileDialog } from "../dialogs";
 import { Icon } from "../icons";
 
 function recent(app: string, id: string) {
-  const l = lsGet<string[]>("win7.jl." + app, []);
-  lsSet("win7.jl." + app, [id, ...l.filter((x) => x !== id)].slice(0, 8));
+  jumpTouch(app, id);
 }
 
 /* ================================================================ Notepad */

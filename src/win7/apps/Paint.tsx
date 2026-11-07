@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Win, useStore, getState, setWin, setGuard, closeWin, msgBox, mkfile, writeFile, lsGet, lsSet, openApp, extOf, MenuItem, showMenu, view } from "../store";
+import { Win, useStore, getState, setWin, setGuard, closeWin, msgBox, mkfile, writeFile, lsGet, lsSet, openApp, extOf, MenuItem, showMenu, view, jumpTouch } from "../store";
 import { Btn } from "../ui";
 import { openFileDialog } from "../dialogs";
 
@@ -118,8 +118,7 @@ export function Paint({ win }: { win: Win }) {
       setFileId(nid);
       setDirty(false);
       st.current.dirty = false;
-      const l = lsGet<string[]>("win7.jl.paint", []);
-      lsSet("win7.jl.paint", [nid, ...l.filter((x) => x !== nid)].slice(0, 8));
+      jumpTouch("paint", nid);
       then?.();
     } });
   const save = (then?: () => void) => {

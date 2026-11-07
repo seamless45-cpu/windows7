@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import {
   useStore, getState, setState, view, closeAllMenus, toggleStart, showDesktop, openApp, openPath, lock, closeWin, focusWin, maxWin, snapWin, minWin, hideMenu, openCP, setSettings, setWin, workArea,
+  flipStart, flipCommit, flipCancel, jumpTouch, closeJumpList, openJumpList, toggleFlyout,
 } from "./store";
 import { APPS } from "./registry";
 import { IconDefs } from "./icons";
@@ -11,6 +12,7 @@ import { Taskbar } from "./Taskbar";
 import { StartMenu } from "./StartMenu";
 import { ContextMenuHost } from "./ui";
 import { PowerScreens, AltTab, Screensaver } from "./system";
+import { JumpList, Flip3D, SnapAssist, useShake, WallpaperShuffle } from "./aero";
 import { COLORS } from "./data";
 import { playSys } from "./sound";
 
@@ -26,6 +28,7 @@ export default function Shell() {
   const ref = useRef<HTMLDivElement>(null);
   const magRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);
+  useShake();
 
   const rw = settings.resolution === "native" ? 0 : parseInt(settings.resolution.split("x")[0], 10);
   const resZoom = rw ? 1280 / rw : 1;
@@ -49,6 +52,7 @@ export default function Shell() {
     let metaCombo = false;
     const kd = (e: KeyboardEvent) => {
       const st = getState();
+      if (st.flip) return;
       if (st.screensaverOn) return;
       if (st.power !== "desktop") return;
       if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") playSys("key");
@@ -75,7 +79,14 @@ export default function Shell() {
         else if (k === "arrowright" && fw) snapWin(fw.id, "r");
         else if (k === "arrowup" && fw && !fw.max) maxWin(fw.id);
         else if (k === "arrowdown" && fw) (fw.max || fw.snap ? maxWin(fw.id) : minWin(fw.id));
-        else if ((k === "+" || k === "=") ) { setState({ mag: { on: true, level: Math.min(8, st.mag.level + 0.5) } }); openApp("magnifier"); }
+        else if (k === "tab" && combo && !(e.ctrlKey && e.altKey)) { flipStart(e.shiftKey ? -1 : 1); }
+        else if (k === "home" && combo) { shakeDesktop(); }
+        else if (k === "t" && combo) {
+          setState({ taskbarIdx: 0 });
+        }
+        else if (k === "p" && combo) { openApp("mobility"); }
+        else if (k === "x" && combo) { openApp("mobility"); }
+        else if (k === "+" || k === "=" ) { setState({ mag: { on: true, level: Math.min(8, st.mag.level + 0.5) } }); openApp("magnifier"); }
         else if (k === "-") setState({ mag: { ...st.mag, level: Math.max(1, st.mag.level - 0.5) } });
         else if (k === "tab" && e.ctrlKey && e.altKey) {
           handled = true;
@@ -101,6 +112,8 @@ export default function Shell() {
         return;
       }
       if (e.key === "Escape") {
+        if (st.flip) { flipCancel(); return; }
+        if (st.jumplist) return closeJumpList();
         if (st.menu) return hideMenu();
         if (st.startOpen || st.flyout) return closeAllMenus();
         const w = st.windows.find((q) => q.id === st.focus);
@@ -114,6 +127,16 @@ export default function Shell() {
         return;
       }
       if (e.key === "Meta") return;
+    };
+    const shakeDesktop = () => {
+      const st = getState();
+      const vis = st.windows.filter((w) => !w.min && !w.closing && !APPS[w.app].noTask);
+      if (!vis.length) return;
+      if (st.desktopShown) {
+        setState({ windows: st.windows.map((w) => (st.hiddenIds.includes(w.id) ? { ...w, min: false } : w)), desktopShown: false, hiddenIds: [], peek: null });
+      } else {
+        setState({ windows: st.windows.map((w) => (vis.some((v) => v.id === w.id) ? { ...w, min: true } : w)), desktopShown: true, hiddenIds: vis.map((w) => w.id), peek: null, focus: null });
+      }
     };
     const altTab = (e: KeyboardEvent) => {
       const st = getState();
@@ -253,12 +276,14 @@ export default function Shell() {
 
   const closeOnDown = (e: React.PointerEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest(".ctx-host,.start-menu,.flyout,.orb,.tray-ico,.tray-clock,.mb-item,.thumbs,.balloon")) return;
+    if (t.closest(".ctx-host,.start-menu,.flyout,.orb,.tray-ico,.tray-clock,.mb-item,.thumbs,.balloon,.jumplist")) return;
     const st = getState();
     if (st.menu || st.startOpen || st.flyout) closeAllMenus();
+    if (st.jumplist) closeJumpList();
   };
 
   // click-sound / blur
+  void jumpTouch; void toggleFlyout; void flipCommit; void openJumpList;
   void setSettings; void setWin; void workArea;
   void windows;
 
@@ -280,9 +305,13 @@ export default function Shell() {
         <StartMenu />
       </div>
       <ContextMenuHost />
+      <JumpList />
+      <SnapAssist />
+      <Flip3D />
       <AltTab />
       <div ref={trailRef} className="trails">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>
       <Screensaver />
+      <WallpaperShuffle />
       <PowerScreens />
     </div>
   );

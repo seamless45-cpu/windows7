@@ -10,6 +10,8 @@ import { IE } from "./apps/IE";
 import { Cmd, TaskManager, HelpApp, SnippingTool, Minesweeper } from "./apps/SystemApps";
 import { GadgetGallery } from "./gadgets";
 import { MsgBox, Uac, Progress, Props, Run, FileDialog, Winver, Setup, InputBox } from "./dialogs";
+import { Solitaire, Spider, Hearts, GamesExplorer } from "./apps/Games";
+import { Journal, XpsViewer, StickyNotes2, SpeechRecognition, Mobility, Reliability, AnytimeUpgrade } from "./apps/Utilities";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   explorer: Explorer,
@@ -41,4 +43,15 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   winver: Winver,
   setup: Setup,
   inputbox: InputBox,
+  solitaire: Solitaire,
+  spider: Spider,
+  hearts: Hearts,
+  gamecenter: GamesExplorer,
+  journal: Journal,
+  xps: XpsViewer,
+  sticky2: StickyNotes2,
+  speech: SpeechRecognition,
+  mobility: Mobility,
+  reliability: Reliability,
+  trust: AnytimeUpgrade,
 };

@@ -7,17 +7,18 @@ import {
 import { Icon, nodeIcon } from "../icons";
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
+import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
 import { playSys } from "../sound";
 import { wpStyle } from "../fileops";
 
 interface PageDef { title: string; icon: string; cat: string }
 const CATS: { id: string; title: string; icon: string; items: string[]; links: [string, string][] }[] = [
-  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"]] },
+  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"]] },
   { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "network"]] },
-  { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
-  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "gadgets"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
+  { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
+  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "gadgets", "games"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
   { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
-  { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
+  { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
   { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
   { id: "cat-ease", title: "Ease of Access", icon: "ease", items: ["ease"], links: [["Let Windows suggest settings", "ease"], ["Optimize visual display", "ease"]] },
 ];
@@ -50,8 +51,13 @@ const PAGES: Record<string, PageDef> = {
   datetime: { title: "Date and Time", icon: "clock", cat: "cat-clock" },
   region: { title: "Region and Language", icon: "region", cat: "cat-clock" },
   ease: { title: "Ease of Access Center", icon: "ease", cat: "cat-ease" },
+  mobility: { title: "Windows Mobility Center", icon: "power", cat: "cat-system" },
+  reliability: { title: "Reliability Monitor", icon: "history", cat: "cat-system" },
+  aero: { title: "Change the visuals and sounds on your computer", icon: "appearance", cat: "cat-appearance" },
+  games: { title: "Games", icon: "gamecenter", cat: "cat-programs" },
+  anytime: { title: "Windows Anytime Upgrade", icon: "trust", cat: "cat-system" },
 };
-const ALL_ITEMS = ["actioncenter", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "inetopts", "keyboard", "mouse", "network", "personalization", "power", "programs", "region", "sound", "system", "taskbar", "wupdate", "users", "firewall"];
+const ALL_ITEMS = ["actioncenter", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -769,21 +775,69 @@ function Ease() {
   );
 }
 
+function AeroPage() {
+  const s = useStore((st) => st.settings);
+  const a = s.aero;
+  const set = (p: Partial<typeof a>) => setSettings({ aero: { ...a, ...p } });
+  return (
+    <div>
+      <Head title="Change the visuals and sounds on your computer" desc="Windows Aero makes your desktop easier to read and more pleasant to use." />
+      <GroupBox title="Aero effects">
+        <div><Check checked={s.transparency} onChange={(v) => setSettings({ transparency: v })} label="Enable transparency" /></div>
+        <div><Check checked={a.animations} onChange={(v) => set({ animations: v })} label="Animate windows when minimizing and maximizing" /></div>
+        <div><Check checked={a.shadows} onChange={(v) => set({ shadows: v })} label="Show shadows under windows" /></div>
+        <div><Check checked={a.taskbarAnim} onChange={(v) => set({ taskbarAnim: v })} label="Animate controls and elements inside windows" /></div>
+        <div><Check checked={a.smoothScroll} onChange={(v) => set({ smoothScroll: v })} label="Use smooth scrolling for lists" /></div>
+        <div><Check checked={s.shake} onChange={(v) => setSettings({ shake: v })} label="Enable Aero Shake (shake a window to minimize the others)" /></div>
+        <div><Check checked={s.snapAssist} onChange={(v) => setSettings({ snapAssist: v })} label="Enable Snap Assist after snapping a window" /></div>
+      </GroupBox>
+      <GroupBox title="Desktop background slideshow">
+        <div><Check checked={s.wpShuffle} onChange={(v) => setSettings({ wpShuffle: v })} label="Rotate the desktop background automatically" /></div>
+        <p>Change picture every <Sel value={s.wpInterval} onChange={(v) => setSettings({ wpInterval: Number(v) })} opts={[[1, "1 minute"], [5, "5 minutes"], [10, "10 minutes"], [30, "30 minutes"], [60, "1 hour"]]} /></p>
+      </GroupBox>
+      <GroupBox title="Sound scheme">
+        <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={[["default", "Windows Default"], ["none", "No Sounds"]]} />
+      </GroupBox>
+      <p><Btn onClick={() => setSettings({ theme: s.theme === "aero" ? "basic" : "aero" })}>Switch to Windows {s.theme === "aero" ? "7 Basic" : "Aero"}</Btn></p>
+    </div>
+  );
+}
+
+function GamesPage() {
+  const plays = lsGet<Record<string, number>>("win7.games.plays", {});
+  const list: [string, string, string][] = [["solitaire", "Solitaire", "solitaire"], ["spider", "Spider Solitaire", "spider"], ["hearts", "Hearts", "hearts"], ["minesweeper", "Minesweeper", "mines"]];
+  return (
+    <div>
+      <Head title="Games" desc="Play the games that come with Windows 7." />
+      {list.map(([id, name, ic]) => (
+        <div key={id} className="cp-item" onClick={() => openApp(id)}>
+          <Icon name={ic} size={36} />
+          <div><a className="cp-cat-t">{name}</a><div className="cp-desc">{plays[id] ? `${plays[id]} time(s) played` : "Never played"}</div></div>
+        </div>
+      ))}
+      <p><Btn onClick={() => openApp("gamecenter")}>Open Games Explorer</Btn></p>
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------- shell */
 const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode> = {
   system: () => <System />, devmgr: () => <DevMgr />, wupdate: () => <WUpdate />, firewall: () => <Firewall />, power: () => <Power />, sound: (p) => <SoundPage nav={p.nav} />,
   personalization: (p) => <Personalization nav={p.nav} />, wallpaper: () => <Wallpaper />, wincolor: () => <WinColor />, screensaver: () => <ScreenSaver />, deskicons: () => <DeskIcons />, display: () => <Display />,
   mouse: () => <Mouse />, keyboard: () => <Keyboard />, datetime: () => <DateTime />, region: () => <Region />, users: () => <Users />, fonts: () => <Fonts />, defaultprogs: () => <DefaultProgs />,
   folderopts: () => <FolderOpts />, inetopts: () => <InetOpts />, programs: () => <Programs />, network: () => <Network />, actioncenter: () => <ActionCenter />, devices: () => <Devices />,
-  taskbar: () => <TaskbarPage />, ease: () => <Ease />,
+  taskbar: () => <TaskbarPage />, ease: () => <Ease />, mobility: () => <Mobility />, reliability: () => <Reliability />,
+  aero: () => <AeroPage />, games: () => <GamesPage />, anytime: () => <AnytimeUpgrade />,
 };
 
 const SIDE: Record<string, [string, string][]> = {
-  personalization: [["Change desktop icons", "deskicons"], ["Change mouse pointers", "mouse"], ["Change your account picture", "users"]],
-  system: [["Device Manager", "devmgr"], ["Windows Update", "wupdate"], ["Action Center", "actioncenter"]],
+  system: [["Device Manager", "devmgr"], ["Windows Update", "wupdate"], ["Action Center", "actioncenter"], ["Reliability Monitor", "reliability"]],
+  personalization: [["Change desktop icons", "deskicons"], ["Change mouse pointers", "mouse"], ["Change your account picture", "users"], ["Change the visuals and sounds", "aero"]],
   display: [["Adjust resolution", "display"], ["Personalization", "personalization"]],
   wupdate: [["Check for updates", "wupdate"], ["Change settings", "wupdate"]],
   sound: [["Manage audio devices", "sound"]],
+  reliability: [["Action Center", "actioncenter"], ["Windows Update", "wupdate"]],
+  mobility: [["Power Options", "power"], ["Display", "display"]],
 };
 
 export function ControlPanel({ win }: { win: Win }) {
@@ -856,7 +910,7 @@ export function ControlPanel({ win }: { win: Win }) {
             <div><Head title={`Search results (${results.length})`} /><div className="cp-small">{results.map((i) => <div key={i} className="cp-sm-it" onClick={() => nav(i)}><Icon name={PAGES[i].icon} size={24} />{PAGES[i].title}</div>)}</div></div>
           ) : page === "home" ? (
             <div>
-              <div className="cp-home-h"><b>Adjust your computer's settings</b><span>View by: <a className={mode === "cat" ? "on" : ""} onClick={() => setMode("cat")}>Category</a> | <a className={mode === "small" ? "on" : ""} onClick={() => setMode("small")}>Small icons</a></span></div>
+              <div className="cp-home-h"><b>Adjust your computer&apos;s settings</b><span>View by: <a className={mode === "cat" ? "on" : ""} onClick={() => setMode("cat")}>Category</a> | <a className={mode === "small" ? "on" : ""} onClick={() => setMode("small")}>Small icons</a></span></div>
               {mode === "cat" ? (
                 <div className="cp-cats">
                   {CATS.map((c) => (

@@ -188,6 +188,19 @@ export function seedFs(): Record<string, FsNode> {
   f("doc4", "Letter.rtf", "docs", "<div style='font-family:Calibri'><h2>Dear Friend,</h2><p>This is a sample <b>WordPad</b> document with <i>rich</i> <u>formatting</u>.</p><p>Sincerely,<br>User</p></div>");
   d("doc_work", "Work", "docs");
   f("doc5", "Meeting notes.txt", "doc_work", "Agenda\r\n1. Status\r\n2. Roadmap\r\n3. Questions\r\n");
+  f("doc_xps", "Windows 7 Overview.xps", "docs", `<h1>Windows 7 Overview</h1>
+<p><b>Windows 7</b> makes everyday tasks faster and easier. This XPS document shows how the new features work together.</p>
+<h2>Aero Snap</h2><p>Drag a window to the top of the screen to maximize it, or to the left or right edge to compare two windows side by side.</p>
+<h2>Aero Peek</h2><p>Point at the Show desktop button to see through every open window, or point at a taskbar thumbnail to peek at a single window.</p>
+<h2>Aero Shake</h2><p>Grab a window's title bar and shake it to minimize every other window. Shake again to bring them back.</p>
+<h2>Jump Lists</h2><p>Right-click a taskbar button to see recent files, frequent folders and tasks for that program.</p>
+<h2>Libraries</h2><p>Libraries gather files from several folders in one place, so you can find Documents, Pictures, Music and Videos in a single window.</p>
+<h2>Flip 3D</h2><p>Hold the Windows key and press Tab to flip through your open windows in three dimensions.</p>
+<p>Windows 7 Ultimate &middot; Version 6.1 (Build 7601)</p>`, 148e3);
+  f("doc_xps2", "Getting Started.xps", "docs", `<h1>Getting started with your computer</h1>
+<p>Welcome! Here are five things worth trying first.</p>
+<ol><li>Press the <b>Windows key</b> and type what you are looking for.</li><li>Right-click a taskbar button to open its <b>jump list</b>.</li><li>Drag a window to the edge of the screen to <b>snap</b> it.</li><li>Add a <b>gadget</b> by right-clicking the desktop and choosing Gadgets.</li><li>Press <b>Win+Tab</b> for Flip 3D.</li></ol>
+<p>Enjoy Windows 7.</p>`, 96e3);
   f("doc6", "page.html", "docs", "<html><body style='font-family:Segoe UI,Arial;padding:20px'><h1>Hello from the virtual file system!</h1><p>This HTML file lives in your Documents folder and is rendered in Internet Explorer.</p></body></html>");
 
   // Pictures

@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useStore, getState, setState, setSettings, openApp, focusWin, minWin, closeWin, toggleStart, toggleFlyout, showMenu, showDesktop, tbThick, workArea, view, setWin, openCP, openPath,
-  notify, lsGet, Win, MenuItem, lock,
+  notify, lsGet, Win, MenuItem, lock, openJumpList, taskbarActivate,
 } from "./store";
 import { APPS } from "./registry";
 import { Icon, appIcon } from "./icons";
@@ -81,6 +81,9 @@ export function Taskbar() {
   const menu = useStore((s) => s.menu);
   const notifs = useStore((s) => s.notifications);
   const tb = settings.taskbar;
+  const taskbarIdx = useStore((s) => s.taskbarIdx);
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (taskbarIdx !== null) barRef.current?.focus(); }, [taskbarIdx]);
   const th = tbThick(settings);
   const vertical = tb.pos === "left" || tb.pos === "right";
   const [hover, setHover] = useState<{ key: string; rect: DOMRect } | null>(null);
@@ -147,34 +150,40 @@ export function Taskbar() {
   const jump = (e: React.MouseEvent, g: Group) => {
     e.preventDefault();
     e.stopPropagation();
-    const meta = APPS[g.app];
-    const items: MenuItem[] = [];
-    const recent = lsGet<string[]>("win7.jl." + g.app, []);
-    const fs = getState().fs;
-    if (g.app === "explorer")
-      items.push(
-        { label: "Frequent", disabled: true, bold: true },
-        ...[["docs", "Documents", "docs"], ["pics", "Pictures", "pictures"], ["music", "Music", "music"], ["vids", "Videos", "videos"], ["dl", "Downloads", "downloads"], ["desk", "Desktop", "desktop"]].map(([id, label, ic]) => ({ label, icon: ic, onClick: () => openPath(id) })),
-        { sep: true }
-      );
-    else if (g.app === "ie")
-      items.push({ label: "Frequent", disabled: true, bold: true }, ...getState().settings.ie.favs.slice(0, 5).map((f) => ({ label: f.title, icon: "ie", onClick: () => openApp("ie", { url: f.url }) })), { sep: true }, { label: "Tasks", disabled: true, bold: true }, { label: "Start InPrivate Browsing", icon: "ie", onClick: () => openApp("ie", { private: true }) }, { label: "Open new tab", icon: "ie", onClick: () => openApp("ie", { newtab: true }) }, { sep: true });
-    else if (g.app === "wmp") {
-      items.push({ label: "Tasks", disabled: true, bold: true }, { label: "Play all music", icon: "music", onClick: () => openApp("wmp", { playAll: true }) }, { label: "Resume previous list", icon: "wmp", onClick: () => openApp("wmp") }, { sep: true });
-    } else if (recent.length) {
-      items.push({ label: "Recent", disabled: true, bold: true });
-      recent.filter((id) => fs[id] && !fs[id].trash).slice(0, 8).forEach((id) => items.push({ label: fs[id].name, icon: g.app === "paint" ? "image" : "txt", onClick: () => openApp(g.app, { file: id }) }));
-      items.push({ sep: true });
-    }
-    items.push({ label: meta.title.replace(/^(Untitled|Document) - /, ""), icon: meta.icon, onClick: () => openApp(g.app) });
-    items.push(
-      g.pinned
-        ? { label: "Unpin this program from taskbar", icon: "favorites", onClick: () => setSettings({ pinned: settings.pinned.filter((p) => (APPS[p].group || p) !== g.key) }) }
-        : { label: "Pin this program to taskbar", icon: "favorites", onClick: () => setSettings({ pinned: [...settings.pinned, g.app] }) }
-    );
-    if (g.wins.length) items.push({ label: g.wins.length > 1 ? "Close all windows" : "Close window", icon: "error", onClick: () => g.wins.forEach((w) => closeWin(w.id)) });
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    showMenu({ x: r.left / view.scale, y: r.top / view.scale }, items);
+    // every taskbar button and pinned program offers a Windows 7 jump list
+    openJumpList(g.app, { x: r.left / view.scale, y: r.bottom / view.scale });
+  };
+
+  /* Shift+click opens a pinned program; middle click opens a new window */
+  const trackKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const st = getState();
+    const keys: string[] = [];
+    st.windows.filter((w) => !APPS[w.app].noTask && !w.closing).forEach((w) => {
+      const k = APPS[w.app].group || w.app;
+      if (!keys.includes(k)) keys.push(k);
+    });
+    const groups = keys.length;
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const d = e.key === "ArrowRight" ? 1 : -1;
+      const i = st.taskbarIdx === null ? (d > 0 ? 0 : groups - 1) : (st.taskbarIdx + d + groups + 1) % (groups + 1);
+      setState({ taskbarIdx: i });
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      taskbarActivate(0);
+    } else if (e.key === "Escape") {
+      setState({ taskbarIdx: null });
+    } else if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+      e.preventDefault();
+      const i = st.taskbarIdx ?? 0;
+      const el = document.querySelectorAll(".tb-btn")[i] as HTMLElement | null;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const app = el.getAttribute("data-app") || "";
+        if (app) openJumpList(app, { x: r.left / view.scale, y: r.bottom / view.scale });
+      }
+    }
   };
 
   const barMenu = (e: React.MouseEvent) => {
@@ -237,10 +246,29 @@ export function Taskbar() {
   return (
     <>
       <div
+        ref={barRef}
+        tabIndex={taskbarIdx !== null ? 0 : -1}
         className={`taskbar tb-${tb.pos}${tb.small ? " small" : ""}${autoHidden ? " autohidden" : ""}`}
         style={{ [vertical ? "width" : "height"]: th }}
         onContextMenu={barMenu}
         onPointerDown={barDown}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setState({ taskbarIdx: null });
+          else if (["ArrowLeft", "ArrowRight", "Enter", " "].includes(e.key)) {
+            e.preventDefault();
+            const keys: string[] = [];
+            getState().windows.filter((w) => !APPS[w.app].noTask && !w.closing).forEach((w) => {
+              const k = APPS[w.app].group || w.app;
+              if (!keys.includes(k)) keys.push(k);
+            });
+            if (e.key === "Enter" || e.key === " ") taskbarActivate(0);
+            else {
+              const d = e.key === "ArrowRight" ? 1 : -1;
+              const i = taskbarIdx === null ? 0 : (taskbarIdx + d + keys.length + 1) % (keys.length + 1);
+              setState({ taskbarIdx: i });
+            }
+          }
+        }}
         onPointerEnter={() => tb.autohide && setRevealed(true)}
         onPointerLeave={() => setRevealed(false)}
       >
@@ -248,15 +276,18 @@ export function Taskbar() {
           <StartOrb size={tb.small ? 42 : 54} />
         </div>
         <div className="tb-items">
-          {groups.map((g) => {
+          {groups.map((g, groupIdx) => {
             const active = g.wins.some((w) => w.id === focus && !w.min);
             const prog = g.wins.find((w) => typeof w.progress === "number")?.progress;
             const sep = tb.combine === "never" && g.wins.length === 1;
             return (
               <div
                 key={g.key}
-                className={"tb-btn" + (g.wins.length ? " run" : "") + (g.wins.length > 1 ? " multi" : "") + (active ? " active" : "") + (sep ? " labeled" : "")}
+                data-app={g.app}
+                data-tbkey={g.key}
+                className={"tb-btn" + (g.wins.length ? " run" : "") + (g.wins.length > 1 ? " multi" : "") + (active ? " active" : "") + (sep ? " labeled" : "") + (taskbarIdx === groupIdx ? " kb" : "")}
                 onClick={(e) => (e.shiftKey ? openApp(g.app) : activate(g))}
+                onKeyDown={trackKey}
                 onAuxClick={(e) => e.button === 1 && openApp(g.app)}
                 onContextMenu={(e) => jump(e, g)}
                 onPointerDown={(e) => e.stopPropagation()}

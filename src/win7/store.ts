@@ -82,6 +82,12 @@ export interface Settings {
   defaults: Record<string, string>;
   highContrastText: boolean;
   deviceDisabled: string[];
+  wpShuffle: boolean;
+  wpInterval: number;
+  snapAssist: boolean;
+  shake: boolean;
+  aero: { animations: boolean; shadows: boolean; taskbarAnim: boolean; smoothScroll: boolean };
+  recentDocs: { id: string; app: string; at: number }[];
 }
 
 export interface Win {
@@ -128,6 +134,12 @@ export interface State {
   runDialog: boolean;
   screensaverOn: boolean;
   rev: number;
+  flip: { ids: string[]; idx: number } | null;
+  taskbarIdx: number | null;
+  jumplist: { app: string; x: number; y: number; pinned: string[] } | null;
+  altTabHover: string | null;
+  windowIds: string[];
+  notifyToast: { title: string; text: string; icon: string; at: number } | null;
 }
 
 /* --------------------------------------------------------------- defaults */
@@ -184,6 +196,12 @@ export const DEFAULTS: Settings = {
   defaults: { browser: "ie", music: "wmp", photos: "photos", text: "notepad", email: "none" },
   highContrastText: false,
   deviceDisabled: [],
+  wpShuffle: false,
+  wpInterval: 30,
+  snapAssist: true,
+  shake: true,
+  aero: { animations: true, shadows: true, taskbarAnim: true, smoothScroll: true },
+  recentDocs: [],
 };
 
 export const view = { scale: 1 };
@@ -216,6 +234,8 @@ function mergeSettings(saved: Partial<Settings>): Settings {
   s.folder = { ...DEFAULTS.folder, ...(saved.folder || {}) };
   s.ie = { ...DEFAULTS.ie, ...(saved.ie || {}) };
   s.defaults = { ...DEFAULTS.defaults, ...(saved.defaults || {}) };
+  s.aero = { ...DEFAULTS.aero, ...(saved.aero || {}) };
+  if (!Array.isArray(s.recentDocs)) s.recentDocs = [];
   return s;
 }
 
@@ -252,6 +272,12 @@ function init(): State {
     runDialog: false,
     screensaverOn: false,
     rev: 0,
+    flip: null,
+    taskbarIdx: null,
+    jumplist: null,
+    altTabHover: null,
+    windowIds: [],
+    notifyToast: null,
   };
 }
 
@@ -578,6 +604,9 @@ export function setWin(id: string, p: Partial<Win>) {
 export function openApp(app: string, props: any = {}, opts: Partial<Win> = {}): string { // eslint-disable-line @typescript-eslint/no-explicit-any
   const meta = APPS[app];
   if (!meta) return "";
+  if (props && props.file && state.fs[props.file]) {
+    try { jumpTouch(app, props.file); } catch {}
+  }
   if (meta.single) {
     const ex = state.windows.find((w) => w.app === app && !w.closing);
     if (ex) {
@@ -682,6 +711,96 @@ export function hideMenu() {
   if (state.menu) setState({ menu: null });
 }
 
+/* ------------------------------------------------------------ jump lists */
+export const JL_PINNED = "win7.jlp"; // { [app]: string[] } pinned file ids
+
+export function jumpRecent(app: string): string[] {
+  return lsGet<string[]>("win7.jl." + app, []).filter((id) => state.fs[id] && !state.fs[id].trash);
+}
+export function jumpTouch(app: string, id: string) {
+  const l = jumpRecent(app);
+  lsSet("win7.jl." + app, [id, ...l.filter((x) => x !== id)].slice(0, 8));
+  const docs = state.settings.recentDocs.filter((d) => d.id !== id);
+  setSettings({ recentDocs: [{ id, app, at: Date.now() }, ...docs].slice(0, 25) });
+}
+export function jumpPinnedAll(): Record<string, string[]> {
+  return lsGet<Record<string, string[]>>(JL_PINNED, {});
+}
+export function jumpPinned(app: string): string[] {
+  return (jumpPinnedAll()[app] || []).filter((id) => state.fs[id] && !state.fs[id].trash);
+}
+export function jumpPin(app: string, id: string, on: boolean) {
+  const all = jumpPinnedAll();
+  const cur = all[app] || [];
+  all[app] = on ? [id, ...cur.filter((x) => x !== id)] : cur.filter((x) => x !== id);
+  lsSet(JL_PINNED, all);
+  bumpRev();
+}
+
+export function openJumpList(app: string, at: { x: number; y: number }) {
+  setState({ jumplist: { app, x: at.x, y: at.y, pinned: jumpPinned(app) }, menu: null, startOpen: false, flyout: null });
+}
+export function closeJumpList() {
+  if (state.jumplist) setState({ jumplist: null });
+}
+
+/* -------------------------------------------------- Flip 3D / taskbar nav */
+export function flipStart(dir = 1) {
+  const ids = state.windows.filter((w) => !w.min && !w.closing && !APPS[w.app].noTask).sort((a, b) => b.z - a.z).map((w) => w.id);
+  if (!ids.length) return;
+  if (!state.flip) setState({ flip: { ids, idx: dir > 0 ? 1 % ids.length : ids.length - 1 }, startOpen: false, flyout: null, menu: null });
+  else setState({ flip: { ...state.flip, idx: (state.flip.idx + dir + ids.length) % ids.length } });
+}
+export function flipCommit() {
+  const f = state.flip;
+  if (!f) return;
+  const id = f.ids[f.idx % f.ids.length];
+  setState({ flip: null });
+  if (id) focusWin(id);
+}
+export function flipCancel() {
+  if (state.flip) setState({ flip: null });
+}
+
+export function taskbarFocus(idx: number) {
+  const stops: string[] = [];
+  state.windows.filter((w) => !APPS[w.app].noTask && !w.closing).forEach((w) => {
+    const key = APPS[w.app].group || w.app;
+    if (!stops.includes(key)) stops.push(key);
+  });
+  stops.push("$tray");
+  if (idx < 0) idx = stops.length - 1;
+  if (idx >= stops.length) idx = 0;
+  setState({ taskbarIdx: idx });
+}
+export function taskbarActivate(dir = 0) {
+  const i = state.taskbarIdx;
+  if (i === null) return;
+  const groups: string[] = [];
+  state.windows.filter((w) => !APPS[w.app].noTask && !w.closing).forEach((w) => {
+    const key = APPS[w.app].group || w.app;
+    if (!groups.includes(key)) groups.push(key);
+  });
+  const key = groups[i];
+  if (!key) return; // tray
+  const wins = state.windows
+    .filter((w) => !APPS[w.app].noTask && !w.closing && (APPS[w.app].group || w.app) === key)
+    .sort((a, b) => a.z - b.z);
+  if (!wins.length) { void dir; return; }
+  const cur = wins.findIndex((w) => w.id === state.focus && !w.min);
+  const next = wins[(cur + 1) % wins.length] || wins[0];
+  if (next.min) setState({ windows: state.windows.map((w) => (w.id === next.id ? { ...w, min: false } : w)) });
+  focusWin(next.id);
+}
+
+/* ------------------------------------------------------------- snap assist */
+export function snappedHalf(): string | null {
+  const w = state.windows.find((q) => q.id === state.focus);
+  if (!w || w.max || !w.snap || w.min) return null;
+  return w.id;
+}
+
+/* ------------------------------------------------------------- lock/sleep */
 /* ----------------------------------------------------------- dialogs etc */
 let notifSeq = 1;
 export function notify(o: { title: string; text: string; icon?: string }) {
@@ -765,6 +884,8 @@ export function openNode(id: string) {
   if (["mp3", "wma", "wav", "wmv", "mp4", "avi", "webm", "mpg", "m4a", "ogg"].includes(e)) return openApp("wmp", { file: id });
   if (e === "iso") return msgBox({ title: "Windows Disc Image Burner", text: "To burn this disc image, insert a blank recordable disc into your drive.", icon: "info" });
   if (e === "ttf") return msgBox({ title: n.name, text: "This font preview is not available in this simulation.", icon: "info" });
+  if (e === "xps" || e === "oxps") return openApp("xps", { file: id });
+  if (e === "jnt") return openApp("journal");
   msgBox({
     title: "Windows",
     text: `Windows can't open this file:\n\n${n.name}\n\nTo open this file, Windows needs to know what program you want to use to open it.`,
@@ -776,7 +897,9 @@ export function openNode(id: string) {
 
 const RUN_MAP: Record<string, string> = {
   notepad: "notepad", calc: "calc", mspaint: "paint", paint: "paint", cmd: "cmd", explorer: "explorer", iexplore: "ie", taskmgr: "taskmgr", wmplayer: "wmp", write: "wordpad", wordpad: "wordpad",
-  snippingtool: "snip", charmap: "charmap", magnify: "magnifier", stikynot: "sticky", soundrecorder: "recorder", dvdmaker: "dvdmaker", winver: "winver", minesweeper: "minesweeper", helppane: "help",
+  snippingtool: "snip", charmap: "charmap", magnify: "magnifier", stikynot: "sticky2", soundrecorder: "recorder", dvdmaker: "dvdmaker", winver: "winver", minesweeper: "minesweeper", helppane: "help",
+  sol: "solitaire", solitaire: "solitaire", spider: "spider", hearts: "hearts", gameexplorer: "gamecenter", journal: "journal", xpsrchvw: "xps",
+  speechux: "speech", mblctr: "mobility", perfmon: "reliability", windowsanytimeupgradeui: "trust", wscui: "reliability", notepad2: "notepad", sticky: "sticky2",
 };
 export function runCommand(raw: string): boolean {
   let cmd = raw.trim();
@@ -798,6 +921,17 @@ export function runCommand(raw: string): boolean {
   if (lc === "intl.cpl") return openCP("region"), true;
   if (lc === "devmgmt.msc") return openCP("devmgr"), true;
   if (lc === "firewall.cpl") return openCP("firewall"), true;
+  if (lc === "wscui.cpl") return openCP("actioncenter"), true;
+  if (lc === "mblctr" || lc === "mblctr.exe") return openApp("mobility"), true;
+  if (lc === "perfmon" || lc === "perfmon.exe") return openApp("reliability"), true;
+  if (lc === "sol" || lc === "sol.exe") return openApp("solitaire"), true;
+  if (lc === "shell:games") return openApp("gamecenter"), true;
+  if (lc === "shell:controlpanelfolder") return openCP(), true;
+  if (lc === "shell:documents") return openPath("docs"), true;
+  if (lc === "shell:pictures") return openPath("pics"), true;
+  if (lc === "shell:music") return openPath("music"), true;
+  if (lc === "shell:downloads") return openPath("dl"), true;
+  if (lc === "shell:computer") return openPath("computer"), true;
   if (lc === "inetcpl.cpl") return openCP("inetopts"), true;
   if (lc === "shutdown") return shutdown(), true;
   if (lc === "regedit" || lc === "msconfig" || lc === "gpedit.msc") {

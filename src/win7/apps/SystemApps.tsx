@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Win, useStore, getState, setWin, openApp, closeWin, focusWin, msgBox, children, resolvePath, pathOf, mkdir, mkfile, deleteForever, renameNode, moveNodes, copyNodes, shutdown, restart, logoff,
-  runCommand, MenuItem, FsNode, lock, workArea, mkfile as mkf, notify, view, openCP, setState, extOf,
+  runCommand, MenuItem, FsNode, lock, workArea, mkfile as mkf, notify, view, openCP, setState, extOf, lsGet, lsSet,
 } from "../store";
 import { APPS } from "../registry";
 import { Icon, appIcon } from "../icons";
@@ -161,7 +161,7 @@ const SYS_PROCS: [string, string, number][] = [["System Idle Process", "SYSTEM",
 export function TaskManager({ win }: { win: Win }) {
   const windows = useStore((s) => s.windows);
   const s = useStore((st) => st.settings);
-  const [tab, setTab] = useState("Applications");
+  const [tab, setTab] = useState(() => lsGet("win7.tm.tab", "Applications"));
   const [sel, setSel] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const cpu = useRef<number[]>(Array(60).fill(3));
@@ -204,7 +204,7 @@ export function TaskManager({ win }: { win: Win }) {
   return (
     <div className="tm">
       <MenuBar menus={menus} />
-      <Tabs tabs={["Applications", "Processes", "Services", "Performance", "Networking", "Users"]} value={tab} onChange={(t) => { setTab(t); setSel(null); }} />
+      <Tabs tabs={["Applications", "Processes", "Services", "Performance", "Networking", "Users"]} value={tab} onChange={(t) => { setTab(t); setSel(null); lsSet("win7.tm.tab", t); }} />
       <div className="tm-body">
         {tab === "Applications" && (
           <>

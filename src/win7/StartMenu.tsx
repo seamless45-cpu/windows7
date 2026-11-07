@@ -2,8 +2,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useStore, getState, setState, openApp, openCP, openPath, openNode, searchFs, tbThick, shutdown, restart, sleep, lock, logoff, showMenu, view, setSettings, MenuItem,
+  jumpRecent, openJumpList,
 } from "./store";
 import { APPS } from "./registry";
+import { allPrograms } from "./catalog";
 import { Icon, appIcon, nodeIcon } from "./icons";
 import { userPic } from "./data";
 
@@ -11,45 +13,70 @@ interface PItem { label: string; icon: string; run?: () => void; kids?: PItem[];
 
 const app = (id: string, label?: string): PItem => ({ label: label || APPS[id].title, icon: APPS[id].icon, run: () => openApp(id), desc: APPS[id].desc });
 
+const runItem = (id: string): (() => void) => () => {
+  if (id === "run") return openApp("run");
+  if (id === "controlpanel") return openCP();
+  if (id === "wupdate") return openCP("wupdate");
+  if (id === "reliability") return openApp("reliability");
+  if (id === "speech") return openApp("speech");
+  if (id === "sticky2") return openApp("sticky2");
+  return openApp(id);
+};
+
 const PROGRAMS: PItem[] = [
   { label: "Default Programs", icon: "defaultprogs", run: () => openCP("defaultprogs") },
-  app("gadgets", "Desktop Gadget Gallery"),
+  app("gamecenter", "Games Explorer"),
   app("ie", "Internet Explorer"),
   app("dvdmaker"),
   app("wmp"),
   { label: "Windows Update", icon: "update", run: () => openCP("wupdate") },
+  { label: "Windows Anytime Upgrade", icon: "trust", run: () => openApp("trust") },
   {
     label: "Accessories",
     icon: "folder",
     kids: [
       app("calc", "Calculator"),
       app("cmd"),
-      { label: "Ease of Access", icon: "folder", kids: [app("magnifier")] },
+      { label: "Ease of Access", icon: "folder", kids: [app("magnifier"), app("speech")] },
+      app("journal", "Windows Journal"),
       app("notepad"),
       app("paint"),
       { label: "Run", icon: "run", run: () => openApp("run") },
       app("snip"),
       app("recorder"),
-      app("sticky"),
-      { label: "System Tools", icon: "folder", kids: [app("charmap"), app("taskmgr", "Task Manager"), { label: "Control Panel", icon: "controlpanel", run: () => openCP() }] },
+      app("sticky2", "Sticky Notes"),
+      { label: "System Tools", icon: "folder", kids: [app("charmap"), app("taskmgr", "Task Manager"), app("reliability", "Reliability Monitor"), app("xps", "XPS Viewer"), { label: "Control Panel", icon: "controlpanel", run: () => openCP() }] },
       app("explorer"),
       app("wordpad"),
     ],
   },
-  { label: "Games", icon: "folder", kids: [app("minesweeper")] },
-  { label: "Maintenance", icon: "folder", kids: [app("help"), { label: "Windows Update", icon: "update", run: () => openCP("wupdate") }] },
+  {
+    label: "Games",
+    icon: "gamecenter",
+    kids: [app("solitaire"), app("spider", "Spider Solitaire"), app("hearts"), app("minesweeper")],
+  },
+  { label: "Maintenance", icon: "folder", kids: [app("reliability"), app("help"), { label: "Windows Update", icon: "update", run: () => openCP("wupdate") }] },
   { label: "Startup", icon: "folder", kids: [] },
+];
+
+const MORE: PItem[] = [
+  app("mobility", "Windows Mobility Center"),
+  app("xps", "XPS Viewer"),
+  app("journal", "Windows Journal"),
+  app("trust", "Windows Anytime Upgrade"),
+  app("reliability", "Reliability Monitor"),
 ];
 
 const PINNED: PItem[] = [
   { label: "Getting Started", icon: "help", run: () => openApp("help") },
   app("wmp"),
   app("calc"),
-  app("sticky"),
+  app("sticky2"),
   app("snip"),
   app("paint"),
   app("magnifier"),
-  app("minesweeper"),
+  app("solitaire"),
+  app("sticky2", "Sticky Notes"),
 ];
 
 const CPL: [string, string, string][] = [
@@ -104,11 +131,19 @@ export function StartMenu() {
     [settings.recent]
   );
 
+  // programs that live outside the curated tree (new apps, control panels, etc.)
+  const extra = useMemo<PItem[]>(() => {
+    const known = new Set(flat([...PROGRAMS, ...MORE]).map((p) => p.label));
+    return allPrograms()
+      .filter((p) => !known.has(p.label) && p.app)
+      .map((p) => ({ label: p.label, icon: p.icon, run: runItem(p.app!) }));
+  }, []);
+
   // search
   const results = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return null;
-    const progs = flat(PROGRAMS).filter((p) => p.label.toLowerCase().includes(t) || p.desc?.toLowerCase().includes(t));
+    const progs = [...flat(PROGRAMS), ...flat(MORE)].filter((p) => p.label.toLowerCase().includes(t) || p.desc?.toLowerCase().includes(t));
     const uniq = progs.filter((p, i) => progs.findIndex((x) => x.label === p.label) === i);
     const cp = CPL.filter((c) => c[0].toLowerCase().includes(t));
     const files = searchFs(null, t).filter((n) => !n.id.startsWith("exe_")).slice(0, 12);
@@ -163,7 +198,9 @@ export function StartMenu() {
     });
 
   const left = (it: PItem) => (
-    <div key={it.label} className="sm-item big" onClick={() => run(it.run)} onContextMenu={(e) => {
+    <div key={it.label} className="sm-item big" onClick={() => run(it.run)}
+      onPointerEnter={(e) => {/* reveal the jump-list arrow */ (e.currentTarget as HTMLElement).classList.add("hov"); }}
+      onPointerLeave={(e) => (e.currentTarget as HTMLElement).classList.remove("hov")} onContextMenu={(e) => {
       e.preventDefault();
       e.stopPropagation();
       const a = Object.keys(APPS).find((k) => APPS[k].title === it.label || it.label === k);
@@ -173,6 +210,24 @@ export function StartMenu() {
     }}>
       <Icon name={it.icon} size={32} />
       <span>{it.label}</span>
+      {(() => {
+        const a = Object.keys(APPS).find((k) => APPS[k].title === it.label);
+        if (!a) return null;
+        const rec = jumpRecent(a);
+        if (!rec.length) return null;
+        return (
+          <button
+            className="sm-jl-arrow"
+            title="Recent items"
+            onClick={(e) => {
+              e.stopPropagation();
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setState({ startOpen: false });
+              openJumpList(a, { x: r.left / view.scale + r.width, y: r.top / view.scale });
+            }}
+          >▶</button>
+        );
+      })()}
     </div>
   );
 
@@ -216,7 +271,11 @@ export function StartMenu() {
               )}
             </div>
           ) : all ? (
-            <div className="sm-all">{renderTree(PROGRAMS)}</div>
+            <div className="sm-all">
+              {renderTree(PROGRAMS)}
+              {extra.length > 0 && <div className="sm-rh">Windows</div>}
+              {renderTree(extra)}
+            </div>
           ) : (
             <>
               {PINNED.map(left)}
@@ -243,10 +302,12 @@ export function StartMenu() {
         {place("Documents", "docs", () => openPath("docs"))}
         {place("Pictures", "pictures", () => openPath("pics"))}
         {place("Music", "music", () => openPath("music"))}
-        {place("Games", "folder", () => openPath("c_pf_games"))}
+        {place("Games", "gamecenter", () => openApp("gamecenter"))}
         <div className="sm-rsep" />
         {place("Computer", "computer", () => openPath("computer"))}
         {place("Control Panel", "controlpanel", () => openCP())}
+        {place("Devices and Printers", "devices", () => openCP("devices"))}
+        {place("Mobility Center", "power", () => openApp("mobility"))}
         {place("Devices and Printers", "devices", () => openCP("devices"))}
         {place("Default Programs", "defaultprogs", () => openCP("defaultprogs"))}
         {place("Help and Support", "help", () => openApp("help"))}

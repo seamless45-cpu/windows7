@@ -379,6 +379,24 @@ const G: Record<string, () => React.ReactNode> = {
   devmgr: () => <Tile a="#e3e8ee" b="#8b97a6"><rect x="10" y="9" width="28" height="14" fill="#fff" stroke="#345" /><path d="M14 23v6h-4v8h28v-8h-4v-6" fill="none" stroke="#345" strokeWidth="2" /></Tile>,
   star: () => <path d="M24 3l6.500 13.500 15 2-11 10.500 2.800 14.800L24 36.500 10.700 43.800 13.500 29 2.500 18.500l15-2z" fill="url(#iYellow)" stroke="#c28a00" />,
   setup: () => <Tile a="#e0ecfa" b="#7aa4d8"><rect x="12" y="10" width="24" height="28" fill="url(#iOrange)" stroke="#864" /><path d="M24 16v14M18 25l6 6 6-6" stroke="#fff" strokeWidth="3" fill="none" /></Tile>,
+  /* ---- Windows 7 extra apps ---- */
+  sticky2: () => <Tile a="#fff8b0" b="#e8c400"><rect x="10" y="10" width="28" height="28" fill="#fffbe0" stroke="#c8a800" /><path d="M18 18h12M18 24h12M18 30h8" stroke="#8a7a20" strokeWidth="2" /></Tile>,
+  solitaire: () => <Tile a="#0a7a2a" b="#053f16"><rect x="12" y="10" width="18" height="26" rx="2" fill="#fff" stroke="#345" /><rect x="17" y="14" width="18" height="26" rx="2" fill="#fff" stroke="#345" /><path d="M26 22l5 5-5 5-5-5z" fill="#d00" /><path d="M22 22h8l-4 6z" fill="#d00" /></Tile>,
+  spider: () => <Tile a="#0a7a2a" b="#053f16"><rect x="8" y="8" width="16" height="22" rx="2" fill="#fff" stroke="#345" /><rect x="20" y="14" width="16" height="22" rx="2" fill="#fff" stroke="#345" /><path d="M24 14l4 5h-8z" fill="#222" /><circle cx="28" cy="26" r="3" fill="#d00" /></Tile>,
+  hearts: () => <Tile a="#0a7a2a" b="#053f16"><rect x="10" y="10" width="20" height="24" rx="2" fill="#fff" stroke="#345" /><path d="M25 20c0-4 7-4 7 1 0 4-7 8-7 8s-7-4-7-8c0-5 7-5 7-1z" fill="#d00" /></Tile>,
+  gamecenter: () => <Tile a="#e8eef8" b="#8ba8d0"><circle cx="24" cy="21" r="11" fill="url(#iDark)" stroke="#345" strokeWidth="2" /><path d="M24 13v6M21 16h6M31 18h.1M31 24h.1" stroke="#fff" strokeWidth="2.500" strokeLinecap="round" /><path d="M14 32l-4 8h28l-4-8" fill="#c8d4e4" stroke="#345" /></Tile>,
+  xps: () => <Paper g={<><text x="24" y="34" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#2a6fd6" fontFamily="Segoe UI,Arial">XPS</text></>} />,
+  journal: () => <Paper g={<><rect x="14" y="20" width="20" height="14" fill="#fff" stroke="#8aa" /><path d="M17 24h14M17 28h14" stroke="#c9d8e8" strokeWidth="1.500" /></>} />,
+  stickyApp: () => <Tile a="#fff6a8" b="#e0b800"><rect x="10" y="10" width="28" height="28" fill="#fffbe8" /><path d="M14 34l4-4M18 40l10-10" stroke="#c8a800" /><path d="M18 18h12M18 24h12" stroke="#8a7a20" strokeWidth="2" /></Tile>,
+  notepad2: () => <Paper g={<><path d="M15 20h18M15 26h18M15 32h12" stroke="#5a7aa8" strokeWidth="1.500" /></>} />,
+  calc2: () => <Tile a="#f0f4fa" b="#a8b8cc"><rect x="10" y="8" width="28" height="32" rx="2" fill="#e8eef8" stroke="#345" /><rect x="14" y="12" width="20" height="7" fill="#dfe9c8" stroke="#567" />{[0, 1, 2, 3].map((r) => [0, 1, 2].map((c) => <rect key={r + "-" + c} x={14 + c * 7} y={22 + r * 4.500} width="5" height="3.500" fill="#8fa0b4" />))}</Tile>,
+  find: () => <Tile a="#e8f4ff" b="#4d9ae0"><circle cx="21" cy="21" r="11" fill="none" stroke="#fff" strokeWidth="4" /><path d="M29 29l10 10" stroke="#fff" strokeWidth="5" strokeLinecap="round" /></Tile>,
+  snipping2: () => <Tile a="#eef4ff" b="#7aa8e0"><path d="M14 10l10 20M34 10L24 30" stroke="#c03030" strokeWidth="3.500" /><circle cx="14" cy="34" r="5" fill="none" stroke="#c03030" strokeWidth="3" /><circle cx="34" cy="34" r="5" fill="none" stroke="#c03030" strokeWidth="3" /></Tile>,
+  magnifier2: () => <Tile a="#f0f6ff" b="#8fb6e8"><circle cx="21" cy="21" r="12" fill="#e0f0ff" fillOpacity=".8" stroke="#fff" strokeWidth="4" /><path d="M30 30l11 11" stroke="#fff" strokeWidth="6" strokeLinecap="round" /></Tile>,
+  wordpad2: () => <Paper g={<><text x="24" y="32" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#2a6fd6" fontFamily="Georgia,serif">W</text></>} />,
+  speech: () => <Tile a="#dceafc" b="#5b8fd6"><rect x="10" y="12" width="16" height="22" rx="8" fill="#fff" stroke="#345" strokeWidth="2" /><path d="M18 38v-4M14 38h8" stroke="#345" strokeWidth="2" /><path d="M32 16a12 12 0 0 1 0 16M36 12a18 18 0 0 1 0 24" stroke="#fff" strokeWidth="2.500" fill="none" /></Tile>,
+  trust: () => <Tile a="#d7ecff" b="#2f7bd0"><path d="M24 9l13 5v10c0 8-6 13-13 15-7-2-13-7-13-15V14z" fill="#fff" stroke="#145" /><path d="M18 24l4 4 8-9" stroke="#2a9a3a" strokeWidth="3.500" fill="none" /></Tile>,
+  history: () => <Tile a="#eaf1fb" b="#7fa2d2"><path d="M12 24a12 12 0 1 0 4-9" fill="none" stroke="#fff" strokeWidth="3" /><path d="M8 8v8h8" fill="none" stroke="#fff" strokeWidth="3" /><path d="M24 17v8l6 3" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" /></Tile>,
   /* tray glyphs */
   speaker: () => <><path d="M6 18h9l11-9v30l-11-9H6z" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><path d="M32 16a11 11 0 0 1 0 16M37 10a19 19 0 0 1 0 28" stroke="#e8eef6" strokeWidth="3" fill="none" strokeLinecap="round" /></>,
   speakerMute: () => <><path d="M6 18h9l11-9v30l-11-9H6z" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><path d="M32 18l12 12M44 18L32 30" stroke="#ff5a4a" strokeWidth="4" strokeLinecap="round" /></>,
@@ -416,6 +434,7 @@ const EXT_ICON: Record<string, string> = {
   txt: "txt", log: "txt", ini: "txt", cfg: "txt", bat: "txt", md: "txt", rtf: "rtf", doc: "rtf", docx: "rtf", html: "html", htm: "html",
   jpg: "image", jpeg: "image", png: "image", bmp: "image", gif: "image", svg: "image", mp3: "audio", wma: "audio", wav: "audio", m4a: "audio",
   wmv: "video", mp4: "video", avi: "video", webm: "video", mpg: "video", exe: "exe", dll: "exe", zip: "zip", ttf: "font", iso: "iso",
+  xps: "xps", oxps: "xps", jnt: "journal",
 };
 const FOLDER_ICON: Record<string, string> = { docs: "docs", pics: "pictures", music: "music", vids: "videos", dl: "downloads", desk: "desktop", fav: "favorites", home: "user" };
 
