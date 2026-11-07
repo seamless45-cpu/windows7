@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 
+// The simulator is published as a static site on GitHub Pages, where it lives
+// under https://<owner>.github.io/windows7/ instead of the domain root. The
+// prefix is only applied when PAGES_BASE_PATH is set (the Pages workflow sets
+// it), so local development and server hosting stay at /.
+const basePath = process.env.PAGES_BASE_PATH || "";
+
 const nextConfig: NextConfig = {
   // The desktop simulation is served through a preview proxy in hosted
   // environments (https://<port>-<sandbox>.e2b.app). Next.js blocks
@@ -13,6 +19,12 @@ const nextConfig: NextConfig = {
     "localhost",
     "127.0.0.1",
   ],
+  // ---- static export for GitHub Pages ----
+  output: "export",
+  basePath,
+  assetPrefix: basePath || undefined,
+  trailingSlash: true,
+  images: { unoptimized: true },
 };
 
 export default nextConfig;

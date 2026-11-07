@@ -4,15 +4,29 @@ A faithful, interactive recreation of the Windows 7 Ultimate desktop that runs e
 the browser. Built with Next.js 16, React 19 and plain CSS — no canvas UI toolkit, no
 screenshot images: every window frame, icon and Aero effect is drawn with CSS and inline SVG.
 
-## Running it
+## Play it
+
+**https://seamless45-cpu.github.io/windows7/** — the simulator is published as a static
+site by the GitHub Pages workflow in `.github/workflows/pages.yml`.
+
+## Running it locally
 
 ```bash
 npm install
-npm run dev     # http://localhost:3000
+npm run dev         # http://localhost:3000
 ```
 
-`npm run build && npm start` produces a production build. No environment variables are
-required; the `/api/health` route reports degraded status unless `DATABASE_URL` is set.
+`npm run build` produces a static site in `out/` (the app is entirely client-side, so it
+also runs from a plain file server: `npm start`). `npm run build:pages` builds the same
+site with the `/windows7` base path used by GitHub Pages. No environment variables or
+database are required.
+
+### Publishing
+
+The workflow builds the static export on every push to `main` and deploys it to Pages.
+Repository → Settings → Pages must serve from **GitHub Actions** (`build_type: workflow`);
+the previous "deploy from a branch" setting published the raw repository, which is why the
+site showed this README instead of the desktop.
 
 ## Shell features
 
