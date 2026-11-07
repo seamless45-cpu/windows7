@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:pages": "PAGES_BASE_PATH=/windows7 next build",
+    "build:pages": "PAGES_BASE_PATH=/windows7 next build && node scripts/publish-pages.mjs",
     "start": "npx serve@14 out",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
