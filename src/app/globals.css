@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "./win7.css";
+@import "./win7-apps.css";
+
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; overscroll-behavior: none; }
