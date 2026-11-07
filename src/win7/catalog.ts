@@ -24,8 +24,8 @@ export const CATALOG: Cat[] = [
       { name: "XPS Viewer", icon: "xps", apps: ["xps"] },
     ],
   },
-  { name: "Games", icon: "gamecenter", apps: ["gamecenter", "solitaire", "spider", "hearts", "minesweeper"] },
-  { name: "Maintenance", icon: "folder", apps: ["reliability", "wupdate", "help"] },
+  { name: "Games", icon: "gamecenter", apps: ["gamecenter", "solitaire", "spider", "hearts", "minesweeper", "freecell", "mahjong", "chess", "purble"] },
+  { name: "Maintenance", icon: "folder", apps: ["reliability", "wupdate", "help", "eventvwr", "cleanmgr", "sysdiag", "regedit"] },
   {
     name: "Startup",
     icon: "folder",

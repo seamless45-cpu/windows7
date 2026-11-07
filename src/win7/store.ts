@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { APPS } from "./registry";
 import { seedFs, WALLPAPERS } from "./data";
 import { snd, playSys, SCHEMES, clearCache, preload } from "./sound";
+import { bugcheckText, logEvent, EVENT_IDS, type StopCode } from "./kernel";
 
 /* ------------------------------------------------------------------ types */
 export interface FsNode {
@@ -44,6 +45,8 @@ export interface Settings {
   theme: "aero" | "basic" | "classic" | "hc";
   wallpaper: string;
   wpPos: "fill" | "fit" | "stretch" | "tile" | "center";
+  /** play the audio of a video background (desktop slideshow sound) */
+  wpSound: boolean;
   colorKey: string;
   transparency: boolean;
   intensity: number;
@@ -121,7 +124,12 @@ export interface State {
   windows: Win[];
   focus: string | null;
   clipboard: { ids: string[]; mode: "copy" | "cut" } | null;
-  power: Power;
+  power: Power | "bsod";
+  /** set when the kernel bug-checked, so the blue screen can name the stop code */
+  crash: { stop: string; driver?: string; text: string } | null;
+  /** diagnostics: force a driver to fail on the next boot (Control Panel) */
+  brokenDriver: string | null;
+  safeMode: boolean;
   startOpen: boolean;
   flyout: null | "clock" | "volume" | "network" | "action" | "overflow" | "battery";
   peek: null | "all" | string;
@@ -149,6 +157,7 @@ export const DEFAULTS: Settings = {
   theme: "aero",
   wallpaper: "win7",
   wpPos: "fill",
+  wpSound: false,
   colorKey: "sky",
   transparency: true,
   intensity: 50,
@@ -308,7 +317,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
 
   const wp = saved.wallpaper;
   const knownWp = WALLPAPERS.some((w) => w.key === wp);
-  const wallpaper = typeof wp === "string" && (knownWp || wp.startsWith("fs:")) ? wp : d.wallpaper;
+  const wallpaper = typeof wp === "string" && (knownWp || wp.startsWith("fs:") || wp.startsWith("media:")) ? wp : d.wallpaper;
 
   const defaultsOut: Record<string, string> = { ...d.defaults };
   Object.keys(defaultsOut).forEach((k) => { defaultsOut[k] = str(defaults[k], defaultsOut[k]); });
@@ -317,6 +326,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     theme: oneOf(saved.theme, THEMES, d.theme),
     wallpaper,
     wpPos: oneOf(saved.wpPos, WP_POSITIONS, d.wpPos),
+    wpSound: bool(saved.wpSound, d.wpSound),
     colorKey: str(saved.colorKey, d.colorKey),
     transparency: bool(saved.transparency, d.transparency),
     intensity: num(saved.intensity, d.intensity, 0, 100),
@@ -454,6 +464,9 @@ function init(): State {
     focus: null,
     clipboard: null,
     power: "boot",
+    crash: null,
+    brokenDriver: null,
+    safeMode: false,
     startOpen: false,
     flyout: null,
     peek: null,
@@ -804,6 +817,10 @@ export function setWin(id: string, p: Partial<Win>) {
 export function openApp(app: string, props: any = {}, opts: Partial<Win> = {}): string { // eslint-disable-line @typescript-eslint/no-explicit-any
   const meta = APPS[app];
   if (!meta) return "";
+  if (meta.exe && !meta.noTask && !meta.hidden) {
+    const e = EVENT_IDS.appError;
+    logEvent("Information", e.source, 1000, `${meta.exe} started (${meta.title}).`, "Application");
+  }
   if (props && props.file && state.fs[props.file]) {
     try { jumpTouch(app, props.file); } catch {}
   }
@@ -1078,6 +1095,7 @@ export function msgBox(o: { title?: string; text: string; icon?: "error" | "warn
 export function uac(o: { name: string; publisher?: string; path?: string; onAllow: () => void }) {
   if (state.settings.uac === "never") return o.onAllow();
   playSys("exclaim");
+  logEvent("Information", EVENT_IDS.uac.source, EVENT_IDS.uac.id, EVENT_IDS.uac.text.replace("%s", o.name), "Security");
   openApp("uac", o);
 }
 
@@ -1156,6 +1174,7 @@ const RUN_MAP: Record<string, string> = {
   notepad: "notepad", calc: "calc", mspaint: "paint", paint: "paint", cmd: "cmd", explorer: "explorer", iexplore: "ie", taskmgr: "taskmgr", wmplayer: "wmp", write: "wordpad", wordpad: "wordpad",
   snippingtool: "snip", charmap: "charmap", magnify: "magnifier", stikynot: "sticky2", soundrecorder: "recorder", dvdmaker: "dvdmaker", winver: "winver", minesweeper: "minesweeper", helppane: "help",
   sol: "solitaire", solitaire: "solitaire", spider: "spider", hearts: "hearts", gameexplorer: "gamecenter", journal: "journal", xpsrchvw: "xps",
+  sysdiag: "sysdiag", msinfo32: "sysdiag", msinfo: "sysdiag", eventvwr: "eventvwr", cleanmgr: "cleanmgr", dfrgui: "cleanmgr", regedit: "regedit", optionalfeatures: "features", features: "features", freecell: "freecell", mahjong: "mahjong", mahjongtitans: "mahjong", chess: "chess", chesstitans: "chess", purbleplace: "purble", purble: "purble",
   speechux: "speech", mblctr: "mobility", perfmon: "reliability", windowsanytimeupgradeui: "trust", wscui: "reliability", notepad2: "notepad", sticky: "sticky2",
 };
 export function runCommand(raw: string): boolean {
@@ -1191,7 +1210,7 @@ export function runCommand(raw: string): boolean {
   if (lc === "shell:computer") return openPath("computer"), true;
   if (lc === "inetcpl.cpl") return openCP("inetopts"), true;
   if (lc === "shutdown") return shutdown(), true;
-  if (lc === "regedit" || lc === "msconfig" || lc === "gpedit.msc") {
+  if (lc === "msconfig" || lc === "gpedit.msc") {
     msgBox({ title: cmd, text: "Registry editing has been disabled by your administrator.", icon: "error" });
     return true;
   }
@@ -1209,13 +1228,39 @@ export function runCommand(raw: string): boolean {
   return false;
 }
 
+/* ---------------------------------------------------- kernel / bug check */
+/**
+ * Bug check: the kernel has stopped. Windows 7 shows the blue screen for a
+ * moment and then restarts; here it stays until you click, then reboots.
+ */
+export function bugCheck(stop: string, driver?: string) {
+  const text = bugcheckText(stop as StopCode, driver);
+  logEvent("Critical", EVENT_IDS.bugCheck.source, EVENT_IDS.bugCheck.id, `${EVENT_IDS.bugCheck.text} Stop code ${stop}${driver ? ` (${driver})` : ""}.`);
+  if (driver) logEvent("Error", EVENT_IDS.driverFail.source, 7000, EVENT_IDS.driverFail.text.replace("%s", driver), "System");
+  setState({
+    power: "bsod",
+    crash: { stop, driver, text },
+    startOpen: false,
+    flyout: null,
+    menu: null,
+  });
+}
+
+/** Reboot after a bug check (or from the diagnostics page). */
+export function reboot(opts: { safeMode?: boolean } = {}) {
+  setState({ windows: [], focus: null, crash: null, safeMode: !!opts.safeMode, power: "restarting" });
+  setTimeout(() => setState({ power: "boot" }), 1400);
+}
+
 /* -------------------------------------------------------------- power */
 export function shutdown() {
+  logEvent("Information", "User32", 1074, `The process explorer.exe has initiated the power off of computer on behalf of user ${state.settings.currentUser}.`);
   setState({ power: "shuttingdown", startOpen: false, flyout: null, menu: null });
   playSys("shutdown");
   setTimeout(() => setState({ power: "off", windows: [], focus: null }), 2600);
 }
 export function restart() {
+  logEvent("Information", "User32", 1074, `The process explorer.exe has initiated the restart of computer on behalf of user ${state.settings.currentUser}.`);
   setState({ power: "restarting", startOpen: false, flyout: null, menu: null });
   playSys("shutdown");
   setTimeout(() => setState({ power: "boot", windows: [], focus: null }), 2600);
@@ -1242,6 +1287,8 @@ export function login(name: string) {
   }
   if (state.settings.currentUser !== name) setState({ windows: [], focus: null });
   setSettings({ currentUser: name });
+  logEvent("Information", "Microsoft-Windows-Winlogon", 7001, `User Logon Notification for Customer Experience Improvement Program (${name}).`);
+  logEvent("Information", EVENT_IDS.serviceStart.source, 7036, EVENT_IDS.serviceStart.text.replace("%s", "Themes"), "System");
   setState({ power: "welcome" });
   playSys("startup");
   setTimeout(() => {

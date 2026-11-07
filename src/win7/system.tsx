@@ -1,10 +1,12 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
-import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children } from "./store";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children, bugCheck, reboot } from "./store";
 import { Icon, appIcon } from "./icons";
 import { BootAnimation } from "./BootAnimation";
+import { bootKernel, BOOT_STAGES, BUGCHECKS, logEvent } from "./kernel";
 import { userPic } from "./data";
 import { WALLPAPERS } from "./data";
+import { playSys } from "./sound";
 
 const LOGIN_BG = WALLPAPERS[0].css;
 
@@ -17,16 +19,49 @@ function Spinner() {
 }
 
 /**
- * Windows 7's boot screen: a black screen with "Starting Windows" and the
- * copyright line, while the four balls of light form the Windows flag.
- * Variants are used for resuming from sleep/hibernation ("Resuming Windows")
- * and for the update/repair screens.
+ * Windows 7's boot screen. The black screen with "Starting Windows" and the
+ * four balls of light is what the OS shows; underneath it the kernel is really
+ * initialising, so the boot reports the stage it is in (winload, ntoskrnl,
+ * smss, wininit, services, winlogon) in the corner and can genuinely fail — a
+ * driver that does not load produces a bug check instead of the logon screen.
+ * "Resuming Windows" is shown when waking from hibernate.
  */
 export function BootScreen({ text = "Starting Windows", copy = "© Microsoft Corporation" }: { text?: string; copy?: string }) {
+  const broken = useStore((s) => s.brokenDriver);
+  const safeMode = useStore((s) => s.safeMode);
+  const [stage, setStage] = useState(0);
+
+  const result = useMemo(() => bootKernel({ safeMode, brokenDriver: broken || undefined }), [safeMode, broken]);
+  const stages = BOOT_STAGES.filter((s) => s.stage !== "ready");
+
+  useEffect(() => {
+    if (!result.ok) return;
+    // advance one stage at a time so the diagnostics readout follows the log
+    const timers = stages.map((_, i) => window.setTimeout(() => setStage(i), i * 620));
+    return () => timers.forEach(clearTimeout);
+  }, [result.ok]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (result.ok) return;
+    // the machine bug-checks partway through the boot
+    const stop = result.stop!;
+    const t = setTimeout(() => bugCheck(stop, result.failed?.file), 2400);
+    return () => clearTimeout(t);
+  }, [result]);
+
+  const cur = stages[Math.min(stage, stages.length - 1)];
+  const lines = result.lines.filter((l) => l.stage === cur.stage).map((l) => l.text);
+
   return (
-    <div className="boot" onClick={() => setState({ power: "login" })}>
+    <div className="boot" onClick={() => { if (result.ok) setState({ power: "login" }); }}>
       <BootAnimation />
       <div className="boot-text">{text}</div>
+      {safeMode && <div className="boot-safe">Safe Mode</div>}
+      {/* the real boot status: what the kernel is doing right now */}
+      <div className="boot-stage">
+        <span className="boot-stage-name">{cur.label}</span>
+        <span className="boot-stage-line">{lines[lines.length - 1] || ""}</span>
+      </div>
       <div className="boot-copy">{copy}</div>
     </div>
   );
@@ -98,6 +133,52 @@ export function LoginScreen({ locked }: { locked?: boolean }) {
   );
 }
 
+/**
+ * The Windows 7 bug check screen. It prints the stop code and the driver that
+ * failed, waits for a click, then reboot the machine — which is exactly what
+ * the real screen does after the dump completes.
+ */
+export function BlueScreenOfDeath() {
+  const crash = useStore((s) => s.crash);
+  useEffect(() => {
+    playSys("critical");
+  }, []);
+  if (!crash) return null;
+  return (
+    <div
+      className="bsod"
+      onClick={() => reboot()}
+      title="Click to restart"
+    >
+      <div className="bsod-inner">
+        <p>A problem has been detected and Windows has been shut down to prevent damage to your computer.</p>
+        <p className="bsod-code">{crash.text.split("\r\n").slice(0, 4).join("\n")}</p>
+        <p>If this is the first time you&apos;ve seen this Stop error screen, restart your computer. If this screen appears again, follow these steps:</p>
+        <p>Check to make sure any new hardware or software is properly installed. If this is a new installation, ask your hardware or software manufacturer for any Windows updates you might need.</p>
+        {crash.driver && <p>Failing driver: <b>{crash.driver}</b></p>}
+        <p>Technical information:</p>
+        <p className="bsod-tech">
+          *** STOP: {crash.stop} ({BUGCHECKS[crash.stop as keyof typeof BUGCHECKS]?.title})
+        </p>
+        <p className="bsod-count">Collecting data for crash dump ... <Countdown /></p>
+        <p className="bsod-hint">Press any key to restart, or click here.</p>
+      </div>
+    </div>
+  );
+}
+
+function Countdown() {
+  const [n, setN] = useState(5);
+  useEffect(() => {
+    if (n <= 0) {
+      reboot();
+      return;
+    }
+    const t = setTimeout(() => setN((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [n]);
+  return <b>{n}0%</b>;
+}
 export function BlueScreen({ text }: { text: string }) {
   return (
     <div className="login blue" style={{ background: LOGIN_BG, backgroundSize: "cover" }}>
@@ -115,9 +196,17 @@ export function PowerScreens() {
   const user = useStore((s) => s.settings.currentUser);
   useEffect(() => {
     if (power !== "boot") return;
-    // The real boot screen shows "Starting Windows" for about five seconds
-    // before the logon screen appears; clicking skips the rest.
-    const t = setTimeout(() => setState({ power: "login" }), 5200);
+    // The boot screen runs the real kernel log; the secure logon appears when
+    // the kernel and the session manager have finished, ~5 s in. A driver
+    // failure shows a bug check instead and never reaches this timer.
+    const { brokenDriver, safeMode } = getState();
+    const res = bootKernel({ safeMode, brokenDriver: brokenDriver || undefined });
+    if (!res.ok) return;
+    const t = setTimeout(() => {
+      logEvent("Information", "Microsoft-Windows-Kernel-General", 12, "The operating system started at system time " + new Date().toLocaleString() + ".", "System");
+      if (res.failed) logEvent("Error", "Service Control Manager", 7000, `The ${res.failed.display} service failed to start due to the following error: The system cannot find the file specified.`, "System");
+      setState({ power: "login" });
+    }, 5200);
     return () => clearTimeout(t);
   }, [power]);
   useEffect(() => {
@@ -135,6 +224,7 @@ export function PowerScreens() {
   }, [power]);
   switch (power) {
     case "boot": return <BootScreen />;
+    case "bsod": return <BlueScreenOfDeath />;
     case "login": return <LoginScreen />;
     case "locked": return <LoginScreen locked />;
     case "welcome": return <BlueScreen text="Welcome" />;

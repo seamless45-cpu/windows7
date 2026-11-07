@@ -7,6 +7,8 @@ import {
 import { Icon, nodeIcon } from "./icons";
 import { InlineEdit } from "./ui";
 import { GadgetLayer } from "./gadgets";
+import { Wallpaper } from "./Wallpaper";
+import { WALLPAPERS } from "./data";
 import { wpStyle, nodeMenuItems, deleteNodes, pasteInto, clipboardSet, doRename, newItems, createShortcutFor, undoLast, showProps, canUndo, undoName } from "./fileops";
 import { emptyRecycle } from "./dialogs";
 
@@ -99,6 +101,13 @@ export function Desktop() {
     setState({ rev: getState().rev + 1 });
   };
 
+  /** Windows 7's "Next desktop background" — steps through the installed wallpapers. */
+  const nextBackground = () => {
+    const all = WALLPAPERS.map((w) => w.key);
+    const i = all.indexOf(settings.wallpaper);
+    setSettings({ wallpaper: all[(i + 1 + all.length) % all.length] });
+  };
+
   const bgMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const st = getState();
@@ -137,6 +146,8 @@ export function Desktop() {
       { label: canUndo() ? `Undo ${undoName()}` : "Undo", disabled: !canUndo(), shortcut: "Ctrl+Z", onClick: undoLast },
       { sep: true },
       { label: "New", sub: newItems("desk", (id) => setRenaming(id)) },
+      { sep: true },
+      { label: "Next desktop background", icon: "photos", disabled: !settings.wallpaper.startsWith("media:") && !settings.wallpaper.startsWith("fs:"), onClick: () => nextBackground() },
       { sep: true },
       { label: "Screen resolution", icon: "display", onClick: () => openCP("display") },
       { label: "Gadgets", icon: "gadgets", onClick: () => openApp("gadgets") },
@@ -319,14 +330,15 @@ export function Desktop() {
   return (
     <div
       ref={ref}
-      className={"desktop" + (flash ? " flash" : "") + " icons-" + settings.iconSize}
-      style={ws}
+      className={"desktop" + (flash ? " flash" : "") + " icons-" + settings.iconSize + (settings.wallpaper.startsWith("media:") ? " has-media" : "")}
+      style={settings.wallpaper.startsWith("media:") ? { background: "#000" } : ws}
       onPointerDown={bgDown}
       onContextMenu={bgMenu}
       onDragOver={(e) => e.dataTransfer.types.includes("text/win7-ids") && e.preventDefault()}
       onDrop={onDrop}
       data-dropdir="desk"
     >
+      <Wallpaper wallpaper={settings.wallpaper} pos={settings.wpPos} sound={settings.wpSound} />
       <div className="wp-shade" />
       {settings.showIcons &&
         items.map((it, i) => {

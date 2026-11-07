@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Win, useStore, getState, setState, setSettings, openApp, openCP, msgBox, uac, notify, restart, lsGet, lsSet, children, setWin, promptBox, progressDialog, fmtBig, Settings, resetAll,
   runCommand, view,
@@ -10,13 +10,14 @@ import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
 import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
 import { playSys, playPreview, SCHEMES, SOUND_EVENTS, isNoSounds, type SysSound } from "../sound";
 import { wpStyle } from "../fileops";
+import { listMedia, addMedia, removeMedia, mediaUrl, prettySize, prettyDur, WP_FITS, type MediaMeta } from "../media";
 
 interface PageDef { title: string; icon: string; cat: string }
 const CATS: { id: string; title: string; icon: string; items: string[]; links: [string, string][] }[] = [
-  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"]] },
+  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
   { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "network"]] },
   { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
-  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "gadgets", "games"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
+  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
   { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
   { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
   { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
@@ -24,6 +25,10 @@ const CATS: { id: string; title: string; icon: string; items: string[]; links: [
 ];
 const PAGES: Record<string, PageDef> = {
   actioncenter: { title: "Action Center", icon: "actioncenter", cat: "cat-system" },
+  eventvwr: { title: "Event Viewer", icon: "history", cat: "cat-system" },
+  cleanmgr: { title: "Disk Cleanup", icon: "drive", cat: "cat-system" },
+  sysdiag: { title: "System Diagnostics", icon: "taskmgr", cat: "cat-system" },
+  features: { title: "Windows Features", icon: "programs", cat: "cat-programs" },
   firewall: { title: "Windows Firewall", icon: "firewall", cat: "cat-system" },
   system: { title: "System", icon: "system", cat: "cat-system" },
   wupdate: { title: "Windows Update", icon: "update", cat: "cat-system" },
@@ -57,7 +62,7 @@ const PAGES: Record<string, PageDef> = {
   games: { title: "Games", icon: "gamecenter", cat: "cat-programs" },
   anytime: { title: "Windows Anytime Upgrade", icon: "trust", cat: "cat-system" },
 };
-const ALL_ITEMS = ["actioncenter", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -327,16 +332,129 @@ function Wallpaper() {
   const s = useStore((st) => st.settings);
   const fs = useStore((st) => st.fs);
   const pics = children("pics", fs).filter((n) => n.type === "file" && n.content?.startsWith("data:image"));
+  const [media, setMedia] = useState<MediaMeta[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const refresh = useCallback(() => setMedia(listMedia()), []);
+  useEffect(() => {
+    refresh();
+    const on = () => refresh();
+    window.addEventListener("win7-media-changed", on);
+    return () => window.removeEventListener("win7-media-changed", on);
+  }, [refresh]);
+
+  const upload = async (files: FileList | File[] | null) => {
+    if (!files || !files.length) return;
+    setErr("");
+    setBusy(true);
+    try {
+      let last: MediaMeta | null = null;
+      for (const f of Array.from(files)) {
+        if (!/^(image|video)\//.test(f.type)) {
+          setErr(`"${f.name}" is not a photo or video.`);
+          continue;
+        }
+        last = await addMedia(f);
+      }
+      refresh();
+      window.dispatchEvent(new Event("win7-media-changed"));
+      if (last) setSettings({ wallpaper: "media:" + last.id });
+    } catch {
+      setErr("That file could not be saved — it may be too large for this browser.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const del = async (m: MediaMeta) => {
+    await removeMedia(m.id);
+    if (s.wallpaper === "media:" + m.id) setSettings({ wallpaper: "win7" });
+    refresh();
+    window.dispatchEvent(new Event("win7-media-changed"));
+  };
+
   return (
     <div>
-      <Head title="Choose your desktop background" desc="Click a picture to make it your desktop background." />
+      <Head title="Choose your desktop background" desc="Click a picture to make it your desktop background, or add your own photo or video." />
+      <div
+        className={"wp-drop" + (drag ? " drag" : "")}
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files); }}
+      >
+        <Icon name="photos" size={32} />
+        <div>
+          <b>Add a photo or video</b>
+          <p>Drop a file here, or <a onClick={() => fileRef.current?.click()}>browse your computer</a>. JPG, PNG, GIF, WebP, MP4, WebM and MOV · kept in this browser only.</p>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          style={{ display: "none" }}
+          onChange={(e) => { upload(e.target.files); e.currentTarget.value = ""; }}
+        />
+      </div>
+      {busy && <p className="cp-desc">Adding your file…</p>}
+      {err && <p className="cp-err">{err}</p>}
+
+      {media.length > 0 && (
+        <>
+          <div className="cp-sec">Your backgrounds</div>
+          <div className="wp-grid">
+            {media.map((m) => (
+              <div
+                key={m.id}
+                className={"wp-item media" + (s.wallpaper === "media:" + m.id ? " sel" : "") + (m.kind === "video" ? " is-video" : "")}
+                title={`${m.name} — ${m.w}×${m.h}${m.kind === "video" ? ` · ${prettyDur(m.duration)}` : ""} · ${prettySize(m.size)}`}
+                onClick={() => setSettings({ wallpaper: "media:" + m.id })}
+              >
+                <MediaThumb id={m.id} kind={m.kind} />
+                <span className="wp-badge">{m.kind === "video" ? "▶ " + (prettyDur(m.duration) || "Video") : "Photo"}</span>
+                <button className="wp-del" title="Remove" onClick={(e) => { e.stopPropagation(); del(m); }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="cp-sec">Windows backgrounds</div>
       <div className="wp-grid">
         {WALLPAPERS.map((w) => <div key={w.key} className={"wp-item" + (s.wallpaper === w.key ? " sel" : "")} style={wpStyle(w.key, "fill")} title={w.name} onClick={() => setSettings({ wallpaper: w.key })} />)}
         {pics.map((p) => <div key={p.id} className={"wp-item" + (s.wallpaper === "fs:" + p.id ? " sel" : "")} style={{ backgroundImage: `url("${p.content}")` }} title={p.name} onClick={() => setSettings({ wallpaper: "fs:" + p.id })} />)}
       </div>
-      <p>Picture position: <Sel value={s.wpPos} onChange={(v) => setSettings({ wpPos: v })} opts={[["fill", "Fill"], ["fit", "Fit"], ["stretch", "Stretch"], ["tile", "Tile"], ["center", "Center"]]} /> <span className="cp-desc">(applies to pictures from your Pictures library)</span></p>
+      <p>
+        Picture position:{" "}
+        <Sel
+          value={s.wpPos}
+          onChange={(v) => setSettings({ wpPos: v as typeof s.wpPos })}
+          opts={s.wallpaper.startsWith("media:") ? WP_FITS.map((f) => [f.key, f.label]) as [string, string][] : [["fill", "Fill"], ["fit", "Fit"], ["stretch", "Stretch"], ["tile", "Tile"], ["center", "Center"]]}
+        />{" "}
+        <span className="cp-desc">
+          {s.wallpaper.startsWith("media:") ? "(Stretch is not offered — it distorts photos and videos.)" : "(applies to pictures from your Pictures library)"}
+        </span>
+      </p>
+      {s.wallpaper.startsWith("media:") && (
+        <p><Check checked={s.wpSound} onChange={(v) => setSettings({ wpSound: v })} label="Play audio from the video background" /></p>
+      )}
     </div>
   );
+}
+
+/** Small preview of a stored background (object URL is created on demand). */
+function MediaThumb({ id, kind }: { id: string; kind: "image" | "video" }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    mediaUrl(id).then((u) => live && setUrl(u));
+    return () => { live = false; };
+  }, [id]);
+  if (!url) return <div className="wp-thumb-empty" />;
+  return kind === "video" ? <video src={url} muted playsInline preload="metadata" className="wp-thumb" /> : <img src={url} alt="" className="wp-thumb" />;
 }
 
 function WinColor() {
@@ -845,7 +963,22 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   folderopts: () => <FolderOpts />, inetopts: () => <InetOpts />, programs: () => <Programs />, network: () => <Network />, actioncenter: () => <ActionCenter />, devices: () => <Devices />,
   taskbar: () => <TaskbarPage />, ease: () => <Ease />, mobility: () => <Mobility />, reliability: () => <Reliability />,
   aero: () => <AeroPage />, games: () => <GamesPage />, anytime: () => <AnytimeUpgrade />,
+  // these open their own tools, which is what the real Control Panel does
+  eventvwr: () => <CPLaunch app="eventvwr" text="Event Viewer shows the System, Application and Security logs. Open it to read the events this PC has recorded." />,
+  cleanmgr: () => <CPLaunch app="cleanmgr" text="Disk Cleanup frees space by removing temporary files, thumbnails, crash dumps and the contents of the Recycle Bin." />,
+  sysdiag: () => <CPLaunch app="sysdiag" text="System Diagnostics shows the kernel boot log, the drivers that loaded, the services that started, and lets you reproduce a bug check." />,
+  features: () => <CPLaunch app="features" text="Turn Windows features on or off, and see everything this simulated PC can do." />,
 };
+
+function CPLaunch({ app, text }: { app: string; text: string }) {
+  return (
+    <div>
+      <Head title={ALL_TITLES[app] || app} desc={text} />
+      <p><Btn def onClick={() => openApp(app)}>Open {ALL_TITLES[app] || app}</Btn></p>
+    </div>
+  );
+}
+const ALL_TITLES = Object.fromEntries([...ALL_ITEMS, "eventvwr", "cleanmgr", "sysdiag", "features"].map((i) => [i, PAGES[i]?.title || i])) as Record<string, string>;
 
 const SIDE: Record<string, [string, string][]> = {
   system: [["Device Manager", "devmgr"], ["Windows Update", "wupdate"], ["Action Center", "actioncenter"], ["Reliability Monitor", "reliability"]],

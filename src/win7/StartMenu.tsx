@@ -45,7 +45,18 @@ const PROGRAMS: PItem[] = [
       app("snip"),
       app("recorder"),
       app("sticky2", "Sticky Notes"),
-      { label: "System Tools", icon: "folder", kids: [app("charmap"), app("taskmgr", "Task Manager"), app("reliability", "Reliability Monitor"), app("xps", "XPS Viewer"), { label: "Control Panel", icon: "controlpanel", run: () => openCP() }] },
+      {
+        label: "System Tools", icon: "folder", kids: [
+          { label: "Control Panel", icon: "controlpanel", run: () => openCP() },
+          { label: "Disk Cleanup", icon: "drive", run: () => openApp("cleanmgr") },
+          app("eventvwr", "Event Viewer"),
+          app("reliability", "Reliability Monitor"),
+          { label: "Registry Editor", icon: "cmd", run: () => openApp("regedit") },
+          { label: "System Diagnostics", icon: "taskmgr", run: () => openApp("sysdiag") },
+          app("taskmgr", "Task Manager"),
+          app("xps", "XPS Viewer"),
+        ],
+      },
       app("explorer"),
       app("wordpad"),
     ],
@@ -53,9 +64,9 @@ const PROGRAMS: PItem[] = [
   {
     label: "Games",
     icon: "gamecenter",
-    kids: [app("solitaire"), app("spider", "Spider Solitaire"), app("hearts"), app("minesweeper")],
+    kids: [app("solitaire"), app("spider", "Spider Solitaire"), app("hearts"), app("minesweeper"), app("freecell"), app("mahjong", "Mahjong Titans"), app("chess", "Chess Titans"), app("purble", "Purble Place"), app("gamecenter", "Games Explorer")],
   },
-  { label: "Maintenance", icon: "folder", kids: [app("reliability"), app("help"), { label: "Windows Update", icon: "update", run: () => openCP("wupdate") }] },
+  { label: "Maintenance", icon: "folder", kids: [app("reliability"), app("eventvwr", "Event Viewer"), { label: "Disk Cleanup", icon: "drive", run: () => openApp("cleanmgr") }, app("help"), { label: "Windows Update", icon: "update", run: () => openCP("wupdate") }] },
   { label: "Startup", icon: "folder", kids: [] },
 ];
 

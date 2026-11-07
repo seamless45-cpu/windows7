@@ -31,7 +31,10 @@ EVENTS = {
     "Windows Default": "default",
     "Windows Logon Sound": "logon",
     "Windows Logoff Sound": "logoff",
-    "Windows Startup": "startup",
+    # Windows 7's "Windows Startup" event plays Startup.wav — the four-note
+    # chime heard when you log on. (The short "Windows Startup.wav" blip next to
+    # it in the media folder is a UI sound, not the logon chime.)
+    "Startup": "startup",
     "Windows Shutdown": "shutdown",
     "Windows Minimize": "minimize",
     "Windows Restore": "restore",
@@ -65,18 +68,64 @@ EVENTS = {
 }
 
 
+# Windows mixes every sound at full scale; several of the original WAVs sit at
+# -25 dBFS or lower, which makes the startup sound and the notify chimes almost
+# inaudible next to the logon sound. Each clip is normalised to a fixed peak and
+# given a little headroom, keeping the relative feel of the scheme intact.
+TARGET_PEAK = 0.89
+
+
+# "Windows Startup.wav" (a 0.2 s blip) is a UI sound, not a program event; it
+# must not overwrite the real four-second Startup.wav chime.
+SKIP = {"Windows Startup"}
+
+
 def convert(src: str, dst: str) -> bool:
-    """Transcode to MP3 with libsndfile (no external tools needed)."""
+    """Normalise, trim silence and transcode to MP3 (no external tools needed)."""
+    import numpy as np
     import soundfile as sf  # imported here so --help works without the dependency
 
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     try:
         data, sr = sf.read(src, dtype="float32", always_2d=True)
+        data = trim_silence(data, sr)
+        peak = float(np.abs(data).max()) if data.size else 0.0
+        if peak > 0:
+            data = data * (TARGET_PEAK / peak)
+        # a short fade-in/out removes the click at the cut points
+        data = fade(data, sr)
         sf.write(dst, data, sr, format="MP3", subtype="MPEG_LAYER_III")
     except Exception as e:  # noqa: BLE001
         print("  !", os.path.basename(src), str(e)[:160])
         return False
     return True
+
+
+def trim_silence(data, sr: int):
+    """Drop the leading/trailing silence the WAVs carry."""
+    import numpy as np
+    if not data.size:
+        return data
+    mono = np.abs(data).max(axis=1)
+    thr = max(0.0015, float(mono.max()) * 0.015)
+    idx = np.where(mono > thr)[0]
+    if not len(idx):
+        return data
+    pad = int(0.02 * sr)
+    a = max(0, idx[0] - pad)
+    b = min(len(data), idx[-1] + pad)
+    return data[a:b]
+
+
+def fade(data, sr: int):
+    import numpy as np
+    n = min(int(0.006 * sr), len(data) // 4)
+    if n <= 1:
+        return data
+    ramp = np.linspace(0, 1, n, dtype="float32")[:, None]
+    data[:n] *= ramp
+    data[-n:] *= ramp[::-1]
+    return data
 
 
 def main(root: str) -> None:
@@ -89,6 +138,8 @@ def main(root: str) -> None:
         for f in sorted(os.listdir(folder)):
             stem, ext = os.path.splitext(f)
             if ext.lower() != ".wav":
+                continue
+            if stem in SKIP:
                 continue
             event = EVENTS.get(stem)
             if not event:
