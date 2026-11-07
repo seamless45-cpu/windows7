@@ -246,7 +246,7 @@ export function StartMenu() {
       <div className="sm-user-pic" onClick={() => run(() => openCP("users"))} title="Change your account picture">
         <img src={userPic(user?.pic || "flower")} alt="" draggable={false} />
       </div>
-      <div className="sm-left">
+      <div className={"sm-left" + (q.trim() ? " searching" : "")}>
         <div className="sm-list">
           {results ? (
             <div className="sm-results">

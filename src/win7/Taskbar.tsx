@@ -9,30 +9,19 @@ import { Icon, appIcon } from "./icons";
 import { useNow, fmtTime, fmtShortDate, fmtLongDate, nowTz, Slider } from "./ui";
 import { playSys } from "./sound";
 
+const ICON_BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
+/**
+ * The Start orb. The artwork is the real Windows 7 Start button; the glow and
+ * the hover/open highlights are layered in CSS so the button still lights up
+ * like the original.
+ */
 export function StartOrb({ size = 54 }: { size?: number }) {
+  const px = size >= 48 ? 96 : size >= 40 ? 54 : 32;
   return (
-    <svg width={size} height={size} viewBox="0 0 54 54" className="orb-svg">
-      <defs>
-        <radialGradient id="orbBody" cx=".5" cy=".62" r=".6">
-          <stop offset="0" stopColor="#5fc2ff" />
-          <stop offset=".6" stopColor="#1b66c6" />
-          <stop offset="1" stopColor="#0a2f78" />
-        </radialGradient>
-        <linearGradient id="orbGloss" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity=".85" />
-          <stop offset="1" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <circle cx="27" cy="27" r="25" fill="url(#orbBody)" stroke="rgba(255,255,255,.75)" strokeWidth="1.500" />
-      <circle cx="27" cy="27" r="25.500" fill="none" stroke="rgba(0,20,60,.8)" strokeWidth="1" />
-      <g transform="translate(14 14) scale(.55)">
-        <path d="M6 9c6-3 11-2 17 1v14c-6-3-11-4-17-1z" fill="#f25022" />
-        <path d="M25 10c6 3 11 4 17 1v14c-6 3-11 2-17-1z" fill="#7fba00" />
-        <path d="M6 26c6-3 11-2 17 1v14c-6-3-11-4-17-1z" fill="#00a4ef" />
-        <path d="M25 27c6 3 11 4 17 1v14c-6 3-11 2-17-1z" fill="#ffb900" />
-      </g>
-      <ellipse cx="27" cy="14" rx="19" ry="12" fill="url(#orbGloss)" />
-    </svg>
+    <span className="orb-img" style={{ width: size, height: size }}>
+      <img src={`${ICON_BASE}/icons/start-orb-${px}.png`} alt="Start" width={size} height={size} draggable={false} />
+    </span>
   );
 }
 
@@ -469,7 +458,7 @@ function Flyouts() {
         <div className="vol-label">Speakers</div>
         <div className="vol-slider"><Slider value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 110 } as React.CSSProperties} /></div>
         <div className="vol-val">{s.muted ? "Muted" : s.volume}</div>
-        <button className="vol-mute" onClick={() => setSettings({ muted: !s.muted })} title={s.muted ? "Unmute" : "Mute"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={20} /></button>
+        <button className="vol-mute" onClick={() => { setSettings({ muted: !s.muted }); playSys(s.muted ? "restore" : "minimize"); }} title={s.muted ? "Unmute" : "Mute"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={20} /></button>
         <a className="cf-link" onClick={() => { close(); playSys("ding"); }}>Test</a>
         <a className="cf-link" onClick={() => { close(); openCP("sound"); }}>Mixer</a>
       </div>
@@ -508,7 +497,7 @@ function Flyouts() {
     return (
       <div className="flyout ovf-fly" style={{ ...st, right: 130 }} onPointerDown={stop}>
         <div className="ovf-grid">
-          <div className="tray-ico" title="Safely Remove Hardware and Eject Media" onClick={() => { close(); notify({ title: "Safe to Remove Hardware", text: "The device 'Generic USB Drive' can now be safely removed.", icon: "info" }); }}><Icon name="usb" size={18} /></div>
+          <div className="tray-ico" title="Safely Remove Hardware and Eject Media" onClick={() => { close(); playSys("hardware-remove"); notify({ title: "Safe to Remove Hardware", text: "The device 'Generic USB Drive' can now be safely removed.", icon: "info" }); }}><Icon name="usb" size={18} /></div>
           <div className="tray-ico" title="Windows Update" onClick={() => { close(); openCP("wupdate"); }}><Icon name="update" size={18} /></div>
           <div className="tray-ico" title="Windows Defender" onClick={() => { close(); openCP("actioncenter"); }}><Icon name="security" size={18} /></div>
         </div>

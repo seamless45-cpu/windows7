@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { Win, useStore, getState, setWin, setSettings, openApp, openCP, msgBox, showMenu, view, notify, closeWin, MenuItem, setState } from "../store";
+import { playSys } from "../sound";
 import { Icon } from "../icons";
 import { GlassBar } from "../ui";
 import { Btn } from "../ui";
@@ -100,6 +101,7 @@ export function IE({ win }: { win: Win }) {
   const upd = (id: number, p: Partial<Tab>) => setTabs((ts) => ts.map((t) => (t.id === id ? { ...t, ...p } : t)));
   const nav = (url: string, id = tab.id) => {
     url = normalize(url);
+    playSys("navigation");
     const t = tabs.find((x) => x.id === id)!;
     upd(id, { url, hist: [...t.hist.slice(0, t.hi + 1), url], hi: t.hi + 1, title: "Loading..." });
     setInfo(true);

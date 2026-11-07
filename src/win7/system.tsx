@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children } from "./store";
 import { Icon, appIcon } from "./icons";
+import { BootAnimation } from "./BootAnimation";
 import { userPic } from "./data";
 import { WALLPAPERS } from "./data";
 
@@ -15,15 +16,18 @@ function Spinner() {
   );
 }
 
-export function BootScreen() {
+/**
+ * Windows 7's boot screen: a black screen with "Starting Windows" and the
+ * copyright line, while the four balls of light form the Windows flag.
+ * Variants are used for resuming from sleep/hibernation ("Resuming Windows")
+ * and for the update/repair screens.
+ */
+export function BootScreen({ text = "Starting Windows", copy = "© Microsoft Corporation" }: { text?: string; copy?: string }) {
   return (
     <div className="boot" onClick={() => setState({ power: "login" })}>
-      <div className="boot-logo">
-        <div className="boot-orbs">{[0, 1, 2, 3].map((i) => <i key={i} style={{ animationDelay: `${i * 0.18}s` }} />)}</div>
-        <Icon name="flag" size={110} />
-      </div>
-      <div className="boot-text">Starting Windows</div>
-      <div className="boot-copy">Copyright © Microsoft Corporation</div>
+      <BootAnimation />
+      <div className="boot-text">{text}</div>
+      <div className="boot-copy">{copy}</div>
     </div>
   );
 }
@@ -111,7 +115,9 @@ export function PowerScreens() {
   const user = useStore((s) => s.settings.currentUser);
   useEffect(() => {
     if (power !== "boot") return;
-    const t = setTimeout(() => setState({ power: "login" }), 3400);
+    // The real boot screen shows "Starting Windows" for about five seconds
+    // before the logon screen appears; clicking skips the rest.
+    const t = setTimeout(() => setState({ power: "login" }), 5200);
     return () => clearTimeout(t);
   }, [power]);
   useEffect(() => {

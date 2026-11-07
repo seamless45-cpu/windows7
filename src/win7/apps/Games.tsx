@@ -788,6 +788,10 @@ const GAME_LIST: { app: string; name: string; icon: string; desc: string }[] = [
   { app: "spider", name: "Spider Solitaire", icon: "spider", desc: "Arrange descending runs of cards to clear the table." },
   { app: "hearts", name: "Hearts", icon: "hearts", desc: "Play the classic trick-taking card game against three opponents." },
   { app: "minesweeper", name: "Minesweeper", icon: "mines", desc: "Clear the minefield without detonating a mine." },
+  { app: "freecell", name: "FreeCell", icon: "freecell", desc: "Every game is winnable — move the whole deck to the foundations." },
+  { app: "mahjong", name: "Mahjong Titans", icon: "mahjong", desc: "Match pairs of free tiles to clear the turtle layout." },
+  { app: "chess", name: "Chess Titans", icon: "chess", desc: "Glossy 3D-styled chess against the computer." },
+  { app: "purble", name: "Purble Place", icon: "purble", desc: "Comfy Cakes, Purble Shop and Purble Pairs." },
 ];
 
 export function GamesExplorer({ win }: { win: Win }) {

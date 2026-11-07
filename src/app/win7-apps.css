@@ -541,3 +541,86 @@ body.col-resize { cursor: col-resize; }
 .sm-jl-arrow { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 16px; height: 18px; padding: 0; border: 1px solid transparent; border-radius: 2px; background: transparent; color: #9fb6cf; font-size: 9px; display: none; }
 .sm-item.big.hov .sm-jl-arrow { display: block; }
 .sm-jl-arrow:hover { background: rgba(255,255,255,.35); border-color: rgba(255,255,255,.6); color: #fff; }
+
+/* ===== Windows 7 Sound dialog (Control Panel → Sound → Sounds) ===== */
+.sound-page .dim { color: #6b6b6b; font-size: 11.5px; }
+.sound-grid { display: flex; gap: 12px; margin: 8px 0 10px; align-items: flex-start; }
+.ev-list { width: 260px; max-height: 230px; overflow: auto; background: #fff; border: 1px solid #7f9db9; border-radius: 2px; }
+.ev-head { font-size: 11.5px; font-weight: 600; padding: 4px 6px; background: linear-gradient(#fdfdfd, #eef2f8); border-bottom: 1px solid #d5dbe3; position: sticky; top: 0; }
+.ev-row { display: flex; align-items: center; gap: 6px; padding: 3px 6px; font-size: 11.5px; color: #1a1a1a; cursor: default; }
+.ev-row:hover { background: #e8f1fd; }
+.ev-row.sel { background: #cde6ff; outline: 1px solid #7ab7ee; outline-offset: -1px; }
+.ev-side { flex: 1; min-width: 0; }
+.ev-sound { padding: 4px 6px; background: #fff; border: 1px solid #7f9db9; border-radius: 2px; font-size: 11.5px; color: #333; margin-bottom: 8px; }
+
+/* ===================== FreeCell, Mahjong, Chess, Purble Place ============= */
+/* ---- FreeCell ---- */
+.fc .sol-bar { gap: 10px; }
+.fc-table { padding: 10px 12px; }
+.fc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.fc-cells, .fc-founds { display: flex; gap: 8px; }
+.fc-cell { width: 60px; height: 84px; flex: none; position: relative; }
+.fc-cell.back-art { background: #fff; border: 1px solid #7a8698; border-radius: 5px; }
+.fc-founds .card { width: 60px; height: 84px; }
+.fc-cols { align-items: flex-start; gap: 6px; }
+.fc-cols .sol-col { width: 60px; }
+.fc-card { position: absolute; left: 0; cursor: default; background: #fff; border: 1px solid #7a8698; border-radius: 5px; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.fc-card .cf, .fc-cell .cf, .fc-founds .cf { color: #111; }
+.fc-card.sel { box-shadow: 0 0 0 2px #ffe680, 0 0 12px rgba(255,230,128,.95); }
+
+/* ---- Mahjong Titans ---- */
+.mj { display: flex; flex-direction: column; height: 100%; background: linear-gradient(#2a6b46, #1c4d33); color: #fff; }
+.mj-board { position: relative; flex: 1; min-height: 0; overflow: auto; }
+.mj-felt { position: relative; width: 720px; height: 560px; margin: 0 auto; }
+.mj-tile {
+  position: absolute; width: 34px; height: 46px; border-radius: 4px;
+  background: linear-gradient(160deg, #fffdf4 0%, #f4efdc 62%, #ddd3b7 100%);
+  border: 1px solid #8a8064;
+  box-shadow: 2px 2px 0 #b9ae90, 3px 3px 4px rgba(0,0,0,.4), inset 0 1px 0 #fff;
+  display: flex; align-items: center; justify-content: center; cursor: default;
+  transition: transform .1s ease-out, box-shadow .1s ease-out, filter .1s ease-out;
+}
+.mj-tile:hover { transform: translateY(-2px); box-shadow: 3px 4px 0 #b9ae90, 4px 6px 8px rgba(0,0,0,.45), inset 0 1px 0 #fff; }
+.mj-tile.blocked { filter: brightness(.82) saturate(.8); }
+.mj-tile.blocked:hover { transform: none; }
+.mj-tile.sel { box-shadow: 0 0 0 2px #3fa9f5, 0 0 12px rgba(90,190,255,.95); }
+.mj-tile.hint { animation: mjhint .7s ease-in-out infinite; }
+@keyframes mjhint { 50% { box-shadow: 0 0 0 2px #ffd34d, 0 0 14px rgba(255,210,80,.95); } }
+.mj-face { font-family: "Segoe UI", "Microsoft YaHei", serif; font-size: 17px; font-weight: 700; line-height: 1; }
+
+/* ---- Chess Titans ---- */
+.chess { display: flex; flex-direction: column; height: 100%; background: #e9eef5; }
+.chess-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 14px; align-items: flex-start; }
+.chess-board { flex: none; display: grid; grid-template-columns: repeat(8, 62px); grid-template-rows: repeat(8, 62px); border: 3px solid #4a3a22; border-radius: 3px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.chess-sq { position: relative; display: flex; align-items: center; justify-content: center; background: #efe0c2; cursor: default; }
+.chess-sq.dark { background: linear-gradient(#b98a53, #9a6d3b); }
+.chess-sq.last { box-shadow: inset 0 0 0 3px rgba(255,220,110,.85); }
+.chess-sq.sel { box-shadow: inset 0 0 0 3px #2a7fd4; }
+.chess-pc { font-size: 42px; line-height: 1; user-select: none; }
+.chess-pc.w { color: #fffdf8; text-shadow: 0 0 1px #333, 0 1px 2px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.6); }
+.chess-pc.b { color: #23272d; text-shadow: 0 1px 1px rgba(255,255,255,.35); }
+.chess-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: rgba(40,120,200,.55); }
+.chess-side { flex: 1; font-size: 12px; color: #17324f; }
+.chess-side .dim { color: #5b6b7d; }
+
+/* ---- Purble Place ---- */
+.purble { display: flex; flex-direction: column; height: 100%; background: linear-gradient(#fdf3fb, #f2e2f2); color: #47213f; }
+.purble-tab { height: 24px; padding: 0 10px; border: 1px solid #c8a9c8; border-radius: 3px; background: linear-gradient(#fff, #f0e2f0); cursor: default; font-size: 12px; }
+.purble-tab.on { background: linear-gradient(#ffe9ff, #e6c6e6); border-color: #a878a8; font-weight: 600; }
+.purble-cakes { display: flex; gap: 30px; padding: 22px; flex: 1; min-height: 0; }
+.purble-order, .purble-mine { flex: 1; text-align: center; }
+.purble-opts { margin: 10px 0; }
+.purble-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 5px 0; flex-wrap: wrap; }
+.purble-pick { padding: 3px 9px; border: 1px solid #c3a0c3; border-radius: 4px; background: linear-gradient(#fff, #f4e8f4); font-size: 11.5px; cursor: default; }
+.purble-pick.on { background: linear-gradient(#ffd6f0, #ecb6dd); border-color: #9c5f96; font-weight: 600; }
+.purble-shop { flex: 1; padding: 22px; }
+.cake { position: relative; width: 150px; height: 130px; margin: 10px auto; }
+.cake-body { position: absolute; inset: 0; border: 1px solid rgba(0,0,0,.18); box-shadow: 0 6px 14px rgba(0,0,0,.22), inset 0 -8px 14px rgba(0,0,0,.14); }
+.cake-top { position: absolute; left: 0; right: 0; top: -14px; text-align: center; font-size: 22px; }
+.cake-top .spr { color: #ff5aa8; font-size: 26px; letter-spacing: -3px; }
+.pshop { max-width: 460px; }
+.pp-grid { display: grid; grid-template-columns: repeat(4, 74px); gap: 8px; margin-top: 10px; }
+.pp-card { width: 74px; height: 88px; border-radius: 8px; border: 1px solid #b58fb5; background: linear-gradient(#f6c6ea, #d78fc4); box-shadow: 0 2px 5px rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: default; transition: transform .14s ease-out, background .14s; }
+.pp-card:hover { transform: translateY(-2px); }
+.pp-card.up, .pp-card.done { background: linear-gradient(#fff, #ffeef8); }
+.pp-card.done { opacity: .65; }

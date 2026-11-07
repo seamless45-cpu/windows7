@@ -52,16 +52,38 @@ sounds are the real Windows 7 ones**:
   `wordpad.exe`, `iexplore.exe`, `wmplayer.exe`, the built-in games and Control Panel
   applets) and are served as 96 px lossless PNGs. `Icon` renders that artwork and falls back
   to the hand-drawn SVG glyphs for anything without a resource.
-* **Sounds** — `public/sounds/*.mp3` are the Windows 7 sound scheme (Startup, Shutdown,
-  Logon/Logoff, Minimize, Restore, Default Beep, Ding, Error, Exclamation, Notification,
-  Recycle, Menu Command, Critical Stop, UAC), converted losslessly from the original
-  `.wav` files and decoded through Web Audio so the volume slider, mute and the
-  "No Sounds" scheme all apply.
+* **Sounds** — `public/sounds/<scheme>/*.mp3` are all **fourteen sound schemes Windows 7
+  shipped with** (Windows Default, Afternoon, Calligraphy, Characters, Cityscape, Delta,
+  Festival, Garden, Heritage, Landscape, Quirky, Raga, Savannah, Sonata) plus *No Sounds*.
+  Each scheme covers the full list of program events — logon/logoff, startup/shutdown,
+  minimize/restore, Default Beep, Ding, Error, Exclamation, Notification, Notify, Recycle,
+  Menu Command, Critical Stop, UAC, Print Complete, Device Connect/Disconnect/Fail, Battery
+  Low/Critical, Feed Discovered, Information Bar, Pop-up Blocked and Navigation Start. The
+  clips are transcoded from the original `.wav` files by `scripts/build-sounds.py` and
+  decoded through Web Audio, so the volume slider, mute, the selected scheme and the
+  per-scheme missing events all behave like the real thing. Control Panel → Sound lists the
+  schemes and every program event with a **Test** button, and each Windows theme switches to
+  its matching scheme.
 * **Motion** — window open/close, minimize (to its own taskbar button), restore, maximize,
-  Aero Snap/restore, Start menu, jump lists, thumbnails, balloon tips and context menus are
-  animated with the timings Windows 7 uses (open ≈225 ms, close ≈300 ms, min/restore
-  ≈150–175 ms, all eased out). They respect *Animate windows when minimising and
-  maximising*, `prefers-reduced-motion`, and dragging/resizing a window never lags.
+  Aero Snap/restore, Aero Shake, the drag-to-snap overlay, Start menu (including the shaded
+  search pane), jump lists, taskbar thumbnails, tray flyouts, balloon tips (in and out),
+  Alt+Tab, modal dialogs and context menus are animated with the timings Windows 7 uses
+  (open ≈225 ms, close ≈300 ms, min/restore ≈150–175 ms, all eased out). They respect
+  *Animate windows when minimising and maximising*, `prefers-reduced-motion`, and
+  dragging/resizing a window never lags.
+* **Window frames** — Aero rounds only the two top corners (6 px) and leaves the bottom edge
+  square; maximised windows lose the rounding, and the rounding animates during the
+  maximise/restore transition the way DWM does.
+* **Boot screen** — the real Windows 7 startup animation: black screen, "Starting Windows"
+  and the copyright line, then the four balls of light (red, green, blue, yellow) spiral in
+  and melt into the four panes of the Windows flag, which settles and pulses. It follows the
+  real 105-frame / 15 fps / 200×200 timeline, with the first four seconds playing once and
+  the last three looping.
+* **Games** — Solitaire, Spider Solitaire, Hearts, Minesweeper, FreeCell (with Microsoft's
+  numbered deals and supermove limit), Mahjong Titans (144-tile turtle layout), Chess Titans
+  (a real move generator with castling, en passant, promotion and a searching opponent) and
+  Purble Place (Comfy Cakes, Purble Shop, Purble Pairs), all with the artwork from the real
+  game resources.
 
 ## Shell features
 

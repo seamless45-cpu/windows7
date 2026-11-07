@@ -30,7 +30,12 @@
 .win-layer > * { pointer-events: auto; }
 .modal-dim { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
 .snap-prev { display: none; position: absolute; z-index: 9999; background: rgba(120,180,255,.3); border: 2px solid rgba(255,255,255,.8); box-shadow: 0 0 20px rgba(90,160,255,.8), inset 0 0 20px rgba(255,255,255,.4); border-radius: 6px; pointer-events: none; }
-.win { position: absolute; display: flex; flex-direction: column; padding: 0 8px 8px; border-radius: 8px 8px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1) both; transition: opacity .16s, transform .16s, visibility 0s, left .175s cubic-bezier(.2,.7,.3,1), top .175s cubic-bezier(.2,.7,.3,1), width .175s cubic-bezier(.2,.7,.3,1), height .175s cubic-bezier(.2,.7,.3,1), border-radius .175s; min-width: 0; min-height: 0; }
+.win {
+  position: absolute; display: flex; flex-direction: column; padding: 0 8px 8px;
+  /* Aero rounds the two top corners only (~6 px at 100%) and squares the bottom
+     edge where the frame meets the desktop; maximised and snapped windows lose
+     the rounding entirely. */
+  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1) both; transition: opacity .16s, transform .16s, visibility 0s, left .175s cubic-bezier(.2,.7,.3,1), top .175s cubic-bezier(.2,.7,.3,1), width .175s cubic-bezier(.2,.7,.3,1), height .175s cubic-bezier(.2,.7,.3,1), border-radius .175s; min-width: 0; min-height: 0; }
 /* maximising/snapping/restoring glides the frame; dragging or resizing never does */
 .win.dragging, .win.resizing, .win.min, .win.closing { transition-property: opacity, transform, visibility; }
 .win.dragging, .win.resizing { transition-duration: 0s; }
@@ -40,7 +45,7 @@
 .win.inactive { background: rgba(var(--gc), calc(var(--ga) * .62)); box-shadow: 0 0 0 1px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.4), 0 6px 18px rgba(0,0,0,.35); }
 .win.inactive::before { opacity: .55; }
 .win.max { padding: 0; border-radius: 0; }
-.win.max.changing { border-radius: 8px 8px 0 0; }
+.win.max.changing { border-radius: 6px 6px 0 0; }
 /* the min transform is set from JS (it targets the taskbar button) */
 .win.min { opacity: 0 !important; pointer-events: none; visibility: hidden; transition: opacity .15s ease-in, transform .15s cubic-bezier(.55,0,1,1), visibility 0s .15s; }
 .win.closing { opacity: 0; transform: scale(.94); pointer-events: none; transition: opacity .3s cubic-bezier(.4,0,1,1), transform .3s cubic-bezier(.4,0,1,1); }
@@ -135,12 +140,15 @@
 .taskbar.autohidden.tb-left { transform: translateX(calc(-100% + 3px)); } .taskbar.autohidden.tb-right { transform: translateX(calc(100% - 3px)); }
 .orb { position: relative; width: 58px; flex: none; z-index: 3; cursor: default; }
 .tb-left .orb, .tb-right .orb { width: auto; height: 50px; }
-.orb-svg { position: absolute; left: 2px; top: -8px; transition: filter .15s; filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
-.small .orb-svg { top: -6px; left: 8px; }
-.tb-top .orb-svg { top: -4px; }
-.tb-left .orb-svg, .tb-right .orb-svg { left: 50%; top: 4px; margin-left: -27px; }
-.orb:hover .orb-svg { filter: brightness(1.28) drop-shadow(0 0 7px #8fd4ff); }
-.orb:active .orb-svg, .orb.on .orb-svg { filter: brightness(1.15) saturate(1.2) drop-shadow(0 0 9px #9fe0ff); }
+/* The Start button is the real Windows 7 orb artwork; the glow is CSS so the
+   button still lights up on hover and while the Start menu is open. */
+.orb-img { position: absolute; left: 0; top: -10px; display: block; transition: filter .16s ease-out; filter: drop-shadow(0 1px 3px rgba(0,0,0,.65)); }
+.orb-img img { display: block; width: 100%; height: 100%; }
+.small .orb-img { top: -8px; left: 6px; }
+.tb-top .orb-img { top: -6px; }
+.tb-left .orb-img, .tb-right .orb-img { left: 50%; top: 2px; margin-left: -27px; }
+.orb:hover .orb-img { filter: brightness(1.16) drop-shadow(0 0 8px rgba(120,200,255,.9)); }
+.orb:active .orb-img, .orb.on .orb-img { filter: brightness(1.24) drop-shadow(0 0 12px rgba(150,220,255,.95)); }
 .tb-items { flex: 1; display: flex; align-items: stretch; padding: 2px 0; min-width: 0; overflow: hidden; }
 .tb-left .tb-items, .tb-right .tb-items { flex-direction: column; align-items: center; }
 .tb-btn { position: relative; width: 52px; margin: 0 1px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 3px; flex: none; transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, filter .18s ease; }
@@ -372,13 +380,16 @@ textarea.w7input { height: auto; padding: 3px; }
 .orb-spin { position: relative; width: 36px; height: 36px; }
 .orb-spin i { position: absolute; left: 14px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: #fff; transform-origin: 4px 4px; animation: spinfade 1s linear infinite; opacity: .15; box-shadow: 0 0 6px #8cf; }
 @keyframes spinfade { 0% { opacity: 1; } 100% { opacity: .1; } }
-.boot { position: absolute; inset: 0; z-index: 100001; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; gap: 18px; }
-.boot-logo { position: relative; animation: bootlogo 2.6s ease-in-out forwards; }
-@keyframes bootlogo { 0% { opacity: 0; transform: scale(.7); filter: blur(8px); } 40% { opacity: 1; transform: scale(1); filter: none; } 100% { opacity: 1; transform: scale(1.05); } }
-.boot-orbs i { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #9fd4ff; box-shadow: 0 0 10px #6bf; animation: orbin 1.4s ease-in both; }
-.boot-orbs i:nth-child(1) { left: -60px; top: 20px; } .boot-orbs i:nth-child(2) { right: -60px; top: 30px; } .boot-orbs i:nth-child(3) { left: -50px; bottom: 10px; } .boot-orbs i:nth-child(4) { right: -50px; bottom: 20px; }
+.boot { position: absolute; inset: 0; z-index: 100001; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; gap: 10px; cursor: default; overflow: hidden; }
+/* --- Windows 7 boot animation (four balls of light forming the flag) --- */
+.boot-anim { position: relative; width: 200px; height: 200px; margin-bottom: 6px; }
+.boot-glow { position: absolute; left: 50%; top: 50%; width: 190px; height: 190px; margin: -95px 0 0 -95px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(120,190,255,.22) 42%, rgba(0,0,0,0) 70%); filter: blur(6px); transition: opacity .25s linear; }
+.boot-flag { position: absolute; inset: 0; }
+.boot-orb { position: absolute; left: 50%; top: 50%; border-radius: 50%; will-change: transform, width, height; }
+.boot-text { font-size: 20px; font-weight: 300; letter-spacing: .4px; color: #fff; font-family: "Segoe UI Light", "Segoe UI", Tahoma, sans-serif; margin-top: 8px; }
+.boot-copy { position: absolute; bottom: 26px; font-size: 12px; color: #c8c8c8; }
 @keyframes orbin { from { opacity: 1; } to { opacity: 0; transform: translate(40px, -10px) scale(.2); } }
-.boot-text { font-size: 18px; letter-spacing: 1px; } .boot-copy { position: absolute; bottom: 24px; font-size: 12px; color: #aaa; }
+
 .blackout { position: absolute; inset: 0; z-index: 100002; background: #000; color: #888; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; padding: 20px; }
 .blackout.off { cursor: pointer; }
 .power-btn { background: none; border: 2px solid #3a5; border-radius: 50%; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
@@ -453,4 +464,73 @@ textarea.w7input { height: auto; padding: 3px; }
 @media (prefers-reduced-motion: reduce) {
   .win, .start-menu, .thumbs, .flyout, .balloon, .ctx, .jumplist, .altab { animation-duration: .001s !important; transition-duration: .001s !important; }
   .win { transition-property: opacity, visibility !important; }
+}
+
+/* =====================================================================
+   Aero motion, part two: the transitions Windows 7 plays that the frame
+   itself cannot express — taskbar previews, Alt+Tab, jump lists, the
+   snap overlay, window shake and the Start-menu search shading.
+   ===================================================================== */
+
+/* Aero Peek on Alt+Tab: the switcher fades in over a darkening desktop and
+   its tiles slide up from the taskbar. */
+.alttab { background: rgba(0,0,0,0); animation: altab-dim .16s ease-out forwards; }
+@keyframes altab-dim { to { background: rgba(0,0,0,.22); } }
+.alttab-box { animation: altab-in .17s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes altab-in { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+.alttab-item { transition: background-color .12s ease-out, border-color .12s ease-out, box-shadow .12s ease-out; }
+
+/* Taskbar thumbnails fly out of the button: the strip grows from the bottom
+   edge and the tiles stagger in. */
+.thumb { animation: thumbtile .16s cubic-bezier(.2,.7,.3,1) both; }
+.thumb:nth-child(1) { animation-delay: 0s; }
+.thumb:nth-child(2) { animation-delay: .025s; }
+.thumb:nth-child(3) { animation-delay: .05s; }
+.thumb:nth-child(4) { animation-delay: .075s; }
+@keyframes thumbtile { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* Jump lists appear as a short fade plus a small upward slide, origin at the
+   taskbar button. */
+.jumplist { animation: jumpin .15s cubic-bezier(.2,.7,.3,1) both; transform-origin: bottom center; }
+@keyframes jumpin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Dragging to the top/side of the screen shows the translucent snap overlay,
+   which fades in rather than popping. */
+.snap-prev { opacity: 0; transition: opacity .12s ease-out, left .13s ease-out, top .13s ease-out, width .13s ease-out, height .13s ease-out; }
+
+/* "Aero Shake": jiggling a window shakes the others out of the way. */
+.win.shake { animation: wshake .34s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes wshake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+/* Start menu: the search results pane is shaded darker than the pinned list,
+   and switches shading as soon as you type. */
+.sm-left { transition: box-shadow .13s ease-out; }
+/* Windows 7 shades the results pane while a search is active. */
+.sm-left.searching .sm-list { background: #f5f8fc; }
+.sm-results, .sm-none { animation: fadein .14s ease-out both; }
+
+/* Window buttons light up individually, and pressed buttons sink. */
+.cb { transition: background-color .1s ease-out, box-shadow .1s ease-out, filter .1s ease-out; }
+.cb:active { filter: brightness(.94); }
+
+/* Balloon tips slide up out of the notification area. */
+.balloon { animation: balloonin .28s cubic-bezier(.2,.7,.3,1) both, balloonout .3s ease-in forwards; animation-delay: 0s, 6s; }
+@keyframes balloonout { to { opacity: 0; transform: translateY(10px); } }
+
+/* Dialogs: Windows 7 fades a modal dialog in behind a dimmed owner window. */
+.modal-dim { animation: fadein .15s ease-out both; }
+
+/* A window closing fades and shrinks — DWM keeps it animating for ~300 ms. */
+.win.closing { will-change: opacity, transform; }
+
+/* tray flyouts (volume, network, clock, battery) open with a short pop that
+   grows out of the notification area. */
+.flyout.clock-fly, .flyout.vol-fly, .flyout.net-fly, .flyout.bat-fly, .flyout.ovf-fly, .flyout.ac-fly {
+  animation: pop .15s cubic-bezier(.2,.7,.3,1) both;
+  transform-origin: bottom right;
 }
