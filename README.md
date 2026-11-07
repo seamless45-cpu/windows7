@@ -42,6 +42,27 @@ running Jekyll, which used to turn this README into the site's `index.html`). Re
 whenever the app changes; the previous `_next` folder is replaced wholesale because Next.js
 fingerprints those file names.
 
+## Artwork, sounds and motion
+
+The shell does not depend on screenshot images or a canvas toolkit — but the **icons and
+sounds are the real Windows 7 ones**:
+
+* **Icons** — `public/icons/*.png` were extracted from the actual Windows 7 system
+  resources (`imageres.dll`, `shell32.dll`, `explorer.exe`, `mspaint.exe`, `notepad.exe`,
+  `wordpad.exe`, `iexplore.exe`, `wmplayer.exe`, the built-in games and Control Panel
+  applets) and are served as 96 px lossless PNGs. `Icon` renders that artwork and falls back
+  to the hand-drawn SVG glyphs for anything without a resource.
+* **Sounds** — `public/sounds/*.mp3` are the Windows 7 sound scheme (Startup, Shutdown,
+  Logon/Logoff, Minimize, Restore, Default Beep, Ding, Error, Exclamation, Notification,
+  Recycle, Menu Command, Critical Stop, UAC), converted losslessly from the original
+  `.wav` files and decoded through Web Audio so the volume slider, mute and the
+  "No Sounds" scheme all apply.
+* **Motion** — window open/close, minimize (to its own taskbar button), restore, maximize,
+  Aero Snap/restore, Start menu, jump lists, thumbnails, balloon tips and context menus are
+  animated with the timings Windows 7 uses (open ≈225 ms, close ≈300 ms, min/restore
+  ≈150–175 ms, all eased out). They respect *Animate windows when minimising and
+  maximising*, `prefers-reduced-motion`, and dragging/resizing a window never lags.
+
 ## Shell features
 
 | Area | What works |

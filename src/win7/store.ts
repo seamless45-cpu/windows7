@@ -107,6 +107,8 @@ export interface Win {
   progress?: number | null;
   closing?: boolean;
   modal?: boolean;
+  /** true while a maximize/snap/restore animation is running */
+  changing?: boolean;
 }
 
 export interface Notif { id: number; title: string; text: string; icon: string; time: number }
@@ -858,22 +860,51 @@ export function minWin(id: string) {
   const top = wins.filter((q) => !q.min && !q.closing).sort((a, b) => b.z - a.z)[0];
   setState({ windows: wins, focus: top?.id ?? null });
 }
+/**
+ * Marks a window as being in the middle of a maximise/restore/snap animation.
+ * The frame then transitions its geometry for `ms` (Aero's DWM animation),
+ * instead of teleporting to the new bounds.
+ */
+function animateChange(id: string, ms: number) {
+  patchWin(id, { changing: true });
+  clearTimeout(changeTimers.get(id));
+  changeTimers.set(
+    id,
+    setTimeout(() => {
+      changeTimers.delete(id);
+      patchWin(id, { changing: false });
+    }, ms)
+  );
+}
+const changeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Exact, hand-edited window geometry (drag/resize) — no animation. */
+export function setGeom(id: string, geom: { x: number; y: number; w: number; h: number }) {
+  patchWin(id, { ...geom, max: false, snap: null });
+}
+
 export function maxWin(id: string) {
   const w = state.windows.find((q) => q.id === id);
   if (!w || APPS[w.app].fixed) return;
   if (w.max || w.snap) {
     const p = w.prev;
+    animateChange(id, 175);
     patchWin(id, { max: false, snap: null, ...(p ? { x: p.x, y: p.y, w: p.w, h: p.h } : {}), prev: null });
+    playSys("restore");
   } else {
+    animateChange(id, 175);
     patchWin(id, { max: true, prev: { x: w.x, y: w.y, w: w.w, h: w.h } });
+    playSys("restore");
   }
   focusWin(id);
 }
 export function snapWin(id: string, side: "l" | "r") {
   const w = state.windows.find((q) => q.id === id);
   if (!w || APPS[w.app].fixed) return;
+  playSys("restore");
   const wa = workArea(state);
   const hw = Math.floor(wa.w / 2);
+  animateChange(id, 175);
   patchWin(id, { max: false, snap: side, prev: w.prev || { x: w.x, y: w.y, w: w.w, h: w.h }, x: side === "l" ? wa.x : wa.x + hw, y: wa.y, w: hw, h: wa.h });
 }
 export function showDesktop() {

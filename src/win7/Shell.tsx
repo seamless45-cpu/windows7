@@ -14,7 +14,7 @@ import { ContextMenuHost } from "./ui";
 import { PowerScreens, AltTab, Screensaver } from "./system";
 import { JumpList, Flip3D, SnapAssist, useShake, WallpaperShuffle } from "./aero";
 import { COLORS } from "./data";
-import { playSys } from "./sound";
+import { playClick, preload, unlockAudio } from "./sound";
 
 const CURSOR_LARGE = `url("data:image/svg+xml;utf8,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M2 2 L2 30 L10 23 L16 36 L22 33 L16 21 L27 21Z' fill='white' stroke='black' stroke-width='2'/></svg>")}") 2 2, auto`;
 const CURSOR_BLACK = `url("data:image/svg+xml;utf8,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><path d='M2 2 L2 19 L7 15 L11 23 L14 22 L10 14 L17 14Z' fill='black' stroke='white' stroke-width='1.5'/></svg>")}") 2 2, auto`;
@@ -46,6 +46,24 @@ export default function Shell() {
     return () => window.removeEventListener("error", onError);
   }, []);
 
+  /* ---------------- audio ---------------- */
+  useEffect(() => {
+    // Sound only plays after a gesture, so the scheme is decoded once and then
+    // unlocked on the first click/keypress (Windows' "System Sounds" scheme).
+    const unlock = () => {
+      unlockAudio();
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+    preload();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   /* ---------------- size & scale ---------------- */
   useEffect(() => {
     const fit = () => {
@@ -68,7 +86,7 @@ export default function Shell() {
       if (st.flip) return;
       if (st.screensaverOn) return;
       if (st.power !== "desktop") return;
-      if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") playSys("key");
+      if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") playClick();
       if (e.key === "Meta" || e.key === "OS") {
         metaDown = true;
         metaCombo = false;
@@ -303,7 +321,7 @@ export default function Shell() {
   return (
     <div
       ref={ref}
-      className={`w7 theme-${settings.theme}${settings.transparency && settings.theme === "aero" ? " glass" : " noglass"}${settings.highContrastText ? " bigtext" : ""} ptr-${settings.pointer} tbpos-${settings.taskbar.pos}`}
+      className={`w7 theme-${settings.theme}${settings.transparency && settings.theme === "aero" ? " glass" : " noglass"}${settings.highContrastText ? " bigtext" : ""} ptr-${settings.pointer} tbpos-${settings.taskbar.pos}${settings.aero.animations ? " motion" : " nomotion"}`}
       style={style}
       onPointerDownCapture={closeOnDown}
       onContextMenu={(e) => {

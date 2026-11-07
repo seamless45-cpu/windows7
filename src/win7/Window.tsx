@@ -1,6 +1,6 @@
 "use client";
-import React, { memo, useRef } from "react";
-import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, view, getState, workArea } from "./store";
+import React, { memo, useEffect, useRef, useState } from "react";
+import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, setGeom, view, getState, workArea } from "./store";
 import { APPS } from "./registry";
 import { Icon } from "./icons";
 import { COMPONENTS } from "./appmap";
@@ -112,9 +112,12 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
       } else if (snap) {
         setWin(win.id, { x, y, prev: { x, y, w, h } });
         snapWin(win.id, snap);
-      } else setWin(win.id, { x, y });
+      } else setGeom(win.id, { x, y, w, h });
     };
+    // while dragging, the frame must not transition or it would lag the pointer
+    el.classList.add("dragging");
     window.addEventListener("pointermove", mv);
+    window.addEventListener("pointerup", () => el.classList.remove("dragging"), { once: true });
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
   };
@@ -153,19 +156,61 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
       el.style.width = w + "px";
       el.style.height = h + "px";
     };
+    el.classList.add("resizing");
     const up = () => {
       window.removeEventListener("pointermove", mv);
       window.removeEventListener("pointerup", up);
-      setWin(win.id, { ...cur, snap: null });
+      el.classList.remove("resizing");
+      setGeom(win.id, cur);
     };
     window.addEventListener("pointermove", mv);
     window.addEventListener("pointerup", up);
   };
 
-  const cls = ["win", `app-${win.app}`, active ? "active" : "inactive", win.max ? "max" : "", win.min ? "min" : "", win.closing ? "closing" : "", frameless ? "frameless" : "", fixed ? "fixed" : "", peek].filter(Boolean).join(" ");
+  /**
+   * Aero minimize: Windows animates the window to its taskbar button with a
+   * quick shrink + fade (about 150 ms, eased in). There are no FLIP snapshots
+   * to take here, so the destination is read from the taskbar button, the
+   * window is transformed towards it for the length of the animation and then
+   * the `min` class hides it for real.
+   */
+  const [anim, setAnim] = useState<React.CSSProperties>({});
+  const prevMin = useRef(win.min);
+  useEffect(() => {
+    if (win.min === prevMin.current) return;
+    prevMin.current = win.min;
+    if (fixed) return;
+    const el = ref.current;
+    if (!el) return;
+    if (win.min) {
+      const btn = document.querySelector<HTMLElement>(`[data-tbkey="${APPS[win.app]?.group || win.app}"]`);
+      const r = el.getBoundingClientRect();
+      const br = btn?.getBoundingClientRect();
+      const sc = view.scale;
+      const w = r.width, h = r.height;
+      const tx = br ? (br.left + br.width / 2 - (r.left + w / 2)) / sc : 0;
+      const ty = br ? (br.top + br.height / 2 - (r.top + h / 2)) / sc : 40;
+      const s2 = br ? Math.max(0.08, Math.min(0.5, br.width / w)) : 0.05;
+      setAnim({ transform: `translate(${tx}px, ${ty}px) scale(${s2}, ${s2 * 0.5})`, transformOrigin: "center center", opacity: 0.15, transition: "transform 150ms cubic-bezier(.5,0,1,1), opacity 150ms ease-in" });
+      const t = setTimeout(() => setAnim({}), 160);
+      return () => clearTimeout(t);
+    }
+    // restore: Aero grows the window back out of the taskbar button
+    setAnim({ transform: "translateY(26px) scale(.86)", transformOrigin: "center bottom", opacity: 0.4, transition: "none" });
+    const raf = requestAnimationFrame(() => {
+      setAnim({ transform: "none", opacity: 1, transition: "transform 175ms cubic-bezier(.2,.7,.3,1), opacity 150ms ease-out" });
+    });
+    const t2 = setTimeout(() => setAnim({}), 190);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t2);
+    };
+  }, [win.min, fixed, win.app]);
+
+  const cls = ["win", `app-${win.app}`, active ? "active" : "inactive", win.max ? "max" : "", win.min ? "min" : "", win.closing ? "closing" : "", win.changing ? "changing" : "", win.max || win.snap ? "snapped" : "", frameless ? "frameless" : "", fixed ? "fixed" : "", peek].filter(Boolean).join(" ");
 
   return (
-    <div ref={ref} className={cls} data-win={win.id} style={{ ...geom, zIndex: win.z }} onPointerDownCapture={() => focusWin(win.id)} onPointerDown={onDown}>
+    <div ref={ref} className={cls} data-win={win.id} style={{ ...geom, zIndex: win.z, ...anim }} onPointerDownCapture={() => focusWin(win.id)} onPointerDown={onDown}>
       {!frameless && (
         <>
           <div className="w-title win-drag" onDoubleClick={(e) => !fixed && !(e.target as HTMLElement).closest(".w-btns") && maxWin(win.id)}>

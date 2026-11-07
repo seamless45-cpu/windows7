@@ -408,9 +408,45 @@ const G: Record<string, () => React.ReactNode> = {
   usb: () => <><path d="M24 4v36M24 40a4 4 0 1 0 0 .1M24 20l-10-6v8M24 28l10-6v-6" stroke="#e8eef6" strokeWidth="3" fill="none" /><circle cx="24" cy="42" r="4" fill="#e8eef6" /></>,
 };
 
+/**
+ * Icons are drawn from the real Windows 7 artwork extracted from the system
+ * DLLs (imageres.dll, shell32.dll, explorer.exe, the built-in games…) and
+ * served from /icons. Anything without artwork falls back to the vector
+ * glyphs below, so the shell never shows a blank icon.
+ */
+const ICON_BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
+/** Every icon name that has real Windows 7 artwork in public/icons. */
+export const ART: ReadonlySet<string> = new Set([
+  "actioncenter", "audio", "cd", "charmap", "cmd", "computer", "controlpanel", "defender", "docs", "downloads",
+  "drive", "driveFixed", "dvd", "dvdmaker", "error", "exe", "explorer", "file", "flag", "folder", "folderOpen",
+  "gadgets", "gamecenter", "games", "hearts", "help", "html", "ie", "image", "info", "iso", "journal", "magnifier",
+  "mines", "music", "network", "networkConn", "notepad", "paint", "photos", "pictures", "printer", "programs",
+  "question", "recorder", "recycle", "recycleFull", "reliability", "rtf", "run", "search", "share", "shield", "snip", "solitaire",
+  "speech", "spider", "sticky", "taskmgr", "trust", "txt", "usb", "user", "users", "video", "videos", "warn", "wmp",
+  "wordpad", "xps", "zip",
+]);
+
 export function Icon({ name, size = 32, className = "", style }: { name: string; size?: number; className?: string; style?: React.CSSProperties }) {
   const isLnk = name.endsWith("@lnk");
   const base = isLnk ? name.slice(0, -4) : name;
+  if (ART.has(base)) {
+    return (
+      <span className={"ico art " + className} style={{ width: size, height: size, ...style }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`${ICON_BASE}/icons/${base}.png`}
+          alt=""
+          width={size}
+          height={size}
+          draggable={false}
+          loading="eager"
+          decoding="async"
+        />
+        {isLnk && <span className="lnk-arrow" />}
+      </span>
+    );
+  }
   const glyph = G[base] || G.file;
   return (
     <svg className={"ico " + className} width={size} height={size} viewBox="0 0 48 48" style={style}>
@@ -436,7 +472,7 @@ const EXT_ICON: Record<string, string> = {
   wmv: "video", mp4: "video", avi: "video", webm: "video", mpg: "video", exe: "exe", dll: "exe", zip: "zip", ttf: "font", iso: "iso",
   xps: "xps", oxps: "xps", jnt: "journal",
 };
-const FOLDER_ICON: Record<string, string> = { docs: "docs", pics: "pictures", music: "music", vids: "videos", dl: "downloads", desk: "desktop", fav: "favorites", home: "user" };
+const FOLDER_ICON: Record<string, string> = { docs: "docs", pics: "pictures", music: "music", vids: "videos", dl: "downloads", desk: "desktop", fav: "folderOpen", home: "user" };
 
 export function nodeIcon(n: FsNode): string {
   if (n.type === "folder") return n.parent === null ? "drive" : FOLDER_ICON[n.id] || "folder";

@@ -6,6 +6,8 @@ import { GlassBar } from "../ui";
 import { Btn } from "../ui";
 
 interface Tab { id: number; url: string; title: string; hist: string[]; hi: number; nonce: number }
+/** A tab while it is being dragged inside (or out of) the tab strip. */
+interface TabDrag { id: number; from: number; dx: number; x: number; over: number; torn: boolean }
 let tabSeq = 1;
 const mk = (url: string): Tab => ({ id: tabSeq++, url, title: "Loading...", hist: [url], hi: 0, nonce: 0 });
 
@@ -89,6 +91,9 @@ export function IE({ win }: { win: Win }) {
   const [info, setInfo] = useState(true);
   const [priv] = useState(!!win.props.private);
   const [loading, setLoading] = useState(false);
+  const [twidth, setTwidth] = useState(170);
+  const [drag, setDrag] = useState<TabDrag | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
   const addrRef = useRef<HTMLInputElement>(null);
 
@@ -127,6 +132,75 @@ export function IE({ win }: { win: Win }) {
     const r = e.currentTarget.getBoundingClientRect();
     showMenu({ x: r.left / view.scale, y: r.bottom / view.scale }, items);
   };
+  /* ---------------------------------------------------------- tab dragging
+   * Windows 7 lets you grab a tab and drop it somewhere else in the strip to
+   * reorder tabs, or pull it clear of the strip to open it in its own window.
+   * A live ghost follows the pointer; the other tabs slide out of its way. */
+  const tabDown = (e: React.PointerEvent, t: Tab, index: number) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest(".ie-tabx")) return;
+    const startX = e.clientX;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const grab = e.clientX - rect.left;
+    let moved = false;
+    let st: TabDrag | null = null;
+    const row = () => rowRef.current?.getBoundingClientRect();
+    const mv = (ev: PointerEvent) => {
+      if (!moved && Math.abs(ev.clientX - startX) < 5) return;
+      moved = true;
+      const r = row();
+      if (!r) return;
+      const rel = ev.clientX - r.left - grab;
+      const idx = Math.max(0, Math.min(tabs.length - 1, Math.round(rel / (twidth + 2))));
+      const torn = ev.clientY < r.top - 14 || ev.clientY > r.bottom + 60;
+      st = { id: t.id, from: index, dx: ev.clientX - startX, x: rel, over: idx, torn };
+      setDrag(st);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", mv);
+      window.removeEventListener("pointerup", up);
+      const fin = st;
+      setDrag(null);
+      if (!moved) return setActive(t.id);
+      if (!fin) return;
+      if (fin.torn) {
+        // tear the tab off into a new Internet Explorer window
+        closeInPlace(t.id);
+        openApp("ie", { url: t.url });
+        return;
+      }
+      if (fin.over !== fin.from) {
+        setTabs((ts) => {
+          const next = ts.slice();
+          const [m] = next.splice(fin.from, 1);
+          next.splice(fin.over, 0, m);
+          return next;
+        });
+      }
+    };
+    window.addEventListener("pointermove", mv);
+    window.addEventListener("pointerup", up);
+  };
+  const closeInPlace = (id: number) => {
+    const i = tabs.findIndex((t) => t.id === id);
+    const nt = tabs.filter((t) => t.id !== id);
+    if (!nt.length) return;
+    setTabs(nt);
+    if (active === id) setActive(nt[Math.max(0, i - 1)].id);
+  };
+  /** resize handle on the right edge of the strip: all tabs grow/shrink */
+  const widthDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const sx = e.clientX;
+    const w0 = twidth;
+    const mv = (ev: PointerEvent) => setTwidth(Math.max(84, Math.min(320, w0 + (ev.clientX - sx) / view.scale)));
+    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); document.body.classList.remove("col-resize"); };
+    document.body.classList.add("col-resize");
+    window.addEventListener("pointermove", mv);
+    window.addEventListener("pointerup", up);
+  };
+
   const addFav = () => {
     const f = s.ie.favs.some((x) => x.url === tab.url) ? s.ie.favs : [...s.ie.favs, { title: tab.title.slice(0, 40), url: tab.url }];
     setSettings({ ie: { ...s.ie, favs: f } });
@@ -188,13 +262,29 @@ export function IE({ win }: { win: Win }) {
         {s.ie.favs.slice(0, 6).map((f) => <span key={f.url} className="ie-favbtn" onClick={() => nav(f.url)}><Icon name="ie" size={14} /> {f.title}</span>)}
       </div>
       <div className="ie-tabs">
-        <div className="ie-tabrow">
-          {tabs.map((t) => (
-            <div key={t.id} className={"ie-tab" + (t.id === tab.id ? " sel" : "")} onClick={() => setActive(t.id)} onAuxClick={(e) => e.button === 1 && closeTab(t.id)}>
-              <Icon name="ie" size={14} /><span>{t.title}</span><i onClick={(e) => { e.stopPropagation(); closeTab(t.id); }}>✕</i>
-            </div>
-          ))}
+        <div className={"ie-tabrow" + (drag ? " dragging" : "")} ref={rowRef} style={{ ["--tw" as string]: twidth + "px" }}>
+          {tabs.map((t, i) => {
+            const d = drag && drag.id === t.id ? drag : null;
+            const shift = drag && !d && drag.from < i && drag.over >= i ? -1 : drag && !d && drag.from > i && drag.over <= i ? 1 : 0;
+            return (
+              <div
+                key={t.id}
+                className={"ie-tab" + (t.id === tab.id ? " sel" : "") + (d ? " dragging" + (d.torn ? " torn" : "") : "")}
+                style={{
+                  ["--shift" as string]: `${shift * (twidth + 2)}px`,
+                  ...(d ? { ["--dx" as string]: d.dx + "px", zIndex: 5 } : {}),
+                }}
+                onPointerDown={(e) => tabDown(e, t, i)}
+                onAuxClick={(e) => e.button === 1 && closeTab(t.id)}
+                title={t.title}
+              >
+                <Icon name="ie" size={14} /><span>{t.title}</span>
+                <i className="ie-tabx" onClick={(e) => { e.stopPropagation(); closeTab(t.id); }}>✕</i>
+              </div>
+            );
+          })}
           <div className="ie-newtab" onClick={() => newTab()} title="New Tab (Ctrl+T)">+</div>
+          <div className="ie-tabgrip" onPointerDown={widthDown} title="Drag to resize all tabs" />
         </div>
         <div className="ie-cmds">
           <span title="Home" onClick={() => nav(s.ie.home)}>⌂ Home</span>
