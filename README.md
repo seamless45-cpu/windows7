@@ -23,10 +23,20 @@ database are required.
 
 ### Publishing
 
-The workflow builds the static export on every push to `main` and deploys it to Pages.
-Repository → Settings → Pages must serve from **GitHub Actions** (`build_type: workflow`);
-the previous "deploy from a branch" setting published the raw repository, which is why the
-site showed this README instead of the desktop.
+Pages for this repository is a legacy *"deploy from the `main` branch"* site served from
+`/`, so there is no `docs/` folder or CI artifact to publish into: the built site lives at
+the repository root next to the source.
+
+```bash
+npm run build:pages   # builds with basePath=/windows7 and copies it to the repo root
+git add -A && git commit -m "Publish site" && git push
+```
+
+`scripts/publish-pages.mjs` copies `out/index.html`, `out/_next/**` and `out/404.html` to the
+repository root and writes `.nojekyll` (so GitHub serves the files verbatim instead of
+running Jekyll, which used to turn this README into the site's `index.html`). Re-run it
+whenever the app changes; the previous `_next` folder is replaced wholesale because Next.js
+fingerprints those file names.
 
 ## Shell features
 
