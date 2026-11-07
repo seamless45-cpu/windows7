@@ -31,6 +31,7 @@ export function wpStyle(key: string, pos: string): React.CSSProperties {
   } else {
     img = WALLPAPERS.find((w) => w.key === key)?.css || WALLPAPERS[0].css;
   }
+  if (!img) img = WALLPAPERS[0].css;
   const custom = key.startsWith("fs:");
   const st: React.CSSProperties = { background: img, backgroundSize: "cover", backgroundPosition: "center" };
   if (custom) {

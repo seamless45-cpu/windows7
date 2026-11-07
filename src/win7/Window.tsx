@@ -13,7 +13,7 @@ class Boundary extends React.Component<{ win: Win; children: React.ReactNode }, 
   render() {
     if (this.state.err === null) return this.props.children;
     return (
-      <div className="crash">
+      <div className="crash" data-err={this.state.err}>
         <Icon name="error" size={40} />
         <div>
           <b>{this.props.win.title} has stopped working</b>

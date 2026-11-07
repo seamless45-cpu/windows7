@@ -309,7 +309,7 @@ function Personalization({ nav }: { nav: (p: string) => void }) {
 function Wallpaper() {
   const s = useStore((st) => st.settings);
   const fs = useStore((st) => st.fs);
-  const pics = children("pics", fs).filter((n) => n.content?.startsWith("data:image"));
+  const pics = children("pics", fs).filter((n) => n.type === "file" && n.content?.startsWith("data:image"));
   return (
     <div>
       <Head title="Choose your desktop background" desc="Click a picture to make it your desktop background." />
