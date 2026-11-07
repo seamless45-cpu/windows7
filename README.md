@@ -32,6 +32,10 @@ npm run build:pages   # builds with basePath=/windows7 and copies it to the repo
 git add -A && git commit -m "Publish site" && git push
 ```
 
+`scripts/pages-workflow.yml` is a ready-made GitHub Actions workflow for a fully automatic
+deploy (build + `actions/deploy-pages`); copy it to `.github/workflows/pages.yml` and set
+Pages → Source to *GitHub Actions* if you prefer that to the manual publish step below.
+
 `scripts/publish-pages.mjs` copies `out/index.html`, `out/_next/**` and `out/404.html` to the
 repository root and writes `.nojekyll` (so GitHub serves the files verbatim instead of
 running Jekyll, which used to turn this README into the site's `index.html`). Re-run it
