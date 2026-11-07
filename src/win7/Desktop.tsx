@@ -25,7 +25,7 @@ export function Desktop() {
   const [band, setBand] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [flash, setFlash] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const cell = CELL[settings.iconSize];
+  const cell = CELL[settings.iconSize] || CELL.medium;
   const hasTrash = Object.values(fs).some((n) => n.trash);
 
   const items: Item[] = useMemo(() => {

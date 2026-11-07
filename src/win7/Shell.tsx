@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import {
-  useStore, getState, setState, view, closeAllMenus, toggleStart, showDesktop, openApp, openPath, lock, closeWin, focusWin, maxWin, snapWin, minWin, hideMenu, openCP, setSettings, setWin, workArea,
+  useStore, getState, setState, view, closeAllMenus, toggleStart, showDesktop, openApp, openPath, lock, closeWin, focusWin, maxWin, snapWin, minWin, hideMenu, openCP, setSettings, setWin, workArea, notify,
   flipStart, flipCommit, flipCancel, jumpTouch, closeJumpList, openJumpList, toggleFlyout,
 } from "./store";
 import { APPS } from "./registry";
@@ -32,6 +32,19 @@ export default function Shell() {
 
   const rw = settings.resolution === "native" ? 0 : parseInt(settings.resolution.split("x")[0], 10);
   const resZoom = rw ? 1280 / rw : 1;
+
+  /* ---------------- last-resort error surface ---------------- */
+  useEffect(() => {
+    // React error boundaries only catch render errors. Asynchronous failures
+    // (timers, audio, canvas) used to leave the desktop half-drawn with no
+    // way to recover, so they are reported through the notification area.
+    const onError = (e: ErrorEvent) => {
+      const msg = e.error?.message || e.message || "Unknown error";
+      notify({ title: "Windows", text: `An unexpected error occurred: ${msg}`, icon: "warn" });
+    };
+    window.addEventListener("error", onError);
+    return () => window.removeEventListener("error", onError);
+  }, []);
 
   /* ---------------- size & scale ---------------- */
   useEffect(() => {

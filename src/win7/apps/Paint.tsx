@@ -50,17 +50,22 @@ export function Paint({ win }: { win: Win }) {
   const st = useRef({ dirty, fileId });
   st.current = { dirty, fileId };
 
-  const ctx = () => cv.current!.getContext("2d", { willReadFrequently: true })!;
+  // Returns null when the canvas is not mounted yet (or the browser refuses a
+  // 2D context, e.g. after a GPU reset) so callers can bail out instead of crashing.
+  const ctx = () => cv.current?.getContext("2d", { willReadFrequently: true }) ?? null;
   const name = fileId ? fs[fileId]?.name || "Untitled" : "Untitled";
   useEffect(() => setWin(win.id, { title: `${name} - Paint` }), [name, win.id]);
 
   const blank = useCallback((w: number, h: number) => {
-    const c = cv.current!;
+    const c = cv.current;
+    if (!c) return;
     c.width = w;
     c.height = h;
     const g = ctx();
-    g.fillStyle = "#fff";
-    g.fillRect(0, 0, w, h);
+    if (g) {
+      g.fillStyle = "#fff";
+      g.fillRect(0, 0, w, h);
+    }
     setDims({ w, h });
   }, []);
   const loadImage = (src: string, id: string | null) => {
@@ -68,7 +73,7 @@ export function Paint({ win }: { win: Win }) {
     img.onload = () => {
       const w = Math.min(4000, img.naturalWidth || 640), h = Math.min(4000, img.naturalHeight || 400);
       blank(w, h);
-      ctx().drawImage(img, 0, 0, w, h);
+      ctx()?.drawImage(img, 0, 0, w, h);
       undo.current = [];
       redo.current = [];
       setFileId(id);
@@ -82,9 +87,10 @@ export function Paint({ win }: { win: Win }) {
     if (n?.content?.startsWith("data:image")) loadImage(n.content, n.id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const snap = () => ctx().getImageData(0, 0, cv.current!.width, cv.current!.height);
+  const snap = () => { const g = ctx(); return g && cv.current ? g.getImageData(0, 0, cv.current.width, cv.current.height) : null; };
   const pushUndo = () => {
-    undo.current.push(snap());
+    const s = snap();
+    if (s) undo.current.push(s);
     if (undo.current.length > 30) undo.current.shift();
     redo.current = [];
     setDirty(true);
@@ -92,24 +98,32 @@ export function Paint({ win }: { win: Win }) {
   const doUndo = () => {
     const s = undo.current.pop();
     if (!s) return;
-    redo.current.push(snap());
-    const c = cv.current!;
+    const cur = snap();
+    if (cur) redo.current.push(cur);
+    const c = cv.current;
+    if (!c) return;
     if (c.width !== s.width || c.height !== s.height) { c.width = s.width; c.height = s.height; setDims({ w: s.width, h: s.height }); }
-    ctx().putImageData(s, 0, 0);
+    ctx()?.putImageData(s, 0, 0);
     setSel(null);
   };
   const doRedo = () => {
     const s = redo.current.pop();
     if (!s) return;
-    undo.current.push(snap());
-    const c = cv.current!;
+    const cur = snap();
+    if (cur) undo.current.push(cur);
+    const c = cv.current;
+    if (!c) return;
     if (c.width !== s.width || c.height !== s.height) { c.width = s.width; c.height = s.height; setDims({ w: s.width, h: s.height }); }
-    ctx().putImageData(s, 0, 0);
+    ctx()?.putImageData(s, 0, 0);
   };
 
   const toData = (nm: string) => {
     const e = extOf(nm);
-    return cv.current!.toDataURL(e === "jpg" || e === "jpeg" ? "image/jpeg" : "image/png");
+    try {
+      return cv.current?.toDataURL(e === "jpg" || e === "jpeg" ? "image/jpeg" : "image/png") || "";
+    } catch {
+      return "";
+    }
   };
   const saveAs = (then?: () => void) =>
     openFileDialog({ mode: "save", exts: ["png", "jpg", "bmp"], name: "Untitled.png", start: "pics", onDone: (id, nm, dir) => {
@@ -146,8 +160,11 @@ export function Paint({ win }: { win: Win }) {
   /* ------- flood fill ------- */
   const hex = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const floodFill = (sx: number, sy: number, color: string) => {
-    const c = cv.current!;
-    const img = ctx().getImageData(0, 0, c.width, c.height);
+    const c = cv.current;
+    const gctx = ctx();
+    if (!c || !gctx) return;
+    const img = gctx.getImageData(0, 0, c.width, c.height);
+    if (!img) return;
     const d = img.data;
     const W = c.width, H = c.height;
     sx = Math.floor(sx); sy = Math.floor(sy);
@@ -172,7 +189,7 @@ export function Paint({ win }: { win: Win }) {
         x++; i += 4;
       }
     }
-    ctx().putImageData(img, 0, 0);
+    gctx.putImageData(img, 0, 0);
   };
 
   const drawShape = (g: CanvasRenderingContext2D, kind: Tool, a: { x: number; y: number }, b: { x: number; y: number }, shift: boolean) => {
@@ -232,7 +249,7 @@ export function Paint({ win }: { win: Win }) {
 
   const commitSel = () => {
     if (sel?.img) {
-      ctx().putImageData(sel.img, Math.round(sel.x), Math.round(sel.y));
+      ctx()?.putImageData(sel.img, Math.round(sel.x), Math.round(sel.y));
     }
     setSel(null);
   };
@@ -252,12 +269,13 @@ export function Paint({ win }: { win: Win }) {
       pushUndo();
       d.on = true;
       const g = ctx();
-      strokeSeg(g, p, { x: p.x + 0.01, y: p.y }, color);
+      if (g) strokeSeg(g, p, { x: p.x + 0.01, y: p.y }, color);
     } else if (tool === "fill") {
       pushUndo();
       floodFill(p.x, p.y, color);
     } else if (tool === "picker") {
-      const px = ctx().getImageData(Math.floor(p.x), Math.floor(p.y), 1, 1).data;
+      const px = ctx()?.getImageData(Math.floor(p.x), Math.floor(p.y), 1, 1).data;
+      if (!px) return;
       const h = "#" + [px[0], px[1], px[2]].map((v) => v.toString(16).padStart(2, "0")).join("");
       if (e.button === 2) setC2(h); else setC1(h);
       setTool(prevTool);
@@ -272,13 +290,15 @@ export function Paint({ win }: { win: Win }) {
         d.off = { x: p.x - sel.x, y: p.y - sel.y };
         if (!sel.img) {
           pushUndo();
-          const img = ctx().getImageData(Math.round(sel.x), Math.round(sel.y), Math.round(sel.w), Math.round(sel.h));
           const g = ctx();
-          g.fillStyle = c2;
-          g.fillRect(Math.round(sel.x), Math.round(sel.y), Math.round(sel.w), Math.round(sel.h));
-          d.base = snap();
+          const img = g?.getImageData(Math.round(sel.x), Math.round(sel.y), Math.round(sel.w), Math.round(sel.h)) || undefined;
+          if (g) {
+            g.fillStyle = c2;
+            g.fillRect(Math.round(sel.x), Math.round(sel.y), Math.round(sel.w), Math.round(sel.h));
+          }
+          d.base = snap() || undefined;
           setSel({ ...sel, img });
-        } else d.base = snap();
+        } else d.base = snap() || undefined;
       } else {
         commitSel();
         d.on = true;
@@ -288,7 +308,7 @@ export function Paint({ win }: { win: Win }) {
     } else {
       pushUndo();
       d.on = true;
-      d.base = snap();
+      d.base = snap() || undefined;
     }
   };
   const move = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -297,6 +317,7 @@ export function Paint({ win }: { win: Win }) {
     const d = drag.current;
     if (!d.on) return;
     const g = ctx();
+    if (!g) return;
     if (tool === "pencil" || tool === "brush" || tool === "eraser") {
       strokeSeg(g, d.last, p, d.color);
       d.last = p;
@@ -323,12 +344,12 @@ export function Paint({ win }: { win: Win }) {
     else if (tool === "select" && d.mode === "new" && sel) setSel({ ...sel, x: Math.round(sel.x), y: Math.round(sel.y), w: Math.round(sel.w), h: Math.round(sel.h) });
     if (tool === "select" && d.mode === "move" && sel?.img) {
       // floating selection stays until committed; keep pixels drawn
-      ctx().putImageData(d.base!, 0, 0);
+      ctx()?.putImageData(d.base!, 0, 0);
       const tmp = document.createElement("canvas");
       tmp.width = sel.img.width; tmp.height = sel.img.height;
       tmp.getContext("2d")!.putImageData(sel.img, 0, 0);
       const p = pt(e);
-      ctx().drawImage(tmp, Math.round(p.x - d.off!.x), Math.round(p.y - d.off!.y));
+      ctx()?.drawImage(tmp, Math.round(p.x - d.off!.x), Math.round(p.y - d.off!.y));
       setSel({ ...sel, x: Math.round(p.x - d.off!.x), y: Math.round(p.y - d.off!.y) });
     }
     d.base = undefined;
@@ -338,36 +359,40 @@ export function Paint({ win }: { win: Win }) {
     if (textBox && v.trim()) {
       pushUndo();
       const g = ctx();
-      g.fillStyle = c1;
-      g.font = `${fontSize}px Calibri, "Segoe UI", sans-serif`;
-      g.textBaseline = "top";
-      v.split("\n").forEach((l, i) => g.fillText(l, textBox.x, textBox.y + i * fontSize * 1.2));
+      if (g) {
+        g.fillStyle = c1;
+        g.font = `${fontSize}px Calibri, "Segoe UI", sans-serif`;
+        g.textBaseline = "top";
+        v.split("\n").forEach((l, i) => g.fillText(l, textBox.x, textBox.y + i * fontSize * 1.2));
+      }
     }
     setTextBox(null);
   };
 
   /* ------- image ops ------- */
   const resizeTo = (w: number, h: number) => {
+    const c = cv.current;
+    const g = ctx();
+    if (!c || !g) return;
     pushUndo();
-    const c = cv.current!;
     const tmp = document.createElement("canvas");
     tmp.width = c.width; tmp.height = c.height;
-    tmp.getContext("2d")!.drawImage(c, 0, 0);
+    tmp.getContext("2d")?.drawImage(c, 0, 0);
     c.width = w; c.height = h;
-    const g = ctx();
     g.fillStyle = "#fff"; g.fillRect(0, 0, w, h);
     g.drawImage(tmp, 0, 0, w, h);
     setDims({ w, h });
   };
   const transform = (kind: "r90" | "l90" | "r180" | "fh" | "fv") => {
+    const c = cv.current;
+    const g = ctx();
+    if (!c || !g) return;
     pushUndo();
-    const c = cv.current!;
     const tmp = document.createElement("canvas");
     tmp.width = c.width; tmp.height = c.height;
-    tmp.getContext("2d")!.drawImage(c, 0, 0);
+    tmp.getContext("2d")?.drawImage(c, 0, 0);
     const W = c.width, H = c.height;
-    if (kind === "r90" || kind === "l90") { c.width = H; c.height = W; setDims({ w: H, h: W }); } 
-    const g = ctx();
+    if (kind === "r90" || kind === "l90") { c.width = H; c.height = W; setDims({ w: H, h: W }); }
     g.save();
     if (kind === "r90") { g.translate(H, 0); g.rotate(Math.PI / 2); }
     else if (kind === "l90") { g.translate(0, W); g.rotate(-Math.PI / 2); }
@@ -379,18 +404,20 @@ export function Paint({ win }: { win: Win }) {
   };
   const cropSel = () => {
     if (!sel || sel.w < 2) return;
-    pushUndo();
     const g = ctx();
+    const c = cv.current;
+    if (!g || !c) return;
+    pushUndo();
     const img = sel.img || g.getImageData(sel.x, sel.y, sel.w, sel.h);
-    const c = cv.current!;
     c.width = Math.round(sel.w); c.height = Math.round(sel.h);
     setDims({ w: c.width, h: c.height });
-    ctx().putImageData(img, 0, 0);
+    ctx()?.putImageData(img, 0, 0);
     setSel(null);
   };
   const copySel = (cut: boolean) => {
     if (!sel || sel.w < 1) return;
     const g = ctx();
+    if (!g) return;
     clip.current = sel.img || g.getImageData(Math.round(sel.x), Math.round(sel.y), Math.round(sel.w), Math.round(sel.h));
     if (cut) {
       if (!sel.img) { pushUndo(); g.fillStyle = c2; g.fillRect(sel.x, sel.y, sel.w, sel.h); }
@@ -399,20 +426,28 @@ export function Paint({ win }: { win: Win }) {
   };
   const paste = () => {
     if (!clip.current) return;
+    const g = ctx();
+    if (!g) return;
     commitSel();
     pushUndo();
     const img = clip.current;
-    const g = ctx();
-    d0.base = snap();
+    d0.base = snap() || undefined;
     const tmp = document.createElement("canvas");
     tmp.width = img.width; tmp.height = img.height;
-    tmp.getContext("2d")!.putImageData(img, 0, 0);
+    tmp.getContext("2d")?.putImageData(img, 0, 0);
     g.drawImage(tmp, 0, 0);
     setTool("select");
     setSel({ x: 0, y: 0, w: img.width, h: img.height, img });
   };
   const d0 = drag.current;
-  const deleteSel = () => { if (sel) { if (!sel.img) { pushUndo(); ctx().fillStyle = c2; ctx().fillRect(sel.x, sel.y, sel.w, sel.h); } else if (d0.base) ctx().putImageData(d0.base, 0, 0); setSel(null); } };
+  const deleteSel = () => {
+    if (!sel) return;
+    if (!sel.img) {
+      const g = ctx();
+      if (g) { pushUndo(); g.fillStyle = c2; g.fillRect(sel.x, sel.y, sel.w, sel.h); }
+    } else if (d0.base) ctx()?.putImageData(d0.base, 0, 0);
+    setSel(null);
+  };
 
   const key = (e: React.KeyboardEvent) => {
     if ((e.target as HTMLElement).tagName === "INPUT" || (e.target as HTMLElement).tagName === "TEXTAREA") return;

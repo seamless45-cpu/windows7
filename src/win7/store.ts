@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { APPS } from "./registry";
-import { seedFs } from "./data";
+import { seedFs, WALLPAPERS } from "./data";
 import { snd, playSys } from "./sound";
 
 /* ------------------------------------------------------------------ types */
@@ -226,23 +226,214 @@ export function lsSet(k: string, v: unknown) {
   }
 }
 
-function mergeSettings(saved: Partial<Settings>): Settings {
-  const s = { ...DEFAULTS, ...saved } as Settings;
-  s.taskbar = { ...DEFAULTS.taskbar, ...(saved.taskbar || {}) };
-  s.sysIcons = { ...DEFAULTS.sysIcons, ...(saved.sysIcons || {}) };
-  s.power = { ...DEFAULTS.power, ...(saved.power || {}) };
-  s.folder = { ...DEFAULTS.folder, ...(saved.folder || {}) };
-  s.ie = { ...DEFAULTS.ie, ...(saved.ie || {}) };
-  s.defaults = { ...DEFAULTS.defaults, ...(saved.defaults || {}) };
-  s.aero = { ...DEFAULTS.aero, ...(saved.aero || {}) };
-  if (!Array.isArray(s.recentDocs)) s.recentDocs = [];
-  return s;
+/* -------------------------------------------------- state sanitisation
+ * Saved settings come from localStorage, which may hold values written by an
+ * older build of the simulation, a half-finished write, or a manually edited
+ * entry. A single unexpected value (e.g. an unknown icon size) used to throw
+ * while the shell mounted and left the user with a black screen, so every
+ * persisted setting is validated here and falls back to its default.
+ */
+const oneOf = <T extends string | number>(v: unknown, allowed: readonly T[], fb: T): T =>
+  (allowed as readonly unknown[]).includes(v) ? (v as T) : fb;
+const bool = (v: unknown, fb: boolean): boolean => (typeof v === "boolean" ? v : fb);
+const num = (v: unknown, fb: number, min = -Infinity, max = Infinity): number =>
+  typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fb;
+const str = (v: unknown, fb: string): string => (typeof v === "string" && v.length ? v : fb);
+const arr = <T,>(v: unknown, fb: T[]): T[] => (Array.isArray(v) ? (v as T[]) : fb);
+const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const strArr = (v: unknown, fb: string[] = []): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : fb);
+
+export const THEMES = ["aero", "basic", "classic", "hc"] as const;
+export const ICON_SIZES = ["large", "medium", "small"] as const;
+export const WP_POSITIONS = ["fill", "fit", "stretch", "tile", "center"] as const;
+export const SCREENSAVERS = ["none", "bubbles", "ribbons", "photos", "blank"] as const;
+export const POINTERS = ["aero", "large", "black"] as const;
+export const TASKBAR_SIDES = ["bottom", "top", "left", "right"] as const;
+export const COMBINE_MODES = ["always", "never"] as const;
+export const GADGET_TYPES_KNOWN = ["clock", "calendar", "cpu", "weather", "puzzle", "slideshow", "rss"] as const;
+
+function sanitizeUsers(v: unknown): User[] {
+  const list = arr<unknown>(v, []).filter((u): u is Record<string, unknown> => !!u && typeof u === "object");
+  const users: User[] = list.map((u) => ({
+    name: str(u.name, "User").slice(0, 40),
+    pic: str(u.pic, "flower"),
+    admin: bool(u.admin, false),
+    ...(typeof u.pass === "string" && u.pass ? { pass: u.pass } : {}),
+  }));
+  const seen = new Set<string>();
+  const unique = users.filter((u) => (seen.has(u.name.toLowerCase()) ? false : (seen.add(u.name.toLowerCase()), true)));
+  return unique.length ? unique : DEFAULTS.users.map((u) => ({ ...u }));
+}
+
+function sanitizeGadgets(v: unknown): GadgetInst[] {
+  return arr<unknown>(v, [])
+    .filter((g): g is Record<string, unknown> => !!g && typeof g === "object")
+    .map((g, i) => ({
+      id: str(g.id, "g" + i),
+      type: oneOf(g.type, GADGET_TYPES_KNOWN, "clock"),
+      x: num(g.x, 0, -10000, 10000),
+      y: num(g.y, 20, -10000, 10000),
+      top: bool(g.top, false),
+    }));
+}
+
+function sanitizeSettings(savedRaw: unknown): Settings {
+  const saved = obj(savedRaw) as Partial<Settings>;
+  const d = DEFAULTS;
+  const taskbar = obj(saved.taskbar);
+  const power = obj(saved.power);
+  const folder = obj(saved.folder);
+  const ieSaved = obj(saved.ie);
+  const aero = obj(saved.aero);
+  const defaults = obj(saved.defaults);
+  const sysIconsRaw = obj(saved.sysIcons);
+  const sysIcons: Record<string, boolean> = { ...d.sysIcons };
+  Object.keys(sysIcons).forEach((k) => { sysIcons[k] = bool(sysIconsRaw[k], true); });
+
+  const users = sanitizeUsers(saved.users);
+  const currentUser = users.some((u) => u.name === saved.currentUser) ? (saved.currentUser as string) : users[0].name;
+
+  const installed = arr<unknown>(saved.installed, d.installed)
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === "object")
+    .map((x, i) => ({
+      id: str(x.id, "pkg" + i),
+      name: str(x.name, "Program"),
+      publisher: str(x.publisher, "Unknown"),
+      size: str(x.size, "—"),
+      date: str(x.date, "—"),
+      version: str(x.version, "1.0"),
+    }));
+
+  const wp = saved.wallpaper;
+  const knownWp = WALLPAPERS.some((w) => w.key === wp);
+  const wallpaper = typeof wp === "string" && (knownWp || wp.startsWith("fs:")) ? wp : d.wallpaper;
+
+  const defaultsOut: Record<string, string> = { ...d.defaults };
+  Object.keys(defaultsOut).forEach((k) => { defaultsOut[k] = str(defaults[k], defaultsOut[k]); });
+
+  return {
+    theme: oneOf(saved.theme, THEMES, d.theme),
+    wallpaper,
+    wpPos: oneOf(saved.wpPos, WP_POSITIONS, d.wpPos),
+    colorKey: str(saved.colorKey, d.colorKey),
+    transparency: bool(saved.transparency, d.transparency),
+    intensity: num(saved.intensity, d.intensity, 0, 100),
+    soundScheme: saved.soundScheme === "none" ? "none" : "default",
+    screensaver: oneOf(saved.screensaver, SCREENSAVERS, d.screensaver),
+    ssWait: num(saved.ssWait, d.ssWait, 1, 240),
+    showIcons: bool(saved.showIcons, d.showIcons),
+    iconSize: oneOf(saved.iconSize, ICON_SIZES, d.iconSize),
+    sysIcons,
+    autoArrange: bool(saved.autoArrange, d.autoArrange),
+    alignGrid: bool(saved.alignGrid, d.alignGrid),
+    resolution: str(saved.resolution, d.resolution),
+    dpi: num(saved.dpi, d.dpi, 100, 200),
+    pointer: oneOf(saved.pointer, POINTERS, d.pointer),
+    trails: bool(saved.trails, d.trails),
+    keyClick: bool(saved.keyClick, d.keyClick),
+    users,
+    currentUser,
+    volume: num(saved.volume, d.volume, 0, 100),
+    muted: bool(saved.muted, d.muted),
+    taskbar: {
+      lock: bool(taskbar.lock, d.taskbar.lock),
+      autohide: bool(taskbar.autohide, d.taskbar.autohide),
+      small: bool(taskbar.small, d.taskbar.small),
+      pos: oneOf(taskbar.pos, TASKBAR_SIDES, d.taskbar.pos),
+      combine: oneOf(taskbar.combine, COMBINE_MODES, d.taskbar.combine),
+      peek: bool(taskbar.peek, d.taskbar.peek),
+    },
+    pinned: strArr(saved.pinned, d.pinned).filter((a) => !!APPS[a]),
+    recent: strArr(saved.recent, d.recent).filter((a) => !!APPS[a]),
+    gadgets: sanitizeGadgets(saved.gadgets),
+    clock24: bool(saved.clock24, d.clock24),
+    tz: typeof saved.tz === "number" && Number.isFinite(saved.tz) ? saved.tz : null,
+    region: str(saved.region, d.region),
+    power: {
+      plan: str(power.plan, d.power.plan),
+      display: num(power.display, d.power.display, 1, 240),
+      sleep: num(power.sleep, d.power.sleep, 0, 600),
+    },
+    firewall: bool(saved.firewall, d.firewall),
+    autoUpdate: str(saved.autoUpdate, d.autoUpdate),
+    uac: oneOf(saved.uac, ["always", "default", "never"] as const, d.uac),
+    folder: {
+      showHidden: bool(folder.showHidden, d.folder.showHidden),
+      showExt: bool(folder.showExt, d.folder.showExt),
+      preview: bool(folder.preview, d.folder.preview),
+      details: bool(folder.details, d.folder.details),
+      navPane: bool(folder.navPane, d.folder.navPane),
+    },
+    ie: {
+      home: str(ieSaved.home, d.ie.home),
+      favs: arr<unknown>(ieSaved.favs, d.ie.favs)
+        .filter((f): f is Record<string, unknown> => !!f && typeof f === "object")
+        .map((f) => ({ title: str(f.title, "Favorite"), url: str(f.url, "about:home") })),
+      history: strArr(ieSaved.history, []),
+    },
+    installed,
+    hiddenTray: strArr(saved.hiddenTray, d.hiddenTray),
+    defaults: defaultsOut,
+    highContrastText: bool(saved.highContrastText, d.highContrastText),
+    deviceDisabled: strArr(saved.deviceDisabled, []),
+    wpShuffle: bool(saved.wpShuffle, d.wpShuffle),
+    wpInterval: num(saved.wpInterval, d.wpInterval, 1, 1440),
+    snapAssist: bool(saved.snapAssist, d.snapAssist),
+    shake: bool(saved.shake, d.shake),
+    aero: {
+      animations: bool(aero.animations, d.aero.animations),
+      shadows: bool(aero.shadows, d.aero.shadows),
+      taskbarAnim: bool(aero.taskbarAnim, d.aero.taskbarAnim),
+      smoothScroll: bool(aero.smoothScroll, d.aero.smoothScroll),
+    },
+    recentDocs: arr<unknown>(saved.recentDocs, [])
+      .map((x) => obj(x))
+      .filter((x) => typeof x.id === "string")
+      .map((x) => ({ id: x.id as string, app: str(x.app, "notepad"), at: num(x.at, 0) })),
+  };
+}
+
+/** The desktop needs at least a bootable C: drive; anything else is reseeded. */
+function sanitizeFs(raw: unknown): Fs | null {
+  const fs = obj(raw) as Fs;
+  const keys = Object.keys(fs);
+  if (!keys.length) return null;
+  const root = fs["c"];
+  if (!root || root.type !== "folder" || typeof root.name !== "string") return null;
+  const ok = keys.every((k) => {
+    const n = fs[k];
+    return !!n && typeof n === "object" && typeof n.id === "string" && typeof n.name === "string" && (n.type === "file" || n.type === "folder");
+  });
+  return ok ? fs : null;
+}
+
+function sanitizeIconPos(raw: unknown): Record<string, { x: number; y: number }> {
+  const out: Record<string, { x: number; y: number }> = {};
+  const src = obj(raw);
+  Object.keys(src).forEach((k) => {
+    const p = obj(src[k]);
+    if (typeof p.x === "number" && typeof p.y === "number" && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+      out[k] = { x: p.x, y: p.y };
+    }
+  });
+  return out;
+}
+
+export function resetSettings() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("win7."))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 function init(): State {
-  const settings = mergeSettings(lsGet<Partial<Settings>>("win7.settings", {}));
-  let fs = lsGet<Fs | null>("win7.fs.v1", null);
-  if (!fs || !fs["c"]) {
+  const settings = sanitizeSettings(lsGet<unknown>("win7.settings", {}));
+  let fs = sanitizeFs(lsGet<unknown>("win7.fs.v1", null));
+  if (!fs) {
+    // first run, cleared storage, or a file system that cannot be read back
     fs = seedFs();
   }
   locale = settings.region;
@@ -253,7 +444,7 @@ function init(): State {
   return {
     settings,
     fs,
-    iconPos: lsGet("win7.icons", {}),
+    iconPos: sanitizeIconPos(lsGet<unknown>("win7.icons", {})),
     windows: [],
     focus: null,
     clipboard: null,

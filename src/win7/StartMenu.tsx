@@ -76,7 +76,6 @@ const PINNED: PItem[] = [
   app("paint"),
   app("magnifier"),
   app("solitaire"),
-  app("sticky2", "Sticky Notes"),
 ];
 
 const CPL: [string, string, string][] = [
@@ -308,7 +307,6 @@ export function StartMenu() {
         {place("Control Panel", "controlpanel", () => openCP())}
         {place("Devices and Printers", "devices", () => openCP("devices"))}
         {place("Mobility Center", "power", () => openApp("mobility"))}
-        {place("Devices and Printers", "devices", () => openCP("devices"))}
         {place("Default Programs", "defaultprogs", () => openCP("defaultprogs"))}
         {place("Help and Support", "help", () => openApp("help"))}
         <div className="sm-rspace" />

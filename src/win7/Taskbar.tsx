@@ -98,7 +98,9 @@ export function Taskbar() {
     const gk = (app: string) => APPS[app]?.group || app;
     const run = windows.filter((w) => !APPS[w.app].noTask);
     const out: Group[] = [];
-    settings.pinned.forEach((p) => out.push({ key: gk(p), app: p, wins: [], pinned: true }));
+    // Pinned entries are validated in the store, but the list can also be
+    // edited by an older build or by hand — never let a stale id break the bar.
+    settings.pinned.filter((p) => !!APPS[p]).forEach((p) => out.push({ key: gk(p), app: p, wins: [], pinned: true }));
     run.forEach((w) => {
       const k = gk(w.app);
       let g = out.find((x) => x.key === k);

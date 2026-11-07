@@ -189,8 +189,7 @@ const BODY: Record<string, () => React.ReactNode> = { clock: () => <Clock />, ca
 
 function Gadget({ g, sw }: { g: GadgetInst; sw: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const def = GADGET_TYPES[g.type];
-  if (!def) return null;
+  const def = GADGET_TYPES[g.type] || GADGET_TYPES.clock;
   const left = g.x < 0 ? sw + g.x : Math.min(g.x, sw - 40);
   const down = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest("button,.g-tile,.g-w-city,.g-w-t,.g-rss-i,.g-slide")) return;

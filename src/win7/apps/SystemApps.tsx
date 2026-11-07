@@ -49,7 +49,12 @@ export function Cmd({ win }: { win: Win }) {
   const inp = useRef<HTMLInputElement>(null);
   const fsx = () => getState().fs;
   const prompt = (c = cwd) => pathOf(c) + ">";
-  useEffect(() => { box.current?.scrollTo(0, 99999); }, [lines, input]);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    if (typeof el.scrollTo === "function") el.scrollTo(0, el.scrollHeight);
+    else el.scrollTop = el.scrollHeight;
+  }, [lines, input]);
   useEffect(() => { inp.current?.focus(); }, []);
 
   const run = (raw: string) => {

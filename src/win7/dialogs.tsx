@@ -26,7 +26,8 @@ export function emptyRecycle() {
 
 /* ------------------------------------------------------------- MsgBox */
 export function MsgBox({ win }: { win: Win }) {
-  const p = win.props;
+  const p = win.props || {};
+  const buttons: string[] = Array.isArray(p.buttons) && p.buttons.length ? p.buttons : ["OK"];
   const done = (b: string) => {
     closeWin(win.id, true);
     setTimeout(() => p.onResult?.(b), 0);
@@ -35,10 +36,10 @@ export function MsgBox({ win }: { win: Win }) {
     <div className="dlg">
       <div className="dlg-main">
         <Icon name={p.icon === "warn" ? "warn" : p.icon || "info"} size={40} />
-        <div className="dlg-text">{p.text}</div>
+        <div className="dlg-text">{p.text || ""}</div>
       </div>
       <div className="dlg-foot">
-        {(p.buttons as string[]).map((b, i) => (
+        {buttons.map((b, i) => (
           <Btn key={b} def={i === 0} onClick={() => done(b)}>{b}</Btn>
         ))}
       </div>
@@ -113,7 +114,7 @@ export function Progress({ win }: { win: Win }) {
           <div className="prog-flyers"><Icon name="file" size={22} /><Icon name="txt" size={22} /><Icon name="image" size={22} /></div>
           <Icon name={p.icon || "folder"} size={32} />
         </div>
-        <div className="dlg-text">{p.text}</div>
+        <div className="dlg-text">{p.text || ""}</div>
         <div className="pbar"><div style={{ width: v * 100 + "%" }} /></div>
         <div style={{ color: "#444", fontSize: 11 }}>{Math.round(v * 100)}% complete</div>
       </div>
