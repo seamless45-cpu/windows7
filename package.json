@@ -4,11 +4,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:pages": "PAGES_BASE_PATH=/windows7 next build && node scripts/publish-pages.mjs",
+    "build:pages": "PAGES_BASE_PATH=/windows7 next build && node scripts/publish-pages.mjs && node scripts/verify-publish.mjs",
     "start": "npx serve@14 out",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:softkb": "node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs"
+    "test:softkb": "node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs",
+    "verify:pages": "node scripts/verify-publish.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
