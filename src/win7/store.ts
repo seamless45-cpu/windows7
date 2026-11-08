@@ -59,7 +59,11 @@ export interface Settings {
   transparency: boolean;
   intensity: number;
   soundScheme: string;
-  screensaver: "none" | "bubbles" | "ribbons" | "photos" | "blank";
+  screensaver: "none" | "bubbles" | "ribbons" | "photos" | "blank" | "mystify" | "text3d" | "gradient" | "lightning";
+  /** 3D Text screen saver: the words, font size and spin speed */
+  ssText: string;
+  ssText3D: { text: string; size: number; spin: number; surface: "solid" | "texture" | "reflective"; font: string };
+  ssPassword: boolean;
   ssWait: number;
   showIcons: boolean;
   iconSize: "large" | "medium" | "small";
@@ -158,6 +162,12 @@ export interface State {
   altTabHover: string | null;
   windowIds: string[];
   notifyToast: { title: string; text: string; icon: string; at: number } | null;
+  /** full-screen fade overlay: "out" fades to black, "in" fades back */
+  fade: { mode: "out" | "in"; token: number } | null;
+  /** cross-fade the desktop when the theme changes */
+  themeMix: number | null;
+  /** has a user session ever been started since this page loaded? */
+  everLoggedIn: boolean;
 }
 
 /* --------------------------------------------------------------- defaults */
@@ -172,6 +182,9 @@ export const DEFAULTS: Settings = {
   soundScheme: "Windows Default",
   screensaver: "none",
   ssWait: 10,
+  ssPassword: true,
+  ssText: "Windows 7",
+  ssText3D: { text: "Windows 7", size: 72, spin: 40, surface: "reflective", font: "Segoe UI Light" },
   showIcons: true,
   iconSize: "medium",
   sysIcons: { computer: true, user: true, network: true, recycle: true, cpanel: true },
@@ -265,7 +278,7 @@ const strArr = (v: unknown, fb: string[] = []): string[] => (Array.isArray(v) ? 
 export const THEMES = ["aero", "basic", "classic", "hc"] as const;
 export const ICON_SIZES = ["large", "medium", "small"] as const;
 export const WP_POSITIONS = ["fill", "fit", "stretch", "tile", "center"] as const;
-export const SCREENSAVERS = ["none", "bubbles", "ribbons", "photos", "blank"] as const;
+export const SCREENSAVERS = ["none", "bubbles", "ribbons", "photos", "blank", "mystify", "text3d", "gradient", "lightning"] as const;
 export const POINTERS = ["aero", "large", "black"] as const;
 export const TASKBAR_SIDES = ["bottom", "top", "left", "right"] as const;
 export const COMBINE_MODES = ["always", "never"] as const;
@@ -305,6 +318,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
   const folder = obj(saved.folder);
   const ieSaved = obj(saved.ie);
   const aero = obj(saved.aero);
+  const o3 = obj(saved.ssText3D);
   const defaults = obj(saved.defaults);
   const sysIconsRaw = obj(saved.sysIcons);
   const sysIcons: Record<string, boolean> = { ...d.sysIcons };
@@ -344,6 +358,15 @@ function sanitizeSettings(savedRaw: unknown): Settings {
       : SCHEMES.includes(saved.soundScheme as (typeof SCHEMES)[number]) ? (saved.soundScheme as string)
       : "Windows Default",
     screensaver: oneOf(saved.screensaver, SCREENSAVERS, d.screensaver),
+    ssPassword: bool(obj(saved).ssPassword, d.ssPassword),
+    ssText: str(obj(saved).ssText, d.ssText),
+    ssText3D: {
+      text: str(o3.text, d.ssText3D.text),
+      size: num(o3.size, d.ssText3D.size, 12, 240),
+      spin: num(o3.spin, d.ssText3D.spin, 0, 100),
+      surface: oneOf(o3.surface, ["solid", "texture", "reflective"] as const, d.ssText3D.surface),
+      font: str(o3.font, d.ssText3D.font),
+    },
     ssWait: num(saved.ssWait, d.ssWait, 1, 240),
     showIcons: bool(saved.showIcons, d.showIcons),
     iconSize: oneOf(saved.iconSize, ICON_SIZES, d.iconSize),
@@ -496,6 +519,9 @@ function init(): State {
     altTabHover: null,
     windowIds: [],
     notifyToast: null,
+    fade: null,
+    themeMix: null,
+    everLoggedIn: false,
   };
 }
 
@@ -543,12 +569,24 @@ export function setSettings(patch: Partial<Settings>) {
   if (patch.region) locale = patch.region;
   if ("volume" in patch) snd.vol = settings.volume / 100;
   if ("muted" in patch) snd.muted = settings.muted;
-  if ("soundScheme" in patch) {
+  if ("soundScheme" in patch && patch.soundScheme !== state.settings.soundScheme) {
     snd.scheme = settings.soundScheme;
     clearCache();
     preload();
+    // Windows plays the scheme's own "Windows Default" sting when you change it
+    window.setTimeout(() => playSys("default"), 120);
   }
   if ("keyClick" in patch) snd.keyClick = settings.keyClick;
+  // Applying a theme (or a wallpaper/colour that belongs to one) is a
+  // cross-dissolve in DWM, not a jump cut.
+  const themed = ("theme" in patch && patch.theme !== state.settings.theme)
+    || ("wallpaper" in patch && patch.wallpaper !== state.settings.wallpaper)
+    || ("colorKey" in patch && patch.colorKey !== state.settings.colorKey);
+  if (themed) {
+    setState({ settings, themeMix: Date.now() });
+    window.setTimeout(() => setState({ themeMix: null }), 460);
+    return;
+  }
   setState({ settings });
 }
 
@@ -921,13 +959,14 @@ export function maxWin(id: string) {
   if (!w || APPS[w.app].fixed) return;
   if (w.max || w.snap) {
     const p = w.prev;
-    animateChange(id, 175);
+    // Windows 7's maximize/restore runs in ~120 ms; the minimize sound is the
+    // "restore" clip, and maximizing itself is silent.
+    animateChange(id, 125);
     patchWin(id, { max: false, snap: null, ...(p ? { x: p.x, y: p.y, w: p.w, h: p.h } : {}), prev: null });
     playSys("restore");
   } else {
-    animateChange(id, 175);
+    animateChange(id, 125);
     patchWin(id, { max: true, prev: { x: w.x, y: w.y, w: w.w, h: w.h } });
-    playSys("restore");
   }
   focusWin(id);
 }
@@ -937,7 +976,7 @@ export function snapWin(id: string, side: "l" | "r") {
   playSys("restore");
   const wa = workArea(state);
   const hw = Math.floor(wa.w / 2);
-  animateChange(id, 175);
+  animateChange(id, 125);
   patchWin(id, { max: false, snap: side, prev: w.prev || { x: w.x, y: w.y, w: w.w, h: w.h }, x: side === "l" ? wa.x : wa.x + hw, y: wa.y, w: hw, h: wa.h });
 }
 /**
@@ -1189,7 +1228,7 @@ const RUN_MAP: Record<string, string> = {
   tasksched: "tasksched", resmon: "resmon", compmgmt: "compmgmt", devmgr: "devmgr", diskmgmt: "diskmgmt",
   fw: "fw", wf: "fw", secpol: "secpol", rdp: "rdp", mstsc: "rdp", sync: "sync", mobsync: "sync", migwiz: "migwiz",
   mdsched: "mdsched", memdiag: "mdsched", perfmon: "perfmon",
-  cardspace: "cardspace", openwith: "openwith", gettingstarted: "gettingstarted", dccw: "dccw", powershell_ise: "ise", ise: "ise", wab: "contacts",
+  cardspace: "cardspace", openwith: "openwith", fun: "fun", bsod: "fun", crash: "fun", gettingstarted: "gettingstarted", dccw: "dccw", powershell_ise: "ise", ise: "ise", wab: "contacts",
   backup: "backup", sdclt: "backup", bitlocker: "bitlocker", homegroup: "homegroup", credmgr: "credmgr", wei: "wei", msra: "ra", eudcedit: "eudc", tabtip: "tabtip", msdt: "support", wfs: "wfs", mce: "mce", ehshell: "mce", mediacenter: "mce",
   powershell: "powershell", sysrestore: "sysrestore", defender: "defender", calendar: "calendar", lusrmgr: "lusrmgr", msascui: "defender", rstrui: "sysrestore", control_management: "compmgmt",
 };
@@ -1313,31 +1352,65 @@ export function reboot(opts: { safeMode?: boolean } = {}) {
 }
 
 /* -------------------------------------------------------------- power */
+
+/* ---------------------------------------------------------- fade overlay */
+/**
+ * Fade to black, run `mid`, then fade back in. Windows uses this everywhere a
+ * secure desktop or a session change happens: logon, logoff, shutdown, restart,
+ * UAC and the screen saver password prompt. `ms` is one half of the fade.
+ */
+export function fadeThrough(mid: () => void, ms = 220) {
+  const token = Date.now();
+  setState({ fade: { mode: "out", token }, startOpen: false, flyout: null, menu: null });
+  window.setTimeout(() => {
+    mid();
+    const token2 = Date.now();
+    setState({ fade: { mode: "in", token: token2 } });
+    window.setTimeout(() => {
+      if (state.fade?.token === token2) setState({ fade: null });
+    }, ms + 60);
+  }, ms);
+}
+
+/** Fade the desktop when a theme is applied (Windows cross-fades the shell). */
+export function mixTheme(patch: Partial<Settings>, ms = 300) {
+  setSettings(patch);
+  setState({ themeMix: Date.now() });
+  window.setTimeout(() => setState({ themeMix: null }), ms + 80);
+}
+
 export function shutdown() {
   logEvent("Information", "User32", 1074, `The process explorer.exe has initiated the power off of computer on behalf of user ${state.settings.currentUser}.`);
-  setState({ power: "shuttingdown", startOpen: false, flyout: null, menu: null });
+  // Windows fades the session out, shows "Shutting down" and only then paints
+  // black; the shutdown sound is a session sound, not the logoff one.
   playSys("shutdown");
-  setTimeout(() => setState({ power: "off", windows: [], focus: null }), 2600);
+  fadeThrough(() => setState({ power: "shuttingdown" }), 260);
+  setTimeout(() => fadeThrough(() => setState({ power: "off", windows: [], focus: null }), 240), 2400);
 }
 export function restart() {
   logEvent("Information", "User32", 1074, `The process explorer.exe has initiated the restart of computer on behalf of user ${state.settings.currentUser}.`);
-  setState({ power: "restarting", startOpen: false, flyout: null, menu: null });
   playSys("shutdown");
-  setTimeout(() => setState({ power: "boot", windows: [], focus: null }), 2600);
+  fadeThrough(() => setState({ power: "restarting" }), 260);
+  setTimeout(() => fadeThrough(() => setState({ power: "boot", windows: [], focus: null }), 240), 2400);
 }
 export function sleep() {
-  setState({ power: "sleep", startOpen: false, flyout: null, menu: null });
+  fadeThrough(() => setState({ power: "sleep" }), 260);
 }
 export function wake() {
   setState({ power: "locked" });
+  playSys("logon");
 }
 export function lock() {
-  setState({ power: "locked", startOpen: false, flyout: null, menu: null });
+  // Locking is not signing out: Windows starts the logon screen saver without a
+  // logoff sound, and plays the logon phrase only when you unlock.
+  fadeThrough(() => setState({ power: "locked" }), 260);
 }
 export function logoff() {
-  setState({ power: "logoff", startOpen: false, flyout: null, menu: null });
+  // Windows Logoff is the short two-note phrase played after you confirm;
+  // it is not the shutdown sound and not the logon sound.
   playSys("logoff");
-  setTimeout(() => setState({ power: "login", windows: [], focus: null, desktopShown: false }), 2200);
+  fadeThrough(() => setState({ power: "logoff", windows: [], focus: null, desktopShown: false }), 240);
+  setTimeout(() => fadeThrough(() => setState({ power: "login" }), 240), 2200);
 }
 export function login(name: string) {
   const fresh = state.power === "login" || state.power === "boot" || state.settings.currentUser !== name;
@@ -1349,10 +1422,16 @@ export function login(name: string) {
   setSettings({ currentUser: name });
   logEvent("Information", "Microsoft-Windows-Winlogon", 7001, `User Logon Notification for Customer Experience Improvement Program (${name}).`);
   logEvent("Information", EVENT_IDS.serviceStart.source, 7036, EVENT_IDS.serviceStart.text.replace("%s", "Themes"), "System");
-  setState({ power: "welcome" });
-  playSys("startup");
+  fadeThrough(() => setState({ power: "welcome" }), 200);
+  // Windows distinguishes the two: "Windows Startup" is the four-note chime the
+  // OS plays the first time a session comes up after boot, and "Windows Logon"
+  // is the shorter phrase played when you sign in later (switch user, unlock,
+  // or a second account). They were swapped here before.
+  const firstSession = !state.everLoggedIn;
+  if (firstSession) setState({ everLoggedIn: true });
+  setTimeout(() => playSys(firstSession ? "startup" : "logon"), 260);
   setTimeout(() => {
-    setState({ power: "desktop" });
+    fadeThrough(() => setState({ power: "desktop" }), 200);
     if (!lsGet("win7.welcomed", false)) {
       lsSet("win7.welcomed", true);
       setTimeout(() => notify({ title: "Welcome to Windows 7", text: "Press the Windows key to open the Start menu, or right-click the desktop to personalize it.", icon: "info" }), 900);

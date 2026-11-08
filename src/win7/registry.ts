@@ -65,6 +65,7 @@ export const APPS: Record<string, AppMeta> = {
   support: { title: "Windows Support", icon: "support", w: 640, h: 500, single: true, exe: "msdt.exe", desc: "Troubleshoot problems and apply fixes" },
   wfs: { title: "Windows Fax and Scan", icon: "printer", w: 840, h: 560, single: true, exe: "WFS.exe", desc: "Scan documents and send faxes" },
   mce: { title: "Windows Media Center", icon: "wmp", w: 1000, h: 660, single: true, exe: "ehshell.exe", desc: "The ten-foot media interface for pictures, music and video" },
+  fun: { title: "Fun experimental features", icon: "gamecenter", w: 820, h: 640, single: true, exe: "control.exe", desc: "Trigger a bug check, break a driver, preview the screen savers" },
   gettingstarted: { title: "Getting Started", icon: "start-orb", w: 760, h: 600, single: true, exe: "GettingStarted.exe", desc: "Set up a new copy of Windows" },
   dccw: { title: "Display Color Calibration", icon: "display", w: 640, h: 520, single: true, exe: "dccw.exe", desc: "Calibrate the colour, gamma, brightness and contrast" },
   ise: { title: "Windows PowerShell ISE", icon: "powershell", w: 900, h: 620, single: true, exe: "powershell_ise.exe", desc: "Write, run and debug PowerShell scripts" },

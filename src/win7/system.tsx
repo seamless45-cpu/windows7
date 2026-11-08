@@ -1,19 +1,43 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children, bugCheck, reboot } from "./store";
+import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children, bugCheck, reboot, lsGet } from "./store";
 import { Icon, appIcon } from "./icons";
 import { BootAnimation } from "./BootAnimation";
 import { bootKernel, BOOT_STAGES, BUGCHECKS, logEvent } from "./kernel";
 import { userPic } from "./data";
 import { WALLPAPERS } from "./data";
-import { playSys } from "./sound";
+import { playSys, startBlueScreenStutter, stopBlueScreenStutter } from "./sound";
+import { Mystify, Text3D, GradientSS, Lightning } from "./Screensavers";
 
 const LOGIN_BG = WALLPAPERS[0].css;
 
-function Spinner() {
+/**
+ * Windows 7's indeterminate progress ring: eight small beads light up in
+ * sequence and rotate as a group, then the whole ring sweeps around every
+ * ~1.3 s. It is the same indicator on "Welcome", "Shutting down", the logon
+ * screen and every dialog that has no determinate progress.
+ */
+function Spinner({ size = 32, label }: { size?: number; label?: string }) {
+  const r = size / 2;
   return (
-    <div className="orb-spin">
-      {Array.from({ length: 8 }, (_, i) => <i key={i} style={{ transform: `rotate(${i * 45}deg) translateY(-14px)`, animationDelay: `${i * 0.12}s` }} />)}
+    <div className="w7-spinner" style={{ width: size, height: size }} role="status" aria-label={label || "Working"}>
+      <svg viewBox="0 0 32 32" width={size} height={size}>
+        <g className="w7-spinner-ring">
+          {Array.from({ length: 8 }, (_, i) => (
+            <circle
+              key={i}
+              cx="16"
+              cy="16"
+              r={2.05}
+              fill="#fff"
+              className="w7-spinner-bead"
+              style={{ animationDelay: `${i * 0.09}s`, transform: `rotate(${i * 45}deg) translateY(-10.5px)`, transformOrigin: "16px 16px" }}
+            />
+          ))}
+        </g>
+      </svg>
+      {label && <span className="w7-spinner-label">{label}</span>}
+      {void r}
     </div>
   );
 }
@@ -140,8 +164,14 @@ export function LoginScreen({ locked }: { locked?: boolean }) {
  */
 export function BlueScreenOfDeath() {
   const crash = useStore((s) => s.crash);
+  // these two options live in Control Panel → Fun experimental features
+  const showCount = typeof window === "undefined" ? true : lsGet("win7.bsod.countdown", true);
+  const writeDump = typeof window === "undefined" ? true : lsGet("win7.bsod.dump", true);
   useEffect(() => {
-    playSys("critical");
+    // The stop screen keeps whatever the machine was playing looping as a
+    // frozen fragment — the "glitchy steady sound" a real bug check makes.
+    startBlueScreenStutter();
+    return () => stopBlueScreenStutter();
   }, []);
   if (!crash) return null;
   return (
@@ -150,7 +180,7 @@ export function BlueScreenOfDeath() {
       onClick={() => reboot()}
       title="Click to restart"
     >
-      <div className="bsod-inner">
+      <div className="bsod-inner bsod-win7">
         <p>A problem has been detected and Windows has been shut down to prevent damage to your computer.</p>
         <p className="bsod-code">{crash.text.split("\r\n").slice(0, 4).join("\n")}</p>
         <p>If this is the first time you&apos;ve seen this Stop error screen, restart your computer. If this screen appears again, follow these steps:</p>
@@ -160,7 +190,8 @@ export function BlueScreenOfDeath() {
         <p className="bsod-tech">
           *** STOP: {crash.stop} ({BUGCHECKS[crash.stop as keyof typeof BUGCHECKS]?.title})
         </p>
-        <p className="bsod-count">Collecting data for crash dump ... <Countdown /></p>
+        {showCount && <p className="bsod-count">Collecting data for crash dump ... <Countdown /></p>}
+        {writeDump && <p className="bsod-count">Dumping physical memory to disk: 100</p>}
         <p className="bsod-hint">Press any key to restart, or click here.</p>
       </div>
     </div>
@@ -351,6 +382,10 @@ export function Screensaver() {
     return () => clearInterval(i);
   }, [on, kind]);
   if (!on) return null;
+  if (kind === "mystify") return <Mystify />;
+  if (kind === "text3d") return <Text3D />;
+  if (kind === "gradient") return <GradientSS />;
+  if (kind === "lightning") return <Lightning />;
   if (kind === "photos") {
     const pics = children("pics", fs).filter((n) => n.content?.startsWith("data:"));
     const p = pics[pi % Math.max(1, pics.length)];

@@ -16,6 +16,8 @@ export const GADGET_TYPES: Record<string, { name: string; w: number; h: number; 
   rss: { name: "Feed Headlines", w: 200, h: 160, desc: "Displays headlines from an RSS feed (simulated)." },
 };
 
+const NUMERALS: [number, number, number][] = [[12, 0, -34], [3, 35, 5], [6, 0, 44], [9, -35, 5]];
+
 function Clock({ opts }: { opts?: GadgetInst["opts"] }) {
   const systemTz = useStore((s) => s.settings.tz);
   const tz = opts?.tz ?? systemTz;
@@ -26,18 +28,55 @@ function Clock({ opts }: { opts?: GadgetInst["opts"] }) {
   }, []);
   const d = nowTz(tz);
   const s = d.getSeconds(), m = d.getMinutes(), h = d.getHours() % 12;
+  // The Windows 7 clock is a glass disc: a bright rim, a translucent face and
+  // a thin bright inner ring, with polished metal hands.
   return (
-    <svg width="130" height="130" viewBox="0 0 130 130">
+    <svg width="132" height="132" viewBox="0 0 132 132" className="g-clock-svg">
       <defs>
-        <radialGradient id="gcf" cx=".4" cy=".3" r=".9"><stop offset="0" stopColor="#fff" /><stop offset="1" stopColor="#c8d4e4" /></radialGradient>
+        <radialGradient id="clockFace" cx=".42" cy=".32" r=".82">
+          <stop offset="0" stopColor="#ffffff" stopOpacity=".96" />
+          <stop offset=".55" stopColor="#e8f0fa" stopOpacity=".82" />
+          <stop offset="1" stopColor="#b9cbe2" stopOpacity=".7" />
+        </radialGradient>
+        <linearGradient id="clockRim" x1=".2" y1="0" x2=".8" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset=".42" stopColor="#cfdcea" />
+          <stop offset=".52" stopColor="#7f93ab" />
+          <stop offset="1" stopColor="#eef4fb" />
+        </linearGradient>
+        <linearGradient id="handMetal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#4c5b6e" />
+          <stop offset="1" stopColor="#111c2b" />
+        </linearGradient>
+        <filter id="clockGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.4" floodColor="#001427" floodOpacity=".45" />
+        </filter>
       </defs>
-      <circle cx="65" cy="65" r="60" fill="url(#gcf)" stroke="#5b6b82" strokeWidth="4" />
-      <circle cx="65" cy="65" r="56" fill="none" stroke="#fff" strokeWidth="1.500" />
-      {Array.from({ length: 12 }, (_, i) => <line key={i} x1="65" y1="12" x2="65" y2={i % 3 ? 18 : 22} stroke="#234" strokeWidth={i % 3 ? 2 : 3.500} transform={`rotate(${i * 30} 65 65)`} />)}
-      <line x1="65" y1="65" x2="65" y2="34" stroke="#123" strokeWidth="5" strokeLinecap="round" transform={`rotate(${h * 30 + m / 2} 65 65)`} />
-      <line x1="65" y1="65" x2="65" y2="20" stroke="#123" strokeWidth="3.500" strokeLinecap="round" transform={`rotate(${m * 6} 65 65)`} />
-      <line x1="65" y1="75" x2="65" y2="16" stroke="#d22" strokeWidth="1.500" transform={`rotate(${s * 6} 65 65)`} />
-      <circle cx="65" cy="65" r="4" fill="#d22" />
+      <circle cx="66" cy="66" r="62" fill="url(#clockRim)" filter="url(#clockGlow)" />
+      <circle cx="66" cy="66" r="55" fill="url(#clockFace)" stroke="#ffffff" strokeOpacity=".9" strokeWidth="1.4" />
+      <path d="M66 11a55 55 0 0 1 38 15 55 55 0 0 1-76 0 55 55 0 0 1 38-15z" fill="#ffffff" fillOpacity=".28" />
+      {Array.from({ length: 60 }, (_, i) => {
+        const major = i % 5 === 0;
+        return (
+          <line key={i} x1="66" y1={major ? 17 : 19} x2="66" y2={major ? 24 : 22} stroke={major ? "#33475e" : "#8fa1b6"}
+            strokeWidth={major ? 2.4 : 1} strokeLinecap="round" transform={`rotate(${i * 6} 66 66)`} />
+        );
+      })}
+      {NUMERALS.map(([n, dx, dy]) => (
+        <text key={n} x={66 + dx} y={66 + dy} textAnchor="middle"
+          fontFamily="Segoe UI, Tahoma" fontSize="12" fill="#2a3a4d" fillOpacity=".85">{n}</text>
+      ))}
+      <g transform={`rotate(${h * 30 + m / 2} 66 66)`}>
+        <rect x="62.4" y="31" width="7.2" height="38" rx="3.6" fill="url(#handMetal)" />
+        <rect x="64" y="33" width="2" height="34" fill="#ffffff" fillOpacity=".22" />
+      </g>
+      <g transform={`rotate(${m * 6} 66 66)`}>
+        <rect x="63.4" y="20" width="5.2" height="50" rx="2.6" fill="url(#handMetal)" />
+        <rect x="64.8" y="22" width="1.4" height="46" fill="#ffffff" fillOpacity=".22" />
+      </g>
+      <line x1="66" y1="74" x2="66" y2="20" stroke="#c62b18" strokeWidth="1.5" strokeLinecap="round" transform={`rotate(${s * 6} 66 66)`} />
+      <circle cx="66" cy="66" r="4.6" fill="#e9eef5" stroke="#41536a" strokeWidth="1.4" />
+      <circle cx="66" cy="66" r="1.6" fill="#8a1c0d" />
     </svg>
   );
 }
@@ -51,6 +90,10 @@ function Calendar() {
   const cells: (number | null)[] = [...Array(first).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
   return (
     <div className="g-cal">
+      <div className="g-cal-top">
+        <span className="g-cal-dow">{d.toLocaleDateString(getState().settings.region, { weekday: "long" })}</span>
+        <span className="g-cal-day">{d.getDate()}</span>
+      </div>
       <div className="g-cal-h">{d.toLocaleDateString(getState().settings.region, { month: "long", year: "numeric" })}</div>
       <div className="g-cal-g">
         {["S", "M", "T", "W", "T", "F", "S"].map((c, i) => <b key={i}>{c}</b>)}
@@ -60,14 +103,47 @@ function Calendar() {
   );
 }
 
+/**
+ * The CPU Meter gadget is two round gauges. The needle sweeps a 240° arc over a
+ * brushed metal dial with a glowing green tick ring, exactly like the Sidebar
+ * gadget that shipped with Windows 7.
+ */
 function Dial({ v, label }: { v: number; label: string }) {
   const a = -120 + (v / 100) * 240;
+  // arc from -120° to +120°, drawn as an SVG path with the tick marks around it
+  const R = 25;
+  const pt = (deg: number, r: number) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return [30 + Math.cos(rad) * r, 32 + Math.sin(rad) * r] as const;
+  };
+  const ticks = Array.from({ length: 13 }, (_, i) => {
+    const deg = -120 + (i / 12) * 240;
+    const [x1, y1] = pt(deg, R);
+    const [x2, y2] = pt(deg, R + (i % 3 === 0 ? 4 : 2.4));
+    return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={i > 8 ? "#ffd27a" : "#e7f2ff"} strokeOpacity={i > 8 ? 0.8 : 0.65} strokeWidth={i % 3 === 0 ? 1.6 : 1} strokeLinecap="round" />;
+  });
   return (
-    <svg width="60" height="64" viewBox="0 0 60 64">
-      <path d="M10 48A26 26 0 1 1 50 48" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="6" strokeLinecap="round" />
-      <path d="M10 48A26 26 0 1 1 50 48" fill="none" stroke="#7fe36a" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(v / 100) * 120} 200`} />
-      <line x1="30" y1="34" x2="30" y2="14" stroke="#fff" strokeWidth="2.500" strokeLinecap="round" transform={`rotate(${a} 30 34)`} />
-      <text x="30" y="60" textAnchor="middle" fontSize="10" fill="#fff">{label} {Math.round(v)}%</text>
+    <svg width="64" height="68" viewBox="0 0 64 68" className="g-dial">
+      <defs>
+        <radialGradient id={"dialFace" + label} cx=".4" cy=".3" r=".85">
+          <stop offset="0" stopColor="#dbe7f4" stopOpacity=".95" />
+          <stop offset=".62" stopColor="#7f93a9" stopOpacity=".9" />
+          <stop offset="1" stopColor="#2b3a4d" />
+        </radialGradient>
+        <linearGradient id={"dialNeedle" + label} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" />
+          <stop offset="1" stopColor="#9fb2c6" />
+        </linearGradient>
+      </defs>
+      <circle cx="30" cy="32" r="29" fill="#0a1a2c" fillOpacity=".35" />
+      <circle cx="30" cy="32" r="27" fill={`url(#dialFace${label})`} stroke="#e9f3ff" strokeOpacity=".8" strokeWidth="1.5" />
+      <path d={`M ${pt(-120, 22)[0]} ${pt(-120, 22)[1]} A 22 22 0 1 1 ${pt(120, 22)[0]} ${pt(120, 22)[1]}`} fill="none" stroke="#7fe36a" strokeWidth="3" strokeLinecap="round" strokeOpacity=".85" />
+      {ticks}
+      <g transform={`rotate(${a} 30 32)`}>
+        <path d="M30 12l2.6 17h-5.2z" fill={`url(#dialNeedle${label})`} />
+      </g>
+      <circle cx="30" cy="32" r="3.4" fill="#dbe7f4" stroke="#2b3a4d" strokeWidth="1.2" />
+      <text x="30" y="63" textAnchor="middle" fontSize="9.5" fontFamily="Segoe UI, Tahoma" fill="#fff" fillOpacity=".92">{label} {Math.round(v)}%</text>
     </svg>
   );
 }
@@ -132,7 +208,9 @@ function Puzzle() {
     }
     setT(n);
   };
-  useEffect(shuffle, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // shuffle once on mount, on the next tick so the first paint is the solved
+  // board (the real gadget starts scrambled, but this keeps SSR and CSR equal)
+  useEffect(() => { const t = setTimeout(() => { let n = init(); let z = 8; for (let k = 0; k < 120; k++) { const opts = [z - 1, z + 1, z - 3, z + 3].filter((q) => q >= 0 && q < 9 && (Math.abs(q - z) !== 1 || Math.floor(q / 3) === Math.floor(z / 3))); const q = opts[Math.floor(Math.random() * opts.length)]; [n[q], n[z]] = [n[z], n[q]]; z = q; } setT(n); }, 0); return () => clearTimeout(t); }, []);
   return (
     <div className="g-puz">
       <div className="g-puz-grid">
@@ -182,7 +260,7 @@ function Rss({ opts }: { opts?: GadgetInst["opts"] }) {
   useEffect(() => {
     const t = setInterval(() => setI((x) => (x + 1) % NEWS.length), Math.max(3, opts?.every || 5) * 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [opts?.every]);
   return (
     <div className="g-rss">
       <div className="g-rss-h">Feed Headlines</div>
@@ -216,6 +294,7 @@ function Gadget({ g, sw }: { g: GadgetInst; sw: number }) {
     const sc = view.scale;
     const sx = e.clientX, sy = e.clientY, ox = left, oy = g.y;
     let nx = ox, ny = oy;
+    try { el.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     const mv = (ev: PointerEvent) => {
       nx = ox + (ev.clientX - sx) / sc;
       ny = oy + (ev.clientY - sy) / sc;
@@ -225,10 +304,13 @@ function Gadget({ g, sw }: { g: GadgetInst; sw: number }) {
     const up = () => {
       window.removeEventListener("pointermove", mv);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      try { el.releasePointerCapture(e.pointerId); } catch { /* gone */ }
       setSettings({ gadgets: getState().settings.gadgets.map((q) => (q.id === g.id ? { ...q, x: nx, y: ny } : q)) });
     };
     window.addEventListener("pointermove", mv);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
   const remove = () => setSettings({ gadgets: getState().settings.gadgets.filter((q) => q.id !== g.id) });
   return (

@@ -58,9 +58,11 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
   const onDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     const t = e.target as HTMLElement;
-    if (!t.closest(".win-drag") || t.closest("button,input,select,textarea,.nodrag,a")) return;
+    if (!t.closest(".win-drag") || t.closest("button,input,select,textarea,.nodrag,a,.w-btns")) return;
     const el = ref.current;
     if (!el) return;
+    e.preventDefault();
+    focusWin(win.id);
     const sc = view.scale;
     let { x, y } = win;
     let { w, h } = win;
@@ -80,23 +82,51 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
       el.style.height = h + "px";
       setWin(win.id, { max: false, snap: null, x, y, w, h, prev: null });
     }
+    // Pointer capture keeps a fast drag (or a drag that leaves the window /
+    // the viewport) streaming to this frame; without it the browser can steal
+    // the pointer and the window stops mid-drag.
+    try { el.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     const sx = e.clientX;
     const sy = e.clientY;
     const ox = x;
     const oy = y;
     let moved = false;
     let snap: "l" | "r" | "m" | null = null;
-    // Aero Shake: four quick horizontal reversals while dragging minimises the
-    // other windows. Tracked here because it needs the pointer's direction.
     let dir = 0;
     let reversals = 0;
     let lastX = e.clientX;
     let lastTurn = 0;
+    let raf = 0;
+    let pending: PointerEvent | null = null;
+    const nudge = (ev: PointerEvent | null) => {
+      if (ev) pending = ev;
+      const p = pending;
+      if (!p || raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const ev2 = pending!;
+        pending = null;
+        const dx = (ev2.clientX - sx) / sc;
+        const dy = (ev2.clientY - sy) / sc;
+        if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+        moved = true;
+        el.classList.add("dragging");
+        const nx = ox + dx;
+        const ny = Math.min(Math.max(wy, oy + dy), sh - 30);
+        el.style.left = nx + "px";
+        el.style.top = ny + "px";
+        x = nx;
+        y = ny;
+        const px = ev2.clientX / sc;
+        const py = ev2.clientY / sc;
+        const s2 = fixed ? null : px <= 2 ? "l" : px >= sw - 3 ? "r" : py <= 1 ? "m" : null;
+        if (s2 !== snap) {
+          snap = s2;
+          prev(s2 as "l" | "r" | "m" | null);
+        }
+      });
+    };
     const mv = (ev: PointerEvent) => {
-      const dx = (ev.clientX - sx) / sc;
-      const dy = (ev.clientY - sy) / sc;
-      if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
-      moved = true;
       const step = ev.clientX - lastX;
       lastX = ev.clientX;
       if (Math.abs(step) > 2) {
@@ -106,33 +136,32 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
           if (now - lastTurn < 400) reversals += 1;
           else reversals = 1;
           lastTurn = now;
-          if (reversals >= 4) {
+          if (reversals >= 4 && !fixed) {
             reversals = 0;
             shakeWin(win.id);
           }
         }
         dir = nd;
       }
-      const nx = ox + dx;
-      const ny = Math.min(Math.max(wy, oy + dy), sh - 30);
-      el.style.left = nx + "px";
-      el.style.top = ny + "px";
-      x = nx;
-      y = ny;
-      const px = ev.clientX / sc;
-      const py = ev.clientY / sc;
-      const s = fixed ? null : px <= 2 ? "l" : px >= sw - 3 ? "r" : py <= 1 ? "m" : null;
-      if (s !== snap) {
-        snap = s;
-        prev(s);
-      }
+      nudge(ev);
     };
-    const up = () => {
+    const finish = (ev: PointerEvent, cancelled: boolean) => {
       window.removeEventListener("pointermove", mv);
       window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("pointercancel", cancel);
+      try { el.releasePointerCapture(e.pointerId); } catch { /* already gone */ }
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      el.classList.remove("dragging");
       prev(null);
-      if (!moved) return;
+      if (cancelled) {
+        if (moved) setGeom(win.id, { x: ox, y: oy, w, h });
+        return;
+      }
+      if (!moved) {
+        // a plain click on the caption still lands the geometry already applied
+        if (ev && (win.max || win.snap)) setGeom(win.id, { x, y, w, h });
+        return;
+      }
       if (snap === "m") {
         setWin(win.id, { x, y, prev: { x, y, w, h } });
         maxWin(win.id);
@@ -141,12 +170,11 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
         snapWin(win.id, snap);
       } else setGeom(win.id, { x, y, w, h });
     };
-    // while dragging, the frame must not transition or it would lag the pointer
-    el.classList.add("dragging");
+    const up = (ev: PointerEvent) => finish(ev, false);
+    const cancel = (ev: PointerEvent) => finish(ev, true);
     window.addEventListener("pointermove", mv);
-    window.addEventListener("pointerup", () => el.classList.remove("dragging"), { once: true });
     window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener("pointercancel", cancel);
   };
 
   const onResize = (dir: string) => (e: React.PointerEvent) => {
@@ -156,6 +184,9 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     focusWin(win.id);
     const el = ref.current;
     if (!el) return;
+    // The 4 px grab strips overlay the client area, so the pointer has to stay
+    // captured by the frame for the whole gesture.
+    try { el.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     const sc = view.scale;
     const sx = e.clientX;
     const sy = e.clientY;
@@ -163,35 +194,55 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     const cur = { ...o };
     const minW = frameless ? 140 : 240;
     const minH = frameless ? 120 : 120;
-    const mv = (ev: PointerEvent) => {
-      const dx = (ev.clientX - sx) / sc;
-      const dy = (ev.clientY - sy) / sc;
-      let { x, y, w, h } = o;
-      if (dir.includes("e")) w = Math.max(minW, o.w + dx);
-      if (dir.includes("s")) h = Math.max(minH, o.h + dy);
-      if (dir.includes("w")) {
-        w = Math.max(minW, o.w - dx);
-        x = o.x + (o.w - w);
-      }
-      if (dir.includes("n")) {
-        h = Math.max(minH, o.h - dy);
-        y = o.y + (o.h - h);
-      }
-      cur.x = x; cur.y = y; cur.w = w; cur.h = h;
-      el.style.left = x + "px";
-      el.style.top = y + "px";
-      el.style.width = w + "px";
-      el.style.height = h + "px";
+    let raf = 0;
+    let pending: PointerEvent | null = null;
+    let started = false;
+    const paint = (ev: PointerEvent | null) => {
+      if (ev) pending = ev;
+      const p = pending;
+      if (!p || raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const ev2 = pending!;
+        pending = null;
+        const dx = (ev2.clientX - sx) / sc;
+        const dy = (ev2.clientY - sy) / sc;
+        if (!started && Math.abs(dx) + Math.abs(dy) < 2) return;
+        started = true;
+        let { x, y, w, h } = o;
+        if (dir.includes("e")) w = Math.max(minW, o.w + dx);
+        if (dir.includes("s")) h = Math.max(minH, o.h + dy);
+        if (dir.includes("w")) {
+          w = Math.max(minW, o.w - dx);
+          x = o.x + (o.w - w);
+        }
+        if (dir.includes("n")) {
+          h = Math.max(minH, o.h - dy);
+          y = o.y + (o.h - h);
+        }
+        cur.x = x; cur.y = y; cur.w = w; cur.h = h;
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.width = w + "px";
+        el.style.height = h + "px";
+      });
     };
-    el.classList.add("resizing");
+    const mv = (ev: PointerEvent) => {
+      if (!started) el.classList.add("resizing");
+      paint(ev);
+    };
     const up = () => {
       window.removeEventListener("pointermove", mv);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      try { el.releasePointerCapture(e.pointerId); } catch { /* already gone */ }
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
       el.classList.remove("resizing");
-      setGeom(win.id, cur);
+      if (started) setGeom(win.id, cur);
     };
     window.addEventListener("pointermove", mv);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   /**
@@ -209,6 +260,9 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     if (fixed) return;
     const el = ref.current;
     if (!el) return;
+    // Windows 7 minimizes with a short fade + slight shrink toward the taskbar
+    // button (about 200 ms) and restores with the reverse; anything longer
+    // feels wrong, anything shorter reads as a cut.
     if (win.min) {
       const btn = document.querySelector<HTMLElement>(`[data-tbkey="${APPS[win.app]?.group || win.app}"]`);
       const r = el.getBoundingClientRect();
@@ -217,17 +271,16 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
       const w = r.width, h = r.height;
       const tx = br ? (br.left + br.width / 2 - (r.left + w / 2)) / sc : 0;
       const ty = br ? (br.top + br.height / 2 - (r.top + h / 2)) / sc : 40;
-      const s2 = br ? Math.max(0.08, Math.min(0.5, br.width / w)) : 0.05;
-      setAnim({ transform: `translate(${tx}px, ${ty}px) scale(${s2}, ${s2 * 0.5})`, transformOrigin: "center center", opacity: 0.15, transition: "transform 150ms cubic-bezier(.5,0,1,1), opacity 150ms ease-in" });
-      const t = setTimeout(() => setAnim({}), 160);
+      const s2 = br ? Math.max(0.1, Math.min(0.45, br.width / w)) : 0.06;
+      setAnim({ transform: `translate(${tx}px, ${ty}px) scale(${s2}, ${s2 * 0.6})`, transformOrigin: "center center", opacity: 0.2, transition: "transform 190ms cubic-bezier(.4,0,.9,1), opacity 190ms ease-in" });
+      const t = setTimeout(() => setAnim({}), 200);
       return () => clearTimeout(t);
     }
-    // restore: Aero grows the window back out of the taskbar button
-    setAnim({ transform: "translateY(26px) scale(.86)", transformOrigin: "center bottom", opacity: 0.4, transition: "none" });
+    setAnim({ transform: "translateY(18px) scale(.94)", transformOrigin: "center bottom", opacity: 0.5, transition: "none" });
     const raf = requestAnimationFrame(() => {
-      setAnim({ transform: "none", opacity: 1, transition: "transform 175ms cubic-bezier(.2,.7,.3,1), opacity 150ms ease-out" });
+      setAnim({ transform: "none", opacity: 1, transition: "transform 160ms cubic-bezier(.2,.7,.3,1), opacity 120ms ease-out" });
     });
-    const t2 = setTimeout(() => setAnim({}), 190);
+    const t2 = setTimeout(() => setAnim({}), 175);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t2);
@@ -240,7 +293,7 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     <div ref={ref} className={cls} data-win={win.id} style={{ ...geom, zIndex: win.z, ...anim }} onPointerDownCapture={() => focusWin(win.id)} onPointerDown={onDown}>
       {!frameless && (
         <>
-          <div className="w-title win-drag" onDoubleClick={(e) => !fixed && !(e.target as HTMLElement).closest(".w-btns") && maxWin(win.id)}>
+          <div className="w-title win-drag" onDoubleClick={(e) => { if (!fixed && !(e.target as HTMLElement).closest(".w-btns")) maxWin(win.id); }}>
             <Icon name={meta.icon} size={16} className="w-ico" />
             <span className="w-title-text">{win.title}</span>
           </div>

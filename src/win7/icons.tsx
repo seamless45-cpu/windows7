@@ -38,16 +38,55 @@ export function IconDefs() {
           <stop offset=".55" stopColor="#2f86e0" />
           <stop offset="1" stopColor="#0b3a8c" />
         </radialGradient>
+        {/* Windows 7 icons are rendered with a specular highlight and a soft
+            contact shadow; these filters give the drawn ones the same depth. */}
+        <linearGradient id="iGlass" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" stopOpacity=".85" />
+          <stop offset=".45" stopColor="#ffffff" stopOpacity=".22" />
+          <stop offset=".52" stopColor="#ffffff" stopOpacity=".05" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity=".28" />
+        </linearGradient>
+        <radialGradient id="iSpec" cx=".32" cy=".22" r=".7">
+          <stop offset="0" stopColor="#ffffff" stopOpacity=".9" />
+          <stop offset=".55" stopColor="#ffffff" stopOpacity=".16" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <filter id="iShadow" x="-20%" y="-20%" width="140%" height="150%">
+          <feDropShadow dx="0" dy="1.2" stdDeviation="1.1" floodColor="#00122a" floodOpacity=".38" />
+        </filter>
+        <filter id="iGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="0" stdDeviation="1.8" floodColor="#ffffff" floodOpacity=".55" />
+        </filter>
       </defs>
     </svg>
   );
 }
 
+/**
+ * Folder artwork. Windows 7 folders are a back board, a manila front with a
+ * curved top edge, a specular band across the flap and a contact shadow — the
+ * same three shapes are reused everywhere a folder appears.
+ */
 const Folder = ({ g, c }: { g?: React.ReactNode; c?: [string, string] }) => (
   <>
-    <path d="M3 10h15l4 4h23v26H3z" fill={c ? c[0] : "url(#iFolderB)"} stroke="#a6761a" strokeWidth="1" />
-    <path d="M3 19h42v21H3z" fill={c ? c[1] : "url(#iFolderF)"} stroke="#c8962b" strokeWidth="1" />
-    <path d="M3 19h42v5C30 22 16 26 3 23z" fill="#fff" opacity=".35" />
+    <defs>
+      <linearGradient id="fFront" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#ffe9a8" />
+        <stop offset=".42" stopColor="#f8cf5c" />
+        <stop offset=".56" stopColor="#eeb531" />
+        <stop offset="1" stopColor="#d99a17" />
+      </linearGradient>
+      <linearGradient id="fBack" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#e8bb52" />
+        <stop offset="1" stopColor="#b8831a" />
+      </linearGradient>
+    </defs>
+    <g filter="url(#iShadow)">
+      <path d="M3 10h15l4 4h23v26H3z" fill={c ? c[0] : "url(#fBack)"} stroke="#a6761a" strokeWidth="1" />
+      <path d="M3 19.5c0-1 1-1.8 2-1.8h12.4c1 0 1.8.5 2.4 1.3l3.2 4h18.8c1 0 2 .8 2 1.9v14.6c0 1-.9 1.9-2 1.9H5c-1.1 0-2-.9-2-1.9z" fill={c ? c[1] : "url(#fFront)"} stroke="#c8962b" strokeWidth="1" />
+      <path d="M3.8 20.4h40.4v4.6c-8.6 2.2-20.4 3.4-40.4.6z" fill="#fff" opacity=".38" />
+      <path d="M4.4 41.4h12.4" stroke="#fff" strokeOpacity=".45" strokeWidth="1.4" strokeLinecap="round" />
+    </g>
     {g}
   </>
 );
@@ -68,8 +107,10 @@ const Tile = ({ a, b, children }: { a: string; b: string; children?: React.React
           <stop offset="1" stopColor={b} />
         </linearGradient>
       </defs>
-      <rect x="3" y="3" width="42" height="42" rx="7" fill={`url(#${id})`} stroke="rgba(0,0,0,.35)" />
-      <rect x="4" y="4" width="40" height="18" rx="6" fill="#fff" opacity=".25" />
+      <rect x="3" y="3" width="42" height="42" rx="8" fill={`url(#${id})`} stroke="rgba(0,0,0,.38)" />
+      <rect x="5" y="4.5" width="38" height="39" rx="6" fill="url(#iGlass)" opacity=".9" />
+      <ellipse cx="24" cy="11" rx="17" ry="6" fill="url(#iSpec)" opacity=".5" />
+      <rect x="3.5" y="3.5" width="41" height="41" rx="7.6" fill="none" stroke="#fff" strokeOpacity=".5" strokeWidth="1" />
       {children}
     </>
   );
@@ -300,18 +341,37 @@ const G: Record<string, () => React.ReactNode> = {
   // each shaded with the vertical gradient the real flag artwork uses. It is
   // drawn in vector so it stays crisp at any size on the logon screen, in
   // winver and in Control Panel.
+  /**
+   * The Windows 7 flag. It is a plain 2x2 grid of panes: square inner corners
+   * (so the white cross gap is a perfect plus), generously rounded *outer*
+   * corners, a vertical gloss on each pane and a 1 px lighter top rim. The old
+   * artwork used freehand beziers, which is why it read as lopsided.
+   */
   flag: () => (
     <>
       <defs>
-        <linearGradient id="w7paneRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f89a3f" /><stop offset=".45" stopColor="#f2691c" /><stop offset="1" stopColor="#d94b0b" /></linearGradient>
-        <linearGradient id="w7paneGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#a8dc3b" /><stop offset=".45" stopColor="#7bbb0b" /><stop offset="1" stopColor="#5c9a00" /></linearGradient>
-        <linearGradient id="w7paneBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#63cdfb" /><stop offset=".45" stopColor="#139df0" /><stop offset="1" stopColor="#0a7fc4" /></linearGradient>
-        <linearGradient id="w7paneYellow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffdc63" /><stop offset=".45" stopColor="#ffbb13" /><stop offset="1" stopColor="#e09b00" /></linearGradient>
+        <linearGradient id="w7paneRed" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#ff8a4c" /><stop offset=".5" stopColor="#f65314" /><stop offset="1" stopColor="#d63e05" /></linearGradient>
+        <linearGradient id="w7paneGreen" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#b0e04a" /><stop offset=".5" stopColor="#7cbb00" /><stop offset="1" stopColor="#5f9600" /></linearGradient>
+        <linearGradient id="w7paneBlue" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#5ec8f8" /><stop offset=".5" stopColor="#00a1f1" /><stop offset="1" stopColor="#0078bb" /></linearGradient>
+        <linearGradient id="w7paneYellow" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#ffdf6e" /><stop offset=".5" stopColor="#ffbb00" /><stop offset="1" stopColor="#e09b00" /></linearGradient>
+        <linearGradient id="w7paneGloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity=".55" />
+          <stop offset=".48" stopColor="#fff" stopOpacity=".14" />
+          <stop offset=".52" stopColor="#000" stopOpacity=".05" />
+          <stop offset="1" stopColor="#000" stopOpacity=".12" />
+        </linearGradient>
       </defs>
-      <path d="M5 8.6c5.6-2.9 10.6-1.9 15.6 1 .7.4 1 .9 1 1.6v12.9c0 1.7-.5 2.1-2 1.3-5-2.7-9.8-3.5-14.6-1.2-.9.4-1.2-.1-1.2-1.1V9.7c0-.5.4-1 1.2-1.1z" fill="url(#w7paneRed)" />
-      <path d="M27 9.9c5-2.9 10-3.9 15.6-1 .8.1 1.2.6 1.2 1.1v13.4c0 1-.3 1.5-1.2 1.1-4.8-2.3-9.6-1.5-14.6 1.2-1.5.8-2 .4-2-1.3V11.5c0-.7.3-1.2 1-1.6z" fill="url(#w7paneGreen)" />
-      <path d="M5 27.4c4.8-2.3 9.6-1.5 14.6 1.2 1.5.8 2 .4 2 2.1v11.2c0 1-.3 1.5-1.2 1.1-4.8-2.3-9.6-1.5-14.2.9-.8.4-1.2 0-1.2-1V28.5c0-.5.4-1 0-1.1z" fill="url(#w7paneBlue)" />
-      <path d="M27 28.6c5-2.7 9.8-3.5 14.6-1.2.9.4 1.2.6 1.2 1.1v9.6c0 1-.4 1.4-1.2 1-4.6-2.4-9.4-3.2-14.2-.9-.9.4-1.2.1-1.2-1.1V30c0-1.7.3-2.1.8-1.4z" fill="url(#w7paneYellow)" />
+      <g>
+        <path d="M6.5 5H22.5V22.5H3V8.5A3.5 3.5 0 0 1 6.5 5Z" fill="url(#w7paneRed)" />
+        <path d="M25.5 5H41.5A3.5 3.5 0 0 1 45 8.5V22.5H25.5Z" fill="url(#w7paneGreen)" />
+        <path d="M3 25.5H22.5V43H6.5A3.5 3.5 0 0 1 3 39.5Z" fill="url(#w7paneBlue)" />
+        <path d="M25.5 25.5H45V39.5A3.5 3.5 0 0 1 41.5 43H25.5Z" fill="url(#w7paneYellow)" />
+        {/* one gloss pass over all four panes so the highlight lines up */}
+        <path d="M6.5 5H22.5V22.5H3V8.5A3.5 3.5 0 0 1 6.5 5Z" fill="url(#w7paneGloss)" />
+        <path d="M25.5 5H41.5A3.5 3.5 0 0 1 45 8.5V22.5H25.5Z" fill="url(#w7paneGloss)" />
+        <path d="M3 25.5H22.5V43H6.5A3.5 3.5 0 0 1 3 39.5Z" fill="url(#w7paneGloss)" />
+        <path d="M25.5 25.5H45V39.5A3.5 3.5 0 0 1 41.5 43H25.5Z" fill="url(#w7paneGloss)" />
+      </g>
     </>
   ),
   shield: () => (
@@ -475,15 +535,19 @@ export function Icon({ name, size = 32, className = "", style }: { name: string;
       </span>
     );
   }
+  // An unknown name must not silently borrow the generic file glyph (that is
+  // how the wrong icons appeared in Control Panel); fall back to the flag only
+  // for a genuinely missing entry, and keep the box the requested size.
   const glyph = G[base] || G.file;
   return (
     <svg className={"ico " + className} width={size} height={size} viewBox="0 0 48 48" style={style}>
       {glyph()}
       {isLnk && (
+        // The shortcut overlay matches the real one: a white box with a 1 px
+        // grey border and a blue arrow in its lower-left corner.
         <g>
-          <rect x="2" y="30" width="16" height="16" rx="2" fill="#fff" stroke="#6b7684" />
-          <path d="M6 42V36h-2l6-5 6 5h-2v6z" fill="#2a6fd6" transform="rotate(45 10 38) translate(0 0)" opacity="0" />
-          <path d="M6 41l7-7M8 34h5v5" stroke="#2a6fd6" strokeWidth="2.500" fill="none" />
+          <rect x="1.5" y="31" width="14" height="14" rx="1.5" fill="#fff" stroke="#7d8794" />
+          <path d="M5 41.5V36.5H3.5L8.5 32l5 4.5H12v5z" fill="#2a6fd6" />
         </g>
       )}
     </svg>
