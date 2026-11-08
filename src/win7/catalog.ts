@@ -18,7 +18,7 @@ export const CATALOG: Cat[] = [
       { name: "Snipping Tool", icon: "snip", apps: ["snip"] },
       { name: "Sound Recorder", icon: "recorder", apps: ["recorder"] },
       { name: "Sticky Notes", icon: "sticky2", apps: ["sticky2"] },
-      { name: "System Tools", icon: "folder", apps: ["charmap", "taskmgr", "reliability", "controlpanel", "services", "msconfig", "eventvwr", "sysdiag", "cleanmgr", "regedit"] },
+      { name: "System Tools", icon: "folder", apps: ["charmap", "taskmgr", "reliability", "controlpanel", "compmgmt", "tasksched", "resmon", "devmgr", "diskmgmt", "services", "msconfig", "sysrestore", "defender", "calendar", "powershell", "eventvwr", "sysdiag", "cleanmgr", "regedit"] },
       { name: "Windows Explorer", icon: "explorer", apps: ["explorer"] },
       { name: "WordPad", icon: "wordpad", apps: ["wordpad"] },
       { name: "XPS Viewer", icon: "xps", apps: ["xps"] },

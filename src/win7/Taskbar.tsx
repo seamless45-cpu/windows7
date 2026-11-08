@@ -447,6 +447,7 @@ function Flyouts() {
           <div className="cf-time">{fmtTime(now, s, true)}</div>
           <div className="cf-date">{fmtLongDate(now, s)}</div>
           <CalendarPane />
+          <a className="cf-link" onClick={() => { close(); openApp("calendar"); }}>Open Calendar</a>
           <a className="cf-link" onClick={() => { close(); openCP("datetime"); }}>Change date and time settings...</a>
         </div>
         <div className="cf-right"><AnalogClock size={150} /></div>

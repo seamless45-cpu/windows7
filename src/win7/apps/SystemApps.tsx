@@ -10,6 +10,7 @@ import { Icon, appIcon } from "../icons";
 import { Btn, Tabs, MenuBar } from "../ui";
 import { openFileDialog } from "../dialogs";
 import { WALLPAPERS } from "../data";
+import { SERVICE_DEFS, services } from "../services";
 
 /* ================================================================= CMD */
 const HELP = `For more information on a specific command, type HELP command-name
@@ -228,7 +229,6 @@ function Graph({ data, color = "#4cff4c", max = 100, fill = true }: { data: numb
   return <canvas ref={ref} width={300} height={90} className="tm-graph" />;
 }
 
-const SERVICES = ["AudioSrv|Windows Audio", "BITS|Background Intelligent Transfer Service", "Dhcp|DHCP Client", "Dnscache|DNS Client", "EventLog|Windows Event Log", "mpssvc|Windows Firewall", "PlugPlay|Plug and Play", "Spooler|Print Spooler", "Themes|Themes", "W32Time|Windows Time", "wuauserv|Windows Update", "WinDefend|Windows Defender"];
 const SYS_PROCS: [string, string, number][] = [["System Idle Process", "SYSTEM", 0], ["System", "SYSTEM", 600], ["smss.exe", "SYSTEM", 400], ["csrss.exe", "SYSTEM", 2900], ["wininit.exe", "SYSTEM", 900], ["services.exe", "SYSTEM", 4200], ["lsass.exe", "SYSTEM", 5800], ["svchost.exe", "SYSTEM", 9300], ["svchost.exe", "NETWORK SERVICE", 6700], ["dwm.exe", "User", 21400], ["explorer.exe", "User", 58200], ["audiodg.exe", "LOCAL SERVICE", 12500]];
 
 export function TaskManager({ win }: { win: Win }) {
@@ -252,6 +252,7 @@ export function TaskManager({ win }: { win: Win }) {
     return () => clearInterval(i);
   }, []);
   const apps = windows.filter((w) => !APPS[w.app].noTask && !w.closing);
+  const svcState = services();
   const procs = useMemo(() => {
     const seen = new Map<string, Win[]>();
     apps.forEach((w) => { const e = APPS[w.app].exe || w.app + ".exe"; seen.set(e, [...(seen.get(e) || []), w]); });
@@ -295,7 +296,16 @@ export function TaskManager({ win }: { win: Win }) {
             <div className="tm-btns"><label><input type="checkbox" defaultChecked /> Show processes from all users</label><Btn disabled={!sel} onClick={endProc}>End Process</Btn></div>
           </>
         )}
-        {tab === "Services" && <div className="tm-table"><div className="tm-th"><span style={{ width: 100 }}>Name</span><span style={{ flex: 1 }}>Description</span><span style={{ width: 70 }}>Status</span></div>{SERVICES.map((sv, i) => { const [n, d] = sv.split("|"); return <div key={n} className="tm-tr"><span style={{ width: 100 }}>{n}</span><span style={{ flex: 1 }}>{d}</span><span style={{ width: 70 }}>{i === 7 || i === 1 ? "Stopped" : "Running"}</span></div>; })}</div>}
+        {tab === "Services" && (
+          <>
+            <div className="tm-table"><div className="tm-th"><span style={{ width: 110 }}>Name</span><span style={{ flex: 1 }}>Description</span><span style={{ width: 92 }}>Status</span><span style={{ width: 90 }}>Group</span></div>
+              {SERVICE_DEFS.map((d) => { const st = svcState[d.key]; return (
+                <div key={d.key} className="tm-tr" onDoubleClick={() => openApp("services")}><span style={{ width: 110 }}>{d.key}</span><span style={{ flex: 1 }}>{d.display}</span><span style={{ width: 92, color: st?.running ? "#1a7a2e" : "#555" }}>{st?.running ? "Running" : "Stopped"}</span><span style={{ width: 90 }}>{d.host || "—"}</span></div>
+              ); })}
+            </div>
+            <div className="tm-btns"><Btn onClick={() => openApp("services")}>Services...</Btn><span className="tm-hint">{SERVICE_DEFS.filter((d) => svcState[d.key]?.running).length} of {SERVICE_DEFS.length} services running</span></div>
+          </>
+        )}
         {tab === "Performance" && (
           <div className="tm-perf">
             <div className="tm-row"><div className="tm-meter"><div className="tm-bar"><i style={{ height: c + "%" }} /></div><span>{c} %</span></div><div style={{ flex: 1 }}><div className="tm-lab">CPU Usage History</div><Graph data={cpu.current} /></div></div>

@@ -1186,6 +1186,8 @@ const RUN_MAP: Record<string, string> = {
   sysdiag: "sysdiag", msinfo32: "sysdiag", msinfo: "sysdiag", eventvwr: "eventvwr", cleanmgr: "cleanmgr", dfrgui: "cleanmgr", regedit: "regedit", optionalfeatures: "features", features: "features", freecell: "freecell", mahjong: "mahjong", mahjongtitans: "mahjong", chess: "chess", chesstitans: "chess", purbleplace: "purble", purble: "purble",
     speechux: "speech", mblctr: "mobility", perfmon: "reliability", windowsanytimeupgradeui: "trust", notepad2: "notepad", sticky: "sticky2",
   services: "services", msconfig: "msconfig", osk: "osk", narrator: "narrator", psr: "psr", mip: "mip",
+  tasksched: "tasksched", resmon: "resmon", compmgmt: "compmgmt", devmgr: "devmgr", diskmgmt: "diskmgmt",
+  powershell: "powershell", sysrestore: "sysrestore", defender: "defender", calendar: "calendar", lusrmgr: "lusrmgr", msascui: "defender", rstrui: "sysrestore", control_management: "compmgmt",
 };
 export function runCommand(raw: string): boolean {
   let cmd = raw.trim();
@@ -1211,7 +1213,6 @@ export function runCommand(raw: string): boolean {
   if (lc === "mmsys.cpl") return openCP("sound"), true;
   if (lc === "powercfg.cpl") return openCP("power"), true;
   if (lc === "intl.cpl") return openCP("region"), true;
-  if (lc === "devmgmt.msc") return openCP("devmgr"), true;
   if (lc === "firewall.cpl") return openCP("firewall"), true;
   if (lc === "wscui.cpl") return openCP("actioncenter"), true;
   if (lc === "mblctr" || lc === "mblctr.exe") return openApp("mobility"), true;
@@ -1232,6 +1233,16 @@ export function runCommand(raw: string): boolean {
   if (lc === "narrator" || lc === "narrator.exe") return openApp("narrator"), true;
   if (lc === "psr" || lc === "psr.exe") return openApp("psr"), true;
   if (lc === "mip" || lc === "mip.exe") return openApp("mip"), true;
+  if (lc === "taskschd.msc" || lc === "taskschd") return openApp("tasksched"), true;
+  if (lc === "resmon" || lc === "resmon.exe") return openApp("resmon"), true;
+  if (lc === "compmgmt.msc" || lc === "compmgmt") return openApp("compmgmt"), true;
+  if (lc === "devmgmt.msc") return openApp("devmgr"), true;
+  if (lc === "diskmgmt.msc" || lc === "diskmgmt") return openApp("diskmgmt"), true;
+  if (lc === "powershell" || lc === "powershell.exe" || lc === "ise") return openApp("powershell"), true;
+  if (lc === "rstrui" || lc === "rstrui.exe") return openApp("sysrestore"), true;
+  if (lc === "msascui" || lc === "msascui.exe" || lc === "windefend") return openApp("defender"), true;
+  if (lc === "calendar" || lc === "calendar.exe" || lc === "wincal") return openApp("calendar"), true;
+  if (lc === "lusrmgr.msc" || lc === "lusrmgr") return openApp("lusrmgr"), true;
   if (lc === "gpedit.msc") {
     msgBox({ title: cmd, text: "Registry editing has been disabled by your administrator.", icon: "error" });
     return true;
