@@ -537,7 +537,7 @@ export function Calculator({ win }: { win: Win }) {
 }
 
 /* ============================================================= Char Map */
-const SUBSETS: Record<string, [number, number]> = { "Latin": [0x20, 0x17f], "Greek": [0x370, 0x3ff], "Cyrillic": [0x400, 0x4ff], "Arrows": [0x2190, 0x21ff], "Mathematical Operators": [0x2200, 0x22ff], "Box Drawing": [0x2500, 0x257f], "Currency Symbols": [0x20a0, 0x20bf], "Miscellaneous Symbols": [0x2600, 0x26ff], "Dingbats": [0x2700, 0x27bf] };
+const SUBSETS: Record<string, [number, number]> = { "Latin": [0x20, 0x17f], "Greek": [0x370, 0x3ff], "Cyrillic": [0x400, 0x4ff], "Arrows": [0x2190, 0x21ff], "Mathematical Operators": [0x2200, 0x22ff], "Box Drawing": [0x2500, 0x257f], "Currency Symbols": [0x20a0, 0x20bf], "Miscellaneous Symbols": [0x2600, 0x26ff], "Dingbats": [0x2700, 0x27bf], "Private Use": [0xe000, 0xe0ff] };
 export function CharMap() {
   const [font, setFont] = useState("Arial");
   const [sub, setSub] = useState("Latin");
@@ -553,6 +553,7 @@ export function CharMap() {
         <label style={{ marginLeft: 12 }}>Group by:</label>
         <select className="w7input" value={sub} onChange={(e) => { setSub(e.target.value); setSel(SUBSETS[e.target.value][0]); }}>{Object.keys(SUBSETS).map((f) => <option key={f}>{f}</option>)}</select>
       </div>
+      {sub === "Private Use" && <div className="cm-pua">The character drawn in Private Character Editor (U+E000) is shown here. <a onClick={() => openApp("eudc")}>Open Private Character Editor</a></div>}
       <div className="cm-grid" style={{ fontFamily: font }}>
         {chars.map((c) => <div key={c} className={"cm-cell" + (sel === c ? " sel" : "")} onClick={() => setSel(c)} onDoubleClick={() => setCopy(copy + String.fromCodePoint(c))}>{String.fromCodePoint(c)}</div>)}
       </div>

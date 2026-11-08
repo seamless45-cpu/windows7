@@ -8,32 +8,29 @@ const hills = (sky: string, sky2: string, h1: string, h2: string, sun: string) =
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='${sky}'/><stop offset='1' stop-color='${sky2}'/></linearGradient></defs><rect width='1600' height='900' fill='url(#s)'/><circle cx='1150' cy='260' r='90' fill='${sun}' opacity='.9'/><circle cx='1150' cy='260' r='170' fill='${sun}' opacity='.18'/><path d='M0 620 Q300 460 640 580 T1300 540 T1600 600 V900 H0Z' fill='${h2}'/><path d='M0 740 Q380 600 800 720 T1600 700 V900 H0Z' fill='${h1}'/></svg>`
   );
 
-export const WALLPAPERS: { key: string; name: string; css: string }[] = [
-  {
-    key: "win7",
-    name: "Windows 7",
-    css: "radial-gradient(ellipse 55% 85% at 70% 55%, rgba(205,242,255,.95) 0%, rgba(95,180,245,.65) 22%, rgba(20,100,200,0) 62%), conic-gradient(from 205deg at 70% 55%, transparent 0 6%, rgba(255,255,255,.16) 8% 10%, transparent 12% 20%, rgba(255,255,255,.12) 22% 26%, transparent 29% 44%, rgba(255,255,255,.1) 46% 49%, transparent 52% 70%, rgba(255,255,255,.08) 72% 74%, transparent 77%), linear-gradient(135deg,#031747 0%,#0a4aa8 42%,#1c86dc 68%,#052a6a 100%)",
-  },
-  {
-    key: "harmony",
-    name: "Harmony",
-    css: "radial-gradient(ellipse 80% 40% at 30% 70%, rgba(120,255,200,.55), transparent 70%), radial-gradient(ellipse 70% 50% at 75% 30%, rgba(255,120,220,.45), transparent 70%), linear-gradient(160deg,#1b0f4f 0%,#3a2a9a 40%,#0d7aa8 75%,#0b3d6e 100%)",
-  },
-  { key: "landscape", name: "Landscape", css: hills("#4aa8ec", "#d6f0ff", "#2f7d32", "#4fa24b", "#fff8c4") },
-  { key: "dusk", name: "Dusk", css: hills("#2b1a52", "#ff9a52", "#201233", "#3b2150", "#ffe08a") },
-  { key: "coast", name: "Coast", css: hills("#6cc4ff", "#eaf9ff", "#1d6fa3", "#3aa1c4", "#ffffff") },
-  {
-    key: "night",
-    name: "Night Sky",
-    css: "radial-gradient(circle at 20% 30%, rgba(255,255,255,.9) 0 1px, transparent 2px), radial-gradient(circle at 60% 20%, rgba(255,255,255,.8) 0 1px, transparent 2px), radial-gradient(circle at 80% 70%, rgba(255,255,255,.8) 0 1px, transparent 2px), radial-gradient(ellipse at 50% 120%, #2b4f9b 0%, #0a1740 55%, #02040f 100%)",
-  },
-  {
-    key: "architecture",
-    name: "Architecture",
-    css: "repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px 90px), repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 2px, transparent 2px 90px), linear-gradient(160deg,#3c4658 0%,#1b2230 60%,#0c101a 100%)",
-  },
-  { key: "bluesolid", name: "Solid Blue", css: "linear-gradient(#1d5ba8,#1d5ba8)" },
-  { key: "blacksolid", name: "Solid Black", css: "linear-gradient(#000,#000)" },
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
+/**
+ * The desktop backgrounds. Windows 7 shipped these as photographs in themed
+ * packs; the images live in public/wallpapers and are referenced by URL so the
+ * same file works locally and under the /windows7 Pages base path.
+ */
+export const WALLPAPERS: { key: string; name: string; pack: string; css: string }[] = [
+  { key: "win7", name: "Windows 7", pack: "Windows", css: `url("${BASE}/wallpapers/win7.jpg")` },
+  { key: "nature", name: "Nature", pack: "Nature", css: `url("${BASE}/wallpapers/nature.jpg")` },
+  { key: "flowers", name: "Flowers", pack: "Nature", css: `url("${BASE}/wallpapers/flowers.jpg")` },
+  { key: "scenes", name: "Scenes", pack: "Scenes", css: `url("${BASE}/wallpapers/scenes.jpg")` },
+  { key: "night", name: "Night Sky", pack: "Scenes", css: `url("${BASE}/wallpapers/night.jpg")` },
+  { key: "landscapes", name: "Landscapes", pack: "Landscapes", css: `url("${BASE}/wallpapers/landscapes.jpg")` },
+  { key: "architecture", name: "Architecture", pack: "Architecture", css: `url("${BASE}/wallpapers/architecture.jpg")` },
+  { key: "geometric", name: "Geometry", pack: "Architecture", css: `url("${BASE}/wallpapers/geometric.jpg")` },
+  { key: "characters", name: "Characters", pack: "Characters", css: `url("${BASE}/wallpapers/characters.jpg")` },
+  { key: "colors", name: "Colours", pack: "Abstract", css: `url("${BASE}/wallpapers/colors.jpg")` },
+  { key: "harmony", name: "Harmony", pack: "Abstract", css: `url("${BASE}/wallpapers/harmony.jpg")` },
+  { key: "aero", name: "Aero Glass", pack: "Abstract", css: "radial-gradient(ellipse 70% 60% at 30% 25%, rgba(120,210,255,.55), transparent 65%), radial-gradient(ellipse 60% 50% at 78% 78%, rgba(190,120,255,.42), transparent 68%), conic-gradient(from 150deg at 55% 60%, transparent 0 12%, rgba(255,255,255,.14) 15% 18%, transparent 22% 40%, rgba(255,255,255,.1) 44% 47%, transparent 52% 74%, rgba(255,255,255,.08) 78% 80%, transparent 85%), linear-gradient(140deg,#04122e 0%,#0b3f7e 45%,#1167b8 70%,#061a3c 100%)" },
+  { key: "sunrise", name: "Sunrise", pack: "Abstract", css: hills("#3a2b6b", "#ffb46a", "#241a44", "#3f2c5c", "#fff0b8") },
+  { key: "bluesolid", name: "Solid Blue", pack: "Solid", css: "linear-gradient(#1d5ba8,#1d5ba8)" },
+  { key: "blacksolid", name: "Solid Black", pack: "Solid", css: "linear-gradient(#000,#000)" },
 ];
 
 export const COLORS: { key: string; name: string; rgb: [number, number, number] }[] = [
