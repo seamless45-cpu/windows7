@@ -38,7 +38,15 @@ export interface MenuItem {
 }
 
 export interface User { name: string; pic: string; pass?: string; admin: boolean }
-export interface GadgetInst { id: string; type: string; x: number; y: number; top?: boolean }
+export interface GadgetInst {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  top?: boolean;
+  /** per-gadget options set from the gadget's Options dialog */
+  opts?: { seconds?: boolean; tint?: string; tz?: number; folder?: string; every?: number; feed?: string; city?: string; unit?: "C" | "F" };
+}
 export interface Installed { id: string; name: string; publisher: string; size: string; date: string; version: string }
 
 export interface Settings {
@@ -285,6 +293,7 @@ function sanitizeGadgets(v: unknown): GadgetInst[] {
       x: num(g.x, 0, -10000, 10000),
       y: num(g.y, 20, -10000, 10000),
       top: bool(g.top, false),
+      opts: g.opts && typeof g.opts === "object" ? (g.opts as GadgetInst["opts"]) : undefined,
     }));
 }
 
@@ -1175,12 +1184,19 @@ const RUN_MAP: Record<string, string> = {
   snippingtool: "snip", charmap: "charmap", magnify: "magnifier", stikynot: "sticky2", soundrecorder: "recorder", dvdmaker: "dvdmaker", winver: "winver", minesweeper: "minesweeper", helppane: "help",
   sol: "solitaire", solitaire: "solitaire", spider: "spider", hearts: "hearts", gameexplorer: "gamecenter", journal: "journal", xpsrchvw: "xps",
   sysdiag: "sysdiag", msinfo32: "sysdiag", msinfo: "sysdiag", eventvwr: "eventvwr", cleanmgr: "cleanmgr", dfrgui: "cleanmgr", regedit: "regedit", optionalfeatures: "features", features: "features", freecell: "freecell", mahjong: "mahjong", mahjongtitans: "mahjong", chess: "chess", chesstitans: "chess", purbleplace: "purble", purble: "purble",
-  speechux: "speech", mblctr: "mobility", perfmon: "reliability", windowsanytimeupgradeui: "trust", wscui: "reliability", notepad2: "notepad", sticky: "sticky2",
+    speechux: "speech", mblctr: "mobility", perfmon: "reliability", windowsanytimeupgradeui: "trust", notepad2: "notepad", sticky: "sticky2",
+  services: "services", msconfig: "msconfig", osk: "osk", narrator: "narrator", psr: "psr", mip: "mip",
 };
 export function runCommand(raw: string): boolean {
   let cmd = raw.trim();
   if (!cmd) return false;
   const lc = cmd.toLowerCase().replace(/\.exe$/, "");
+  // "cmd /k ipconfig" / "cmd /c ver" — open a console that replays the command.
+  const m = /^cmd(?:\.exe)?\s+\/[ck]\s+(.+)$/i.exec(cmd);
+  if (m) {
+    openApp("cmd", { boot: m[1].replace(/^"|"$/g, "") });
+    return true;
+  }
   if (RUN_MAP[lc]) {
     openApp(RUN_MAP[lc]);
     return true;
@@ -1210,7 +1226,13 @@ export function runCommand(raw: string): boolean {
   if (lc === "shell:computer") return openPath("computer"), true;
   if (lc === "inetcpl.cpl") return openCP("inetopts"), true;
   if (lc === "shutdown") return shutdown(), true;
-  if (lc === "msconfig" || lc === "gpedit.msc") {
+  if (lc === "services.msc" || lc === "services") return openApp("services"), true;
+  if (lc === "msconfig" || lc === "msconfig.exe") return openApp("msconfig"), true;
+  if (lc === "osk" || lc === "osk.exe") return openApp("osk"), true;
+  if (lc === "narrator" || lc === "narrator.exe") return openApp("narrator"), true;
+  if (lc === "psr" || lc === "psr.exe") return openApp("psr"), true;
+  if (lc === "mip" || lc === "mip.exe") return openApp("mip"), true;
+  if (lc === "gpedit.msc") {
     msgBox({ title: cmd, text: "Registry editing has been disabled by your administrator.", icon: "error" });
     return true;
   }

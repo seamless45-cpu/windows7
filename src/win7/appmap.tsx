@@ -8,7 +8,7 @@ import { Paint } from "./apps/Paint";
 import { MediaPlayer, PhotoViewer, DvdMaker, SoundRecorder } from "./apps/Media";
 import { IE } from "./apps/IE";
 import { Cmd, TaskManager, HelpApp, SnippingTool, Minesweeper } from "./apps/SystemApps";
-import { GadgetGallery } from "./gadgets";
+import { GadgetGallery, GadgetOptions } from "./gadgets";
 import { MsgBox, Uac, Progress, Props, Run, FileDialog, Winver, Setup, InputBox } from "./dialogs";
 import { Solitaire, Spider, Hearts, GamesExplorer } from "./apps/Games";
 import { FreeCell, Mahjong, Chess, Purble } from "./apps/Games7";
@@ -16,6 +16,8 @@ import { SystemDiagnostics } from "./apps/Kernel";
 import { EventViewer, DiskCleanup, Regedit } from "./apps/Tools";
 import { WindowsFeatures } from "./apps/Features";
 import { Journal, XpsViewer, StickyNotes2, SpeechRecognition, Mobility, Reliability, AnytimeUpgrade } from "./apps/Utilities";
+import { Services, MsConfig } from "./apps/Services";
+import { OnScreenKeyboard, Narrator, StepsRecorder, MathPanel } from "./apps/Accessories7";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   explorer: Explorer,
@@ -31,6 +33,12 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   recorder: SoundRecorder,
   cmd: Cmd,
   sysdiag: SystemDiagnostics,
+  services: Services,
+  msconfig: MsConfig,
+  osk: OnScreenKeyboard,
+  narrator: Narrator,
+  psr: StepsRecorder,
+  mip: MathPanel,
   features: WindowsFeatures,
   eventvwr: EventViewer,
   cleanmgr: DiskCleanup,
@@ -42,6 +50,7 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   dvdmaker: DvdMaker,
   help: HelpApp,
   gadgets: () => <GadgetGallery />,
+  gadgetopts: GadgetOptions,
   minesweeper: Minesweeper,
   run: Run,
   msgbox: MsgBox,

@@ -13,6 +13,7 @@ import { WALLPAPERS } from "../data";
 
 /* ================================================================= CMD */
 const HELP = `For more information on a specific command, type HELP command-name
+COLOR    Sets the screen text and background colours.
 CD       Displays the name of or changes the current directory.
 CLS      Clears the screen.
 COPY     Copies one or more files to another location.
@@ -23,6 +24,7 @@ ECHO     Displays messages.
 EXIT     Quits the CMD.EXE program.
 HOSTNAME Prints the name of the current host.
 IPCONFIG Displays network configuration.
+MODE     Configures the console window (MODE CON: COLS=n LINES=n).
 MD       Creates a directory.
 MOVE     Moves files.
 PING     Tests a network connection.
@@ -40,9 +42,21 @@ VER      Displays the Windows version.
 WHOAMI   Displays the current user.`;
 
 export function Cmd({ win }: { win: Win }) {
-  const [lines, setLines] = useState<string[]>(["Microsoft Windows [Version 6.1.7601]", "Copyright (c) 2009 Microsoft Corporation.  All rights reserved.", ""]);
-  const [cwd, setCwd] = useState("home");
+  const start = (win.props || {}) as { text?: "on" | "off"; color?: string; cols?: number; lines?: number; dir?: string; boot?: string };
+  const banner = start.text !== "off";
+  const [lines, setLines] = useState<string[]>(() => {
+    const l: string[] = [];
+    if (banner) l.push("Microsoft Windows [Version 6.1.7601]", "Copyright (c) 2009 Microsoft Corporation.  All rights reserved.", "");
+    else {
+      const t = (win.props?.text as string) || "";
+      if (t) l.push(t);
+    }
+    return l;
+  });
+  const [cwd, setCwd] = useState(start.dir && getState().fs[start.dir] ? start.dir : "home");
   const [input, setInput] = useState("");
+  const [col, setCol] = useState(start.color || "07");
+  const [size, setSize] = useState({ cols: start.cols || 80, lines: start.lines || 25 });
   const hist = useRef<string[]>([]);
   const hi = useRef(0);
   const box = useRef<HTMLDivElement>(null);
@@ -75,10 +89,32 @@ export function Cmd({ win }: { win: Win }) {
     else if (cmd === "ver") say("", "Microsoft Windows [Version 6.1.7601]");
     else if (cmd === "date") say("The current date is: " + new Date().toLocaleDateString("en-US", { weekday: "short", month: "2-digit", day: "2-digit", year: "numeric" }));
     else if (cmd === "time") say("The current time is: " + new Date().toLocaleTimeString("en-US", { hour12: false }) + ".00");
+    else if (cmd === "mode") {
+      if (/con/i.test(arg)) {
+        const c2 = /cols\s*=\s*(\d+)/i.exec(arg);
+        const l2 = /lines\s*=\s*(\d+)/i.exec(arg);
+        if (!c2 && !l2) say(`Status for device CON:`, `---------------------------------------`, `    Lines:          ${size.lines}`, `    Columns:        ${size.cols}`, `    Keyboard rate:  31`, `    Code page:      437`);
+        else {
+          const nc = c2 ? Math.max(20, Math.min(240, +c2[1])) : size.cols;
+          const nl = l2 ? Math.max(8, Math.min(120, +l2[1])) : size.lines;
+          setSize({ cols: nc, lines: nl });
+          setWin(win.id, { w: Math.round(nc * 8.4 + 16), h: Math.round(nl * 17 + 46) });
+          say(`Console window resized to ${nc} columns by ${nl} lines.`);
+        }
+      } else say("Invalid parameter - " + (arg || ""));
+    }
     else if (cmd === "hostname") say("PC");
     else if (cmd === "whoami") say("pc\\" + getState().settings.currentUser.toLowerCase());
     else if (cmd === "title") setWin(win.id, { title: arg || "Command Prompt" });
-    else if (cmd === "color") say("Color settings are not supported in this console.");
+    else if (cmd === "color") {
+      const a = arg.trim().toUpperCase();
+      const ok = /^[0-9A-F]{1,2}$/.test(a);
+      if (!a) { setCol("07"); say(""); }
+      else if (!ok) say(`Invalid parameter - ${arg}`);
+      else { setCol(a.length === 1 ? "0" + a : a); say(""); }
+    }
+    else if (cmd === "winsat") { const what = arg.toLowerCase(); say("", `Windows System Assessment Tool`, `> Running: ${what || "formal"} assessment...`, "> Disk  Sequential 64.0 Read            88.62 MB/s          5.9", "> Disk  Random 16.0 Read                4.12 MB/s          5.2", "> CPU   Compress 32.0MB to 32.0MB       268.40 MB/s         7.1", "> CPU   Alpha Decode 8.0MB single         98.60 MPixels/s     6.8", "> D3D   Batch  --  %  3          60.00 fps                   6.9", "> D3D   Alpha Blend             328.20 MB/s         6.4", "> Mem    Bandwidth 4.0MB Copy        12608.50 MB/s         5.9", "", "Total Run Time 00:00:19.84", `WinSAT Assessment Completed. Score ${(6.4).toFixed(1)}`); }
+    else if (cmd === "dxdiag") { runCommand("sysdiag"); say("Opening the DirectX Diagnostic Tool..."); }
     else if (cmd === "path") say("PATH=C:\\Windows\\system32;C:\\Windows");
     else if (cmd === "set") say("COMPUTERNAME=PC", "OS=Windows_NT", "SystemDrive=C:", "SystemRoot=C:\\Windows", "USERNAME=" + getState().settings.currentUser, "USERPROFILE=C:\\Users\\" + getState().settings.currentUser);
     else if (cmd === "vol") say(" Volume in drive C is OS", " Volume Serial Number is 4A2B-9C1D");
@@ -115,7 +151,7 @@ export function Cmd({ win }: { win: Win }) {
     else if (cmd === "ping") { const h = arg || "localhost"; const on = getState().settings.defaults.net !== "off"; say("", `Pinging ${h} [${on ? "93.184.216.34" : "?"}] with 32 bytes of data:`); for (let i = 0; i < 4; i++) say(on ? `Reply from 93.184.216.34: bytes=32 time=${20 + ((i * 7) % 13)}ms TTL=56` : "Request timed out."); say("", `Ping statistics for 93.184.216.34:`, `    Packets: Sent = 4, Received = ${on ? 4 : 0}, Lost = ${on ? 0 : 4} (${on ? 0 : 100}% loss),`); }
     else if (cmd === "tasklist") { say("", "Image Name                     PID Session Name     Mem Usage", "========================= ======== ================ ============", "System Idle Process              0 Services              24 K", "explorer.exe                  1288 Console           58,204 K", "dwm.exe                        980 Console           21,440 K"); const seen = new Set<string>(); getState().windows.filter((w) => !APPS[w.app].noTask).forEach((w, i) => { const e = APPS[w.app].exe || w.app + ".exe"; if (!seen.has(e)) { seen.add(e); say(`${e.padEnd(25)} ${String(2000 + i * 44).padStart(8)} Console           ${(8000 + i * 1300).toLocaleString()} K`); } }); say("cmd.exe                       3120 Console            2,884 K"); }
     else if (cmd === "taskkill") { const m = /\/im\s+(\S+)/i.exec(arg); if (!m) say("ERROR: Invalid syntax."); else { const ws = getState().windows.filter((w) => (APPS[w.app].exe || "").toLowerCase() === m[1].toLowerCase()); if (!ws.length) say(`ERROR: The process "${m[1]}" not found.`); else { ws.forEach((w) => closeWin(w.id, true)); say(`SUCCESS: The process "${m[1]}" has been terminated.`); } } }
-    else if (cmd === "systeminfo") say("", "Host Name:                 PC", "OS Name:                   Microsoft Windows 7 Ultimate", "OS Version:                6.1.7601 Service Pack 1 Build 7601", "OS Manufacturer:           Microsoft Corporation", "System Type:               x64-based PC", "Processor(s):              1 Processor(s) Installed.", `Total Physical Memory:     ${((navigator as unknown as { deviceMemory?: number }).deviceMemory || 8) * 1024} MB`, "Time Zone:                 (UTC-08:00) Pacific Time (US & Canada)");
+    else if (cmd === "systeminfo" || cmd === "sysinfo") say("", "Host Name:                 PC", "OS Name:                   Microsoft Windows 7 Ultimate", "OS Version:                6.1.7601 Service Pack 1 Build 7601", "OS Manufacturer:           Microsoft Corporation", "System Type:               x64-based PC", "Processor(s):              1 Processor(s) Installed.", `Total Physical Memory:     ${((navigator as unknown as { deviceMemory?: number }).deviceMemory || 8) * 1024} MB`, "Time Zone:                 (UTC-08:00) Pacific Time (US & Canada)");
     else if (cmd === "netstat") say("", "Active Connections", "", "  Proto  Local Address          Foreign Address        State", "  TCP    192.168.1.23:49412     93.184.216.34:80       ESTABLISHED");
     else if (cmd === "shutdown") { if (/\/s/i.test(arg)) { say("Shutting down..."); setTimeout(shutdown, 600); } else if (/\/r/i.test(arg)) { say("Restarting..."); setTimeout(restart, 600); } else if (/\/l/i.test(arg)) setTimeout(logoff, 300); else if (/\/h|\/l/i.test(arg)) setTimeout(lock, 300); else say("Usage: shutdown [/s | /r | /l]"); }
     else if (cmd === "start") { if (!runCommand(arg || "cmd")) say("The system cannot find the file " + arg + "."); }
@@ -125,10 +161,42 @@ export function Cmd({ win }: { win: Win }) {
     setLines((l) => [...l, prompt(cwd) + raw, ...out, ...(cmd ? [""] : [])]);
   };
 
+  // COLOR uses two hex nibbles: background then foreground (0-7, 8-F = bright).
+  const PAL = ["#0c0c0c", "#1b3a8c", "#0f5c2c", "#0f6a6a", "#8c1b1b", "#6a1b6a", "#8c6a0f", "#c0c0c0", "#5a5a5a", "#3b6fd4", "#22b14c", "#22c8c8", "#e04040", "#c060c0", "#e0c020", "#ffffff"];
+  const bg = PAL[parseInt(col[0], 16)] || "#0c0c0c";
+  const fg = PAL[parseInt(col[1], 16)] || "#c0c0c0";
+  const menu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    import("../store").then((m) => {
+      const items: MenuItem[] = [
+        { label: "MARK", onClick: () => {} },
+        { sep: true },
+        { label: "80 x 25", checked: size.cols === 80 && size.lines === 25, onClick: () => { setSize({ cols: 80, lines: 25 }); setWin(win.id, { w: 688, h: 471 }); } },
+        { label: "100 x 30", checked: size.cols === 100 && size.lines === 30, onClick: () => { setSize({ cols: 100, lines: 30 }); setWin(win.id, { w: 856, h: 556 }); } },
+        { label: "120 x 40", checked: size.cols === 120 && size.lines === 40, onClick: () => { setSize({ cols: 120, lines: 40 }); setWin(win.id, { w: 1024, h: 726 }); } },
+        { sep: true },
+        { label: "Colours — black / green", onClick: () => setCol("02") },
+        { label: "Colours — white / blue", onClick: () => setCol("1f") },
+        { label: "Colours — default", onClick: () => setCol("07") },
+        { sep: true },
+        { label: "Properties", onClick: () => m.openCP("system") },
+      ];
+      m.showMenu({ x: e.clientX / m.view.scale, y: e.clientY / m.view.scale }, items);
+    });
+  };
+  // cmd /k <command> and cmd /c <command> replayed when the window opens.
+  const booted = useRef(false);
+  useEffect(() => {
+    if (booted.current || !start.boot) return;
+    booted.current = true;
+    setWin(win.id, { title: `C:\\Windows\\system32\\cmd.exe - ${start.boot}` });
+    run(start.boot);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <div className="cmdwin" onClick={() => inp.current?.focus()} ref={box}>
+    <div className="cmdwin" style={{ background: bg, color: fg }} onClick={() => inp.current?.focus()} onContextMenu={menu} ref={box} data-cols={size.cols} data-lines={size.lines}>
       {lines.map((l, i) => <div key={i} className="cmd-l">{l || "\u00a0"}</div>)}
-      <div className="cmd-l cmd-in"><span>{prompt()}</span><input ref={inp} value={input} spellCheck={false} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => {
+      <div className="cmd-l cmd-in"><span>{prompt()}</span><input ref={inp} value={input} spellCheck={false} style={{ color: fg }} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Enter") { hist.current.push(input); hi.current = hist.current.length; run(input); setInput(""); }
         else if (e.key === "ArrowUp") { e.preventDefault(); if (hi.current > 0) { hi.current--; setInput(hist.current[hi.current] || ""); } }
