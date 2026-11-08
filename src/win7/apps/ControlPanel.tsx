@@ -5,6 +5,7 @@ import {
   runCommand, view,
 } from "../store";
 import { Icon, nodeIcon } from "../icons";
+import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./PanelTools";
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
 import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
@@ -15,14 +16,14 @@ import { DeviceManager } from "./ComputerManagement";
 
 interface PageDef { title: string; icon: string; cat: string }
 const CATS: { id: string; title: string; icon: string; items: string[]; links: [string, string][] }[] = [
-  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
-  { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "network"]] },
-  { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
-  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
-  { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
-  { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
+  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "secpol", "perfmon", "mdsched", "support", "backup", "bitlocker", "wei", "ra"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "backup"], ["Find and fix problems", "support"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
+  { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts", "rdp", "sync", "homegroup"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "homegroup"]] },
+  { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility", "wfs"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
+  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games", "migwiz", "mce", "stkmgr"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
+  { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users", "credmgr"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
+  { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero", "eudc"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
   { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region", "calendar"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
-  { id: "cat-ease", title: "Ease of Access", icon: "ease", items: ["ease"], links: [["Let Windows suggest settings", "ease"], ["Optimize visual display", "ease"]] },
+  { id: "cat-ease", title: "Ease of Access", icon: "ease", items: ["ease", "tabtip"], links: [["Let Windows suggest settings", "ease"], ["Optimize visual display", "ease"]] },
 ];
 const PAGES: Record<string, PageDef> = {
   actioncenter: { title: "Action Center", icon: "actioncenter", cat: "cat-system" },
@@ -72,8 +73,27 @@ const PAGES: Record<string, PageDef> = {
   defender: { title: "Windows Defender", icon: "defender", cat: "cat-system" },
   powershell: { title: "Windows PowerShell", icon: "powershell", cat: "cat-system" },
   calendar: { title: "Calendar", icon: "calendar", cat: "cat-clock" },
+  fw: { title: "Windows Firewall with Advanced Security", icon: "shield", cat: "cat-system" },
+  secpol: { title: "Local Security Policy", icon: "shield", cat: "cat-system" },
+  perfmon: { title: "Performance Monitor", icon: "reliability", cat: "cat-system" },
+  mdsched: { title: "Windows Memory Diagnostic", icon: "computer", cat: "cat-system" },
+  rdp: { title: "Remote Desktop Connection", icon: "network", cat: "cat-network" },
+  sync: { title: "Sync Center", icon: "share", cat: "cat-network" },
+  migwiz: { title: "Windows Easy Transfer", icon: "programs", cat: "cat-programs" },
+  mce: { title: "Windows Media Center", icon: "wmp", cat: "cat-programs" },
+  backup: { title: "Backup and Restore", icon: "backup", cat: "cat-system" },
+  bitlocker: { title: "BitLocker Drive Encryption", icon: "shield", cat: "cat-system" },
+  homegroup: { title: "HomeGroup", icon: "homegroup", cat: "cat-network" },
+  credmgr: { title: "Credential Manager", icon: "key", cat: "cat-users" },
+  wei: { title: "Performance Information and Tools", icon: "taskmgr", cat: "cat-system" },
+  ra: { title: "Windows Remote Assistance", icon: "help", cat: "cat-system" },
+  eudc: { title: "Private Character Editor", icon: "charmap", cat: "cat-appearance" },
+  wfs: { title: "Windows Fax and Scan", icon: "printer", cat: "cat-hardware" },
+  support: { title: "Windows Support", icon: "help", cat: "cat-system" },
+  tabtip: { title: "Tablet PC Input Panel", icon: "osk", cat: "cat-ease" },
+  stkmgr: { title: "Sticky Notes", icon: "sticky2", cat: "cat-programs" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "calendar"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "calendar", "fw", "secpol", "perfmon", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -187,7 +207,7 @@ function Firewall() {
           </tbody></table>
         </div>
       </div>
-      <p><Btn def onClick={() => elevate("Windows Firewall", () => { setSettings({ firewall: !fw }); notify({ title: "Windows Firewall", text: fw ? "Windows Firewall is now turned off. Your computer may be at risk." : "Windows Firewall is turned on.", icon: fw ? "warn" : "info" }); })}>{fw ? "Turn Windows Firewall off" : "Turn Windows Firewall on"}</Btn> <Btn onClick={() => msgBox({ title: "Windows Firewall", text: "Settings were restored to default values.", icon: "info" })}>Restore defaults</Btn></p>
+      <p><Btn onClick={() => openApp("fw")}>Advanced settings</Btn> <Btn def onClick={() => elevate("Windows Firewall", () => { setSettings({ firewall: !fw }); notify({ title: "Windows Firewall", text: fw ? "Windows Firewall is now turned off. Your computer may be at risk." : "Windows Firewall is turned on.", icon: fw ? "warn" : "info" }); })}>{fw ? "Turn Windows Firewall off" : "Turn Windows Firewall on"}</Btn> <Btn onClick={() => msgBox({ title: "Windows Firewall", text: "Settings were restored to default values.", icon: "info" })}>Restore defaults</Btn></p>
     </div>
   );
 }
@@ -267,27 +287,50 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
 }
 
 const THEMES: { name: string; theme: Settings["theme"]; wp: string; color: string; group: string; sound: string }[] = [
+  // The seven Aero themes that shipped with a clean Windows 7 install (a
+  // country theme is added on top of these by the OEM/region).
   { name: "Windows 7", theme: "aero", wp: "win7", color: "sky", group: "Aero Themes", sound: "Windows Default" },
   { name: "Architecture", theme: "aero", wp: "architecture", color: "slate", group: "Aero Themes", sound: "Cityscape" },
-  { name: "Landscapes", theme: "aero", wp: "landscape", color: "leaf", group: "Aero Themes", sound: "Landscape" },
-  { name: "Dusk", theme: "aero", wp: "dusk", color: "pumpkin", group: "Aero Themes", sound: "Delta" },
-  { name: "Harmony", theme: "aero", wp: "harmony", color: "violet", group: "Aero Themes", sound: "Raga" },
-  { name: "Coast", theme: "aero", wp: "coast", color: "sea", group: "Aero Themes", sound: "Sonata" },
+  { name: "Characters", theme: "aero", wp: "characters", color: "violet", group: "Aero Themes", sound: "Characters" },
+  { name: "Landscapes", theme: "aero", wp: "landscapes", color: "leaf", group: "Aero Themes", sound: "Landscape" },
+  { name: "Nature", theme: "aero", wp: "nature", color: "leaf", group: "Aero Themes", sound: "Delta" },
+  { name: "Scenes", theme: "aero", wp: "scenes", color: "sea", group: "Aero Themes", sound: "Sonata" },
+  { name: "United Kingdom", theme: "aero", wp: "geometric", color: "frost", group: "Aero Themes", sound: "Heritage" },
   { name: "Windows 7 Basic", theme: "basic", wp: "win7", color: "twilight", group: "Basic and High Contrast Themes", sound: "Windows Default" },
   { name: "Windows Classic", theme: "classic", wp: "bluesolid", color: "twilight", group: "Basic and High Contrast Themes", sound: "No Sounds" },
   { name: "High Contrast #1", theme: "hc", wp: "blacksolid", color: "smoke", group: "Basic and High Contrast Themes", sound: "No Sounds" },
+  { name: "High Contrast #2", theme: "hc", wp: "blacksolid", color: "smoke", group: "Basic and High Contrast Themes", sound: "No Sounds" },
+  { name: "High Contrast Black", theme: "hc", wp: "blacksolid", color: "smoke", group: "Basic and High Contrast Themes", sound: "No Sounds" },
+  { name: "High Contrast White", theme: "hc", wp: "blacksolid", color: "frost", group: "Basic and High Contrast Themes", sound: "No Sounds" },
 ];
 function Personalization({ nav }: { nav: (p: string) => void }) {
   const s = useStore((st) => st.settings);
   const cur = THEMES.find((t) => t.theme === s.theme && t.wp === s.wallpaper && t.color === s.colorKey);
+  const mine = lsGet<string[]>("win7.mythemes", []);
+  const [selTheme, setSelTheme] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  const groups = ["My Themes", "Aero Themes", "Basic and High Contrast Themes"];
+  void tick;
   return (
     <div>
       <Head title="Change the visuals and sounds on your computer" desc="Click a theme to change the desktop background, window color, sounds, and screen saver all at once." />
-      {["Aero Themes", "Basic and High Contrast Themes"].map((g) => (
+      {groups.map((g) => (
         <div key={g}>
           <div className="cp-sec">{g}</div>
           <div className="theme-grid">
-            {THEMES.filter((t) => t.group === g).map((t) => (
+            {g === "My Themes" && !mine.length && <div className="cp-note">You have not saved any themes yet. Change your desktop background, window colour, sounds or screen saver, then click <b>Save theme</b>.</div>}
+            {g === "My Themes"
+              ? mine.map((name) => {
+                  const t = lsGet<{ wp: string; color: string; theme: Settings["theme"]; sound: string } | null>("win7.theme." + name, null);
+                  if (!t) return null;
+                  return (
+                    <div key={name} className={"theme-card" + (selTheme === name ? " sel" : "")} onClick={() => { setSelTheme(name); setSettings({ ...t }); }} onContextMenu={(e) => { e.preventDefault(); msgBox({ title: "Personalization", text: `Delete the theme "${name}"?`, icon: "warn", buttons: ["Delete", "Cancel"], onResult: (b) => { if (b !== "Delete") return; lsSet("win7.mythemes", mine.filter((n) => n !== name)); setSelTheme(null); setTick(tick + 1); } }); }}>
+                      <div className="theme-prev" style={wpStyle(t.wp, "fill")}><div className="tp-win" style={{ background: `rgba(${COLORS.find((c) => c.key === t.color)?.rgb.join(",") || "116,184,252"},.7)` }}><i /></div></div>
+                      {name}
+                    </div>
+                  );
+                })
+              : THEMES.filter((t) => t.group === g).map((t) => (
               <div key={t.name} className={"theme-card" + (cur?.name === t.name ? " sel" : "")} onClick={() => setSettings({ theme: t.theme, wallpaper: t.wp, colorKey: t.color, soundScheme: t.sound, transparency: t.theme === "aero" ? true : s.transparency })}>
                 <div className={"theme-prev t-" + t.theme} style={wpStyle(t.wp, "fill")}>
                   <div className="tp-win" style={{ background: t.theme === "aero" ? `rgba(${COLORS.find((c) => c.key === t.color)!.rgb.join(",")},.7)` : undefined }}><i /></div>
@@ -298,6 +341,17 @@ function Personalization({ nav }: { nav: (p: string) => void }) {
           </div>
         </div>
       ))}
+      <p style={{ marginTop: 10 }}>
+        <Btn onClick={() => {
+          const name = prompt("Save theme as:", "My Theme")?.trim();
+          if (!name) return;
+          lsSet("win7.theme." + name, { wp: s.wallpaper, color: s.colorKey, theme: s.theme, sound: s.soundScheme });
+          lsSet("win7.mythemes", [...new Set([...mine, name])]);
+          setSelTheme(name);
+          setTick(tick + 1);
+        }}>Save theme</Btn>
+        <span style={{ marginLeft: 10, color: "#4d647c" }}>Aero theme {cur ? cur.name : "custom"}{s.transparency ? " · transparency on" : ""}</span>
+      </p>
       <div className="cp-bottom">
         {[["wallpaper", "Desktop Background", "appearance"], ["wincolor", "Window Color", "appearance"], ["sound", "Sounds", "sound"], ["screensaver", "Screen Saver", "display"]].map(([p, l, ic]) => (
           <div key={p} className="cp-bt" onClick={() => nav(p)}><Icon name={ic} size={32} /><span>{l}</span></div>
@@ -402,9 +456,21 @@ function Wallpaper() {
       )}
 
       <div className="cp-sec">Windows backgrounds</div>
-      <div className="wp-grid">
-        {WALLPAPERS.map((w) => <div key={w.key} className={"wp-item" + (s.wallpaper === w.key ? " sel" : "")} style={wpStyle(w.key, "fill")} title={w.name} onClick={() => setSettings({ wallpaper: w.key })} />)}
-        {pics.map((p) => <div key={p.id} className={"wp-item" + (s.wallpaper === "fs:" + p.id ? " sel" : "")} style={{ backgroundImage: `url("${p.content}")` }} title={p.name} onClick={() => setSettings({ wallpaper: "fs:" + p.id })} />)}
+      {[...new Set(WALLPAPERS.map((w) => w.pack))].map((pack) => (
+        <div key={pack} className="wp-pack">
+          <div className="wp-pack-h">{pack}</div>
+          <div className="wp-grid">
+            {WALLPAPERS.filter((w) => w.pack === pack).map((w) => (
+              <div key={w.key} className={"wp-item" + (s.wallpaper === w.key ? " sel" : "")} style={wpStyle(w.key, "fill")} title={w.name} onClick={() => setSettings({ wallpaper: w.key })}>{w.name}</div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="wp-pack">
+        <div className="wp-pack-h">Your pictures</div>
+        <div className="wp-grid">
+          {pics.map((p) => <div key={p.id} className={"wp-item" + (s.wallpaper === "fs:" + p.id ? " sel" : "")} style={{ backgroundImage: `url("${p.content}")` }} title={p.name} onClick={() => setSettings({ wallpaper: "fs:" + p.id })}>{p.name}</div>)}
+        </div>
       </div>
       <p>
         Picture position:{" "}
@@ -957,6 +1023,25 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   sysrestore: () => <CPLaunch app="sysrestore" text="System Restore rolls the system settings — theme, wallpaper, sound scheme, DPI — back to an earlier restore point without touching your files." />,
   defender: () => <CPLaunch app="defender" text="Windows Defender scans for spyware, keeps a quarantine and reports its scan history." />,
   powershell: () => <CPLaunch app="powershell" text="Windows PowerShell runs cmdlets over the same files, processes and services as the rest of the shell, with working pipelines." />,
+  fw: () => <CPLaunch app="fw" text="Windows Firewall with Advanced Security manages the inbound and outbound rules for every network profile." />,
+  secpol: () => <CPLaunch app="secpol" text="Local Security Policy holds the password, account lockout and security options for this computer." />,
+  perfmon: () => <CPLaunch app="perfmon" text="Performance Monitor charts a performance counter live — processor time, memory, disk and network." />,
+  mdsched: () => <CPLaunch app="mdsched" text="Windows Memory Diagnostic tests the memory for faults and reports the result in the System log." />,
+  rdp: () => <CPLaunch app="rdp" text="Remote Desktop Connection connects to another Windows computer over the network." />,
+  sync: () => <CPLaunch app="sync" text="Sync Center keeps offline files and portable devices in step with this PC." />,
+  migwiz: () => <CPLaunch app="migwiz" text="Windows Easy Transfer saves your files and settings into one .MIG file to move to another PC." />,
+  backup: () => <BackupRestore />,
+  bitlocker: () => <BitLocker />,
+  homegroup: () => <HomeGroup />,
+  credmgr: () => <CredentialManager />,
+  wei: () => <ExperienceIndex />,
+  ra: () => <RemoteAssistance />,
+  mce: () => <CPLaunch app="mce" text="Windows Media Center turns the PC into a ten-foot media player for your pictures, music, videos and recorded TV." />,
+  eudc: () => <CPLaunch app="eudc" text="Private Character Editor draws characters that the Character Map can insert into any document." />,
+  wfs: () => <CPLaunch app="wfs" text="Windows Fax and Scan scans documents on a flatbed scanner and sends or receives faxes over a modem." />,
+  support: () => <CPLaunch app="support" text="Windows Support troubleshoots a problem and applies a fix automatically." />,
+  tabtip: () => <CPLaunch app="tabtip" text="Tablet PC Input Panel writes, taps or types into any text box on the desktop." />,
+  stkmgr: () => <CPLaunch app="stkmgr" text="Sticky Notes keeps quick notes on the desktop in any of six colours." />,
   calendar: () => <CPLaunch app="calendar" text="Calendar is the month view behind the taskbar clock, with appointments stored on this PC." />,
   msconfig: () => <CPLaunch app="msconfig" text="System Configuration (msconfig) controls how Windows starts, which services run and which programs load at startup." />,
   features: () => <CPLaunch app="features" text="Turn Windows features on or off, and see everything this simulated PC can do." />,

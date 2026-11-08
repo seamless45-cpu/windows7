@@ -121,6 +121,46 @@ export function MenuBar({ menus }: { menus: { label: string; items: () => MenuIt
   );
 }
 
+/* --------------------------------------------------- MDI menu bar (Windows 7) */
+/**
+ * The Windows 7 program menu bar: the "Alt+" access keys are underlined while
+ * Alt is held, and a thin divider separates the menu strip from the client area.
+ */
+export function ClassicMenu({ menus }: { menus: { label: string; items: () => MenuItem[] }[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const [alt, setAlt] = useState(false);
+  const menu = useStore((s) => s.menu);
+  useEffect(() => {
+    if (!menu) setOpen(null);
+  }, [menu]);
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.key === "Alt") setAlt(true); };
+    const up = (e: KeyboardEvent) => { if (e.key === "Alt") setAlt(false); };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, []);
+  const show = (i: number, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setOpen(i);
+    showMenu({ x: r.left / view.scale, y: r.bottom / view.scale }, menus[i].items());
+  };
+  return (
+    <div className={"cmenubar" + (alt ? " alt" : "")}>
+      {menus.map((m, i) => (
+        <div key={m.label} className={"cm-item" + (open === i ? " on" : "")} onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => (open === i ? hideMenu() : show(i, e.currentTarget))}
+          onMouseEnter={(e) => open !== null && open !== i && show(i, e.currentTarget)}>
+          <u>{m.label.charAt(0)}</u>{m.label.slice(1)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------ small parts */
 export function Btn({ children, onClick, disabled, def, style, className = "" }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; def?: boolean; style?: React.CSSProperties; className?: string }) {
   return (

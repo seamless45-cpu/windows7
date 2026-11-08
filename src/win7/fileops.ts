@@ -211,7 +211,12 @@ export function nodeMenuItems(ids: string[], opts: { dir?: string; inTrash?: boo
       items.push({ label: "Set as desktop background", onClick: () => setWallpaperFrom(one.id) });
     }
     if (["txt", "log", "ini", "bat"].includes(e)) items.push({ label: "Edit", onClick: () => openApp("notepad", { file: one.id }) });
-    if (["mp3", "wma", "wav", "wmv", "mp4"].includes(e)) items.push({ label: "Play", onClick: () => openApp("wmp", { file: one.id }) });
+    if (["mp3", "wma", "wav", "wmv", "mp4"].includes(e)) {
+      items.push({ label: "Play", onClick: () => openApp("wmp", { file: one.id }) });
+      // Windows 7's Play To verb streams the item to a DLNA renderer
+      items.push({ label: "Play to", sub: [{ label: "Living room TV", icon: "network", onClick: () => openApp("playto", { file: one.id }) }, { label: "Media PC", icon: "computer", onClick: () => openApp("playto", { file: one.id }) }] });
+    }
+    if (["jpg", "jpeg", "png", "bmp", "gif"].includes(e)) items.push({ label: "Play to", onClick: () => openApp("playto", { file: one.id }) });
     if (e === "txt" || e === "rtf" || e === "doc") items.push({ label: "Print", onClick: () => msgBox({ title: "Print", text: "No printer is installed. Install a printer using Devices and Printers in Control Panel.", icon: "warn" }) });
     if (one.type === "file")
       items.push({
@@ -222,6 +227,8 @@ export function nodeMenuItems(ids: string[], opts: { dir?: string; inTrash?: boo
           { label: "Paint", icon: "paint", onClick: () => openApp("paint", { file: one.id }) },
           { label: "Windows Media Player", icon: "wmp", onClick: () => openApp("wmp", { file: one.id }) },
           { label: "Internet Explorer", icon: "ie", onClick: () => openApp("ie", { url: "file:" + one.id }) },
+          { sep: true },
+          { label: "Choose default program...", onClick: () => openApp("openwith", { file: one.id, ext: extOf(one.name) }) },
         ],
       });
   }

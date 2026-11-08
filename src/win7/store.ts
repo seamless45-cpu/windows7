@@ -1184,9 +1184,13 @@ const RUN_MAP: Record<string, string> = {
   snippingtool: "snip", charmap: "charmap", magnify: "magnifier", stikynot: "sticky2", soundrecorder: "recorder", dvdmaker: "dvdmaker", winver: "winver", minesweeper: "minesweeper", helppane: "help",
   sol: "solitaire", solitaire: "solitaire", spider: "spider", hearts: "hearts", gameexplorer: "gamecenter", journal: "journal", xpsrchvw: "xps",
   sysdiag: "sysdiag", msinfo32: "sysdiag", msinfo: "sysdiag", eventvwr: "eventvwr", cleanmgr: "cleanmgr", dfrgui: "cleanmgr", regedit: "regedit", optionalfeatures: "features", features: "features", freecell: "freecell", mahjong: "mahjong", mahjongtitans: "mahjong", chess: "chess", chesstitans: "chess", purbleplace: "purble", purble: "purble",
-    speechux: "speech", mblctr: "mobility", perfmon: "reliability", windowsanytimeupgradeui: "trust", notepad2: "notepad", sticky: "sticky2",
+    speechux: "speech", mblctr: "mobility", windowsanytimeupgradeui: "trust", notepad2: "notepad", sticky: "sticky2",
   services: "services", msconfig: "msconfig", osk: "osk", narrator: "narrator", psr: "psr", mip: "mip",
   tasksched: "tasksched", resmon: "resmon", compmgmt: "compmgmt", devmgr: "devmgr", diskmgmt: "diskmgmt",
+  fw: "fw", wf: "fw", secpol: "secpol", rdp: "rdp", mstsc: "rdp", sync: "sync", mobsync: "sync", migwiz: "migwiz",
+  mdsched: "mdsched", memdiag: "mdsched", perfmon: "perfmon",
+  cardspace: "cardspace", openwith: "openwith", gettingstarted: "gettingstarted", dccw: "dccw", powershell_ise: "ise", ise: "ise", wab: "contacts",
+  backup: "backup", sdclt: "backup", bitlocker: "bitlocker", homegroup: "homegroup", credmgr: "credmgr", wei: "wei", msra: "ra", eudcedit: "eudc", tabtip: "tabtip", msdt: "support", wfs: "wfs", mce: "mce", ehshell: "mce", mediacenter: "mce",
   powershell: "powershell", sysrestore: "sysrestore", defender: "defender", calendar: "calendar", lusrmgr: "lusrmgr", msascui: "defender", rstrui: "sysrestore", control_management: "compmgmt",
 };
 export function runCommand(raw: string): boolean {
@@ -1204,6 +1208,10 @@ export function runCommand(raw: string): boolean {
     return true;
   }
   if (lc === "control" || lc === "control panel") return openCP(), true;
+  if (/^control(\.exe)?\s+.*bitlocker/i.test(cmd)) return openApp("bitlocker"), true;
+  if (/^control(\.exe)?\s+.*homegroup/i.test(cmd)) return openApp("homegroup"), true;
+  if (/^control(\.exe)?\s+.*(credmgr|credential)/i.test(cmd)) return openApp("credmgr"), true;
+  if (/^control(\.exe)?\s+.*(perfcenter|wei)/i.test(cmd)) return openApp("wei"), true;
   if (lc.startsWith("control ")) return openCP(lc.slice(8).trim() || "home"), true;
   if (lc === "desk.cpl") return openCP("display"), true;
   if (lc === "main.cpl") return openCP("mouse"), true;
@@ -1216,7 +1224,6 @@ export function runCommand(raw: string): boolean {
   if (lc === "firewall.cpl") return openCP("firewall"), true;
   if (lc === "wscui.cpl") return openCP("actioncenter"), true;
   if (lc === "mblctr" || lc === "mblctr.exe") return openApp("mobility"), true;
-  if (lc === "perfmon" || lc === "perfmon.exe") return openApp("reliability"), true;
   if (lc === "sol" || lc === "sol.exe") return openApp("solitaire"), true;
   if (lc === "shell:games") return openApp("gamecenter"), true;
   if (lc === "shell:controlpanelfolder") return openCP(), true;
@@ -1243,6 +1250,26 @@ export function runCommand(raw: string): boolean {
   if (lc === "msascui" || lc === "msascui.exe" || lc === "windefend") return openApp("defender"), true;
   if (lc === "calendar" || lc === "calendar.exe" || lc === "wincal") return openApp("calendar"), true;
   if (lc === "lusrmgr.msc" || lc === "lusrmgr") return openApp("lusrmgr"), true;
+  if (lc === "wf.msc" || lc === "wf" || lc === "firewall.cpl.advanced") return openApp("fw"), true;
+  if (lc === "secpol.msc" || lc === "secpol") return openApp("secpol"), true;
+  if (lc === "mstsc" || lc === "mstsc.exe") return openApp("rdp"), true;
+  if (lc === "mobsync" || lc === "mobsync.exe") return openApp("sync"), true;
+  if (lc === "migwiz" || lc === "migwiz.exe") return openApp("migwiz"), true;
+  if (lc === "mdsched" || lc === "mdsched.exe") return openApp("mdsched"), true;
+  if (lc === "eudcedit" || lc === "eudcedit.exe") return openApp("eudc"), true;
+  if (lc === "sdclt" || lc === "sdclt.exe") return openApp("backup"), true;
+  if (lc === "msra" || lc === "msra.exe") return openApp("ra"), true;
+  if (lc === "cardspace" || lc === "cardspace.exe") return openApp("cardspace"), true;
+  if (lc === "dccw" || lc === "dccw.exe") return openApp("dccw"), true;
+  if (lc === "powershell_ise" || lc === "powershell_ise.exe") return openApp("ise"), true;
+  if (lc === "wab" || lc === "wab.exe" || lc === "contacts") return openApp("contacts"), true;
+  if (lc === "gettingstarted" || lc === "gettingstarted.exe") return openApp("gettingstarted"), true;
+  if (lc === "sidebar" || lc === "sidebar.exe") return openApp("gadgets"), true;
+  if (lc === "tabtip" || lc === "tabtip.exe") return openApp("tabtip"), true;
+  if (lc === "msdt" || lc === "msdt.exe") return openApp("support"), true;
+  if (lc === "wfs" || lc === "wfs.exe") return openApp("wfs"), true;
+  if (lc === "ehshell" || lc === "ehshell.exe" || lc === "mediacenter" || lc === "mce") return openApp("mce"), true;
+  if (lc === "perfmon.msc" || lc === "perfmon.exe" || lc === "perfmon") return openApp("perfmon"), true;
   if (lc === "gpedit.msc") {
     msgBox({ title: cmd, text: "Registry editing has been disabled by your administrator.", icon: "error" });
     return true;

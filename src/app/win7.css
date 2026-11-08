@@ -25,6 +25,11 @@
 .trails { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 99990; }
 .trails i { position: absolute; left: 0; top: 0; width: 10px; height: 14px; opacity: 0; background: #fff; border: 1px solid #000; clip-path: polygon(0 0, 0 100%, 40% 75%, 100% 100%, 60% 55%, 100% 40%); }
 
+/* a wallpaper swatch dims its filename until hovered, as the real picker does */
+.cp-note { padding: 8px 10px; color: #4d647c; font-style: italic; }
+.wp-item { position: relative; color: transparent; font-size: 10px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 2px; background-size: cover; background-position: center; }
+.wp-item:hover { color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+
 /* ---------- glass windows ---------- */
 .win-layer { position: absolute; inset: 0; pointer-events: none; }
 .win-layer > * { pointer-events: auto; }
@@ -605,6 +610,7 @@ textarea.w7input { height: auto; padding: 3px; }
 .wp-drop p { margin: 2px 0 0; font-size: 11.5px; color: #4a5a6d; }
 .wp-drop b { font-size: 12.5px; color: #17324f; }
 .cp-err { color: #a11212; font-size: 11.5px; }
+.cp-note { padding: 8px 10px; color: #4d647c; font-style: italic; }
 .wp-item { position: relative; overflow: hidden; }
 .wp-item.media { background: #000; }
 .wp-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -734,3 +740,10 @@ textarea.w7input { height: auto; padding: 3px; }
 /* High Contrast must never show glass gradients */
 .theme-hc .win::before, .theme-hc .win::after { display: none; }
 .theme-hc .w-btns::before { display: none; }
+
+/* ---------- classic program menu bar ---------- */
+.cmenubar { display: flex; flex: none; align-items: center; height: 20px; padding: 0 2px; background: linear-gradient(#fdfdfe, #eef1f6); border-bottom: 1px solid #ccd4e0; color: #1b2430; }
+.cm-item { padding: 0 8px; height: 18px; display: flex; align-items: center; cursor: default; border: 1px solid transparent; border-radius: 2px; }
+.cm-item u { text-decoration: none; }
+.cmenubar.alt .cm-item u { text-decoration: underline; }
+.cm-item:hover, .cm-item.on { background: linear-gradient(#f2f8ff, #d8e9fb); border-color: #9bbbe4; }

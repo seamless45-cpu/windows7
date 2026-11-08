@@ -26,6 +26,12 @@ import { PowerShell } from "./apps/PowerShell";
 import { SystemRestore } from "./apps/SystemRestore";
 import { Defender } from "./apps/Defender";
 import { Calendar } from "./apps/Calendar";
+import { FirewallAdvanced, LocalSecurityPolicy, RemoteDesktop, SyncCenter, EasyTransfer, MemoryDiagnostic, PerformanceMonitor } from "./apps/AdminSafety";
+import { PrivateCharEditor, TabletInputPanel, StickyManager, SupportDiagnostic, FaxAndScan } from "./apps/Accessories9";
+import { MediaCenter } from "./apps/MediaCenter";
+import { PlayTo, CardSpace, OpenWith } from "./apps/ShellExtras";
+import { GettingStarted, ColorCalibration, PowerShellISE, WindowsContacts } from "./apps/Extras7";
+import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./apps/PanelTools";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   explorer: Explorer,
@@ -53,6 +59,32 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   defender: Defender,
   calendar: Calendar,
   lusrmgr: LocalUsers,
+  fw: FirewallAdvanced,
+  secpol: LocalSecurityPolicy,
+  rdp: RemoteDesktop,
+  sync: SyncCenter,
+  migwiz: EasyTransfer,
+  mdsched: MemoryDiagnostic,
+  perfmon: PerformanceMonitor,
+  eudc: PrivateCharEditor,
+  tabtip: TabletInputPanel,
+  stkmgr: StickyManager,
+  support: SupportDiagnostic,
+  wfs: FaxAndScan,
+  mce: MediaCenter,
+  playto: PlayTo,
+  cardspace: CardSpace,
+  openwith: OpenWith,
+  gettingstarted: GettingStarted,
+  dccw: ColorCalibration,
+  ise: PowerShellISE,
+  contacts: WindowsContacts,
+  backup: BackupRestore,
+  bitlocker: BitLocker,
+  homegroup: HomeGroup,
+  credmgr: CredentialManager,
+  wei: ExperienceIndex,
+  ra: RemoteAssistance,
   osk: OnScreenKeyboard,
   narrator: Narrator,
   psr: StepsRecorder,

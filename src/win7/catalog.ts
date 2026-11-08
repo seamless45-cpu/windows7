@@ -11,27 +11,28 @@ export const CATALOG: Cat[] = [
     sub: [
       { name: "Calculator", icon: "calc", apps: ["calc"] },
       { name: "Command Prompt", icon: "cmd", apps: ["cmd"] },
-      { name: "Ease of Access", icon: "folder", apps: ["magnifier", "speech", "osk", "narrator", "psr", "mip"] },
+      { name: "Ease of Access", icon: "folder", apps: ["magnifier", "speech", "osk", "narrator", "psr", "mip", "tabtip"] },
       { name: "Notepad", icon: "notepad", apps: ["notepad"] },
       { name: "Paint", icon: "paint", apps: ["paint"] },
       { name: "Run", icon: "run", apps: [] },
       { name: "Snipping Tool", icon: "snip", apps: ["snip"] },
       { name: "Sound Recorder", icon: "recorder", apps: ["recorder"] },
       { name: "Sticky Notes", icon: "sticky2", apps: ["sticky2"] },
-      { name: "System Tools", icon: "folder", apps: ["charmap", "taskmgr", "reliability", "controlpanel", "compmgmt", "tasksched", "resmon", "devmgr", "diskmgmt", "services", "msconfig", "sysrestore", "defender", "calendar", "powershell", "eventvwr", "sysdiag", "cleanmgr", "regedit"] },
+      { name: "System Tools", icon: "folder", apps: ["charmap", "taskmgr", "reliability", "controlpanel", "compmgmt", "tasksched", "resmon", "devmgr", "diskmgmt", "services", "msconfig", "sysrestore", "defender", "calendar", "powershell", "perfmon", "mdsched", "secpol", "migwiz", "eventvwr", "sysdiag", "cleanmgr", "regedit", "secpol", "perfmon", "mdsched", "support", "wfs", "eudc", "backup", "bitlocker", "wei", "ra", "homegroup", "credmgr", "mce", "cardspace", "playto", "gettingstarted", "dccw", "ise", "contacts"] },
       { name: "Windows Explorer", icon: "explorer", apps: ["explorer"] },
       { name: "WordPad", icon: "wordpad", apps: ["wordpad"] },
       { name: "XPS Viewer", icon: "xps", apps: ["xps"] },
     ],
   },
+  { name: "Media Center", icon: "wmp", apps: ["mce", "wmp", "dvdmaker", "photos"] },
   { name: "Games", icon: "gamecenter", apps: ["gamecenter", "solitaire", "spider", "hearts", "minesweeper", "freecell", "mahjong", "chess", "purble"] },
-  { name: "Maintenance", icon: "folder", apps: ["reliability", "wupdate", "help", "eventvwr", "cleanmgr", "sysdiag", "regedit"] },
+  { name: "Maintenance", icon: "folder", apps: ["reliability", "wupdate", "help", "eventvwr", "cleanmgr", "sysdiag", "regedit", "secpol", "perfmon", "mdsched", "support", "wfs", "eudc", "backup", "bitlocker", "wei", "ra", "homegroup", "credmgr", "mce", "cardspace", "playto", "gettingstarted", "dccw", "ise", "contacts"] },
   {
     name: "Startup",
     icon: "folder",
     apps: [],
   },
-  { name: "Windows Journal", icon: "journal", apps: ["journal"] },
+  { name: "Windows Journal", icon: "journal", apps: ["journal", "contacts"] },
 ];
 
 export interface ProgItem { label: string; icon: string; group: string; app?: string }
