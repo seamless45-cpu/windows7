@@ -8,6 +8,7 @@ import { APPS } from "./registry";
 import { Icon, nodeIcon } from "./icons";
 import { Btn, Tabs, Check, GroupBox, InlineEdit } from "./ui";
 import { playSys } from "./sound";
+import { useAutoFocus } from "./softKeyboard";
 
 export function emptyRecycle() {
   const n = trashed().length;
@@ -127,6 +128,8 @@ export function Progress({ win }: { win: Win }) {
 export function InputBox({ win }: { win: Win }) {
   const p = win.props;
   const [v, setV] = useState(p.value || "");
+  // Focused for typing, but without summoning a mobile keyboard.
+  const autoRef = useAutoFocus<HTMLInputElement>();
   const ok = () => {
     closeWin(win.id, true);
     p.onOk?.(v);
@@ -135,7 +138,7 @@ export function InputBox({ win }: { win: Win }) {
     <div className="dlg">
       <div className="dlg-main col">
         <div>{p.text}</div>
-        <input className="w7input" autoFocus value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ok()} />
+        <input ref={autoRef} className="w7input" value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ok()} />
       </div>
       <div className="dlg-foot"><Btn def onClick={ok}>OK</Btn><Btn onClick={() => closeWin(win.id, true)}>Cancel</Btn></div>
     </div>
@@ -145,6 +148,7 @@ export function InputBox({ win }: { win: Win }) {
 /* ----------------------------------------------------------------- Run */
 export function Run({ win }: { win: Win }) {
   const [v, setV] = useState("");
+  const runRef = useAutoFocus<HTMLInputElement>();
   const hist = lsGet<string[]>("win7.runhist", []);
   const go = () => {
     if (!v.trim()) return;
@@ -160,7 +164,7 @@ export function Run({ win }: { win: Win }) {
           <p style={{ margin: "0 0 12px" }}>Type the name of a program, folder, document, or Internet resource, and Windows will open it for you.</p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <label>Open:</label>
-            <input className="w7input" list="run-hist" autoFocus style={{ flex: 1 }} value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} />
+            <input ref={runRef} className="w7input" list="run-hist" style={{ flex: 1 }} value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} />
             <datalist id="run-hist">{hist.map((h) => <option key={h} value={h} />)}</datalist>
           </div>
         </div>
@@ -360,6 +364,7 @@ export function FileDialog({ win }: { win: Win }) {
   const [sel, setSel] = useState<string | null>(null);
   const [name, setName] = useState(p.name || "");
   const [filter, setFilter] = useState(p.exts ? "typed" : "all");
+  const nameRef = useAutoFocus<HTMLInputElement>();
   const [mk, setMk] = useState<string | null>(null);
   const items = children(dir, fs)
     .filter((n) => n.type === "folder" || filter === "all" || !p.exts || p.exts.includes(extOf(n.name)))
@@ -423,7 +428,7 @@ export function FileDialog({ win }: { win: Win }) {
       <div className="fdlg-foot">
         <div className="fdlg-f">
           <label>File name:</label>
-          <input className="w7input" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} autoFocus />
+          <input ref={nameRef} className="w7input" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} />
           <Btn def onClick={go}>{p.mode === "open" ? "Open" : "Save"}</Btn>
         </div>
         <div className="fdlg-f">

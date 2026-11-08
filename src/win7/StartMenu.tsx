@@ -8,6 +8,7 @@ import { APPS } from "./registry";
 import { allPrograms } from "./catalog";
 import { Icon, appIcon, nodeIcon } from "./icons";
 import { userPic } from "./data";
+import { focusNoKeyboard } from "./softKeyboard";
 
 interface PItem { label: string; icon: string; run?: () => void; kids?: PItem[]; desc?: string }
 
@@ -139,7 +140,10 @@ export function StartMenu() {
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => inp.current?.focus(), 30);
+      // Focus the search box like Windows does, but never ask a phone to raise
+      // its on-screen keyboard — opening the Start menu must not cover the
+      // screen with a keyboard.
+      setTimeout(() => focusNoKeyboard(inp.current), 30);
     } else {
       setAll(false);
       setQ("");
@@ -323,7 +327,23 @@ export function StartMenu() {
             <div className="sm-back" onClick={() => setAll(!all)}><span className="tri">{all ? "◀" : "▶"}</span> {all ? "Back" : "All Programs"}</div>
           )}
           <div className="sm-search">
-            <input ref={inp} placeholder="Search programs and files" value={q} onChange={(e) => { setQ(e.target.value); setCur(0); }} onKeyDown={key} />
+            <input
+              ref={inp}
+              placeholder="Search programs and files"
+              value={q}
+              /* The Start menu has no on-screen keyboard in Windows 7: the box
+                 is focused for typing, but a phone keyboard must not slide up
+                 over the menu. The attribute is dropped as soon as the user
+                 taps the field themselves. */
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              enterKeyHint="search"
+              /* readOnly until touched: focused like Windows, but silent on phones */
+              onChange={(e) => { setQ(e.target.value); setCur(0); }}
+              onKeyDown={key}
+            />
             <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="5.500" cy="5.500" r="4" fill="none" stroke="#5a7aa8" strokeWidth="1.600" /><path d="M8.500 8.500L13 13" stroke="#5a7aa8" strokeWidth="2" /></svg>
           </div>
         </div>

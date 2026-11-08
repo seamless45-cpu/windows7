@@ -17,6 +17,16 @@ import { COLORS } from "./data";
 import { FadeLayer, ThemeMix } from "./Transitions";
 import { playClick, preload, unlockAudio } from "./sound";
 import { CURSOR_CSS } from "./cursors";
+import { installSoftKeyboardGuard } from "./softKeyboard";
+
+/**
+ * Keeps programmatic focus (the Start menu's search box, dialogs, the logon
+ * password field) from raising a phone's on-screen keyboard.
+ */
+function SoftKeyboardGuard() {
+  useEffect(() => installSoftKeyboardGuard(), []);
+  return null;
+}
 
 /** The real Aero pointer set, inlined once as a stylesheet (see cursors.ts). */
 function CursorStyles() {
@@ -340,6 +350,7 @@ export default function Shell() {
     >
       <IconDefs />
       <CursorStyles />
+      <SoftKeyboardGuard />
       <div ref={magRef} className="mag-wrap" style={mag.on ? { transform: `scale(${mag.level})` } : undefined}>
         <Desktop />
         <WindowLayer />
