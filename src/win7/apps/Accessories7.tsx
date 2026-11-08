@@ -74,7 +74,7 @@ export function OnScreenKeyboard({ win }: { win: Win }) {
         const next = inp.value.slice(0, start) + ch + inp.value.slice(end);
         const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(inp), "value")?.set;
         setter?.call(inp, next);
-        inp.selectionStart = inp.selectionEnd = start + ch.length;
+        inp.setSelectionRange(start + ch.length, start + ch.length);
         try { inp.dispatchEvent(new Event("input", { bubbles: true })); } catch { /* no Event ctor */ }
       }
     }
@@ -223,7 +223,7 @@ export function Narrator({ win }: { win: Win }) {
           <Btn onClick={() => speak("Microsoft Windows 7. Narrator is ready.")}>Test voice</Btn>
           <Btn onClick={() => { if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel(); }}>Stop</Btn>
         </div>
-        <p className="cp-desc">{voices.length} voices available. Uses the browser's speech synthesis, so it works offline if the platform has a voice installed.</p>
+        <p className="cp-desc">{voices.length} voices available. Uses the browser&apos;s speech synthesis, so it works offline if the platform has a voice installed.</p>
         {last && <p className="narr-last">“{last.slice(0, 220)}”</p>}
       </div>
     </div>

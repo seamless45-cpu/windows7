@@ -115,6 +115,34 @@ sounds are the real Windows 7 ones**:
 * **Gadget options** — right-click a desktop gadget → Options for the clock's time zone, the
   slide show's picture folder and interval (with previous/next), the weather location and
   °C/°F unit, and the feed refresh rate.
+* **Management consoles** — **Computer Management** (`compmgmt.msc`) groups the snap-ins the way MMC
+  does (System Tools, Storage, Services and Applications) and really opens them; its **Device
+  Manager** (`devmgmt.msc`) is the full device tree with enable/disable, uninstall, scan for
+  hardware changes and properties; **Disk Management** (`diskmgmt.msc`) draws the disks and
+  volumes from the simulated drives with their real used/free numbers.
+* **Task Scheduler** (`taskschd.msc`) — the three-pane console with the task library, the
+  General / Triggers / Actions / Conditions / Settings / History tabs and the Actions pane.
+  Running a task moves it to *Running*, records a Last Run Time and result `0x0`, writes its
+  history and logs events 100/102 to the Application log; tasks can be created, disabled,
+  enabled and deleted.
+* **Resource Monitor** (`resmon.exe`) — Overview, CPU, Memory, Disk and Network tabs with live
+  canvas graphs, the process tables behind each (Commit, Working Set, Shareable, Private, hard
+  faults, disk and network bytes), TCP connections and listening ports. The process list is the
+  windows that are actually open.
+* **Windows PowerShell** — a working shell: `Get-ChildItem`/`Set-Location`/`New-Item`/
+  `Remove-Item`/`Copy-Item`/`Move-Item`/`Get-Content`/`Set-Content` operate on the same virtual
+  file system as Explorer, `Get-Process`/`Stop-Process` and `Get-Service`/`Start-Service`/
+  `Stop-Service` act on the live state, `Get-EventLog` reads the event log, and the pipeline
+  really filters (`| Where-Object`, `| Sort-Object`, `| Select-Object -First`, `| Measure-Object`).
+* **System Restore** (`rstrui`) — restore points snapshot the shell's settings (theme, wallpaper,
+  sound scheme, DPI, Explorer options); restoring one puts them back and logs event 8196, without
+  touching your files.
+* **Windows Defender** — Home / Scan / History / Tools, quick, full and custom scans with a
+  progress bar and the file being scanned, a quarantine list, scan history and options. It reads
+  the **WinDefend** service, so stopping Defender in Services turns its real-time protection off.
+* **Calendar and Local Users and Groups** — the taskbar clock's *Open Calendar* flies out into a
+  full month view with appointments stored locally; `lusrmgr.msc` lists the local accounts and
+  security groups.
 * **Games** — Solitaire, Spider Solitaire, Hearts, Minesweeper, FreeCell (with Microsoft's
   numbered deals and supermove limit), Mahjong Titans (144-tile turtle layout), Chess Titans
   (a real move generator with castling, en passant, promotion and a searching opponent) and
@@ -141,9 +169,11 @@ Sound Recorder, Windows Journal (ink notes, pen/highlighter/eraser, pages).
 **Media** — Windows Media Player, Photo Viewer, DVD Maker, XPS Viewer.
 **Games** — Solitaire, Spider Solitaire, Hearts (all fully playable with bots, scoring and
 difficulty/deal options), Minesweeper, and the Games Explorer.
-**System** — Command Prompt, Task Manager, Services, System Configuration, Control Panel (30+ pages incl. Reliability
-Monitor, Mobility Center, Aero options, Windows Anytime Upgrade), Explorer with Libraries,
-Search, Recycle Bin, Device Manager, Windows Update, Action Center.
+**System** — Command Prompt, PowerShell, Task Manager, Services, System Configuration, Computer
+Management, Device Manager, Disk Management, Task Scheduler, Resource Monitor, System Restore,
+Windows Defender, Control Panel (40+ pages incl. Reliability Monitor, Mobility Center, Aero
+options, Windows Anytime Upgrade), Explorer with Libraries, Search, Recycle Bin, Windows Update,
+Action Center.
 **Ease of Access** — On-Screen Keyboard, Narrator, Problem Steps Recorder, Math Input Panel.
 **Network / Other** — Internet Explorer, Speech Recognition (microphone engine where the
 browser supports it, otherwise type-a-command mode), Help and Support.

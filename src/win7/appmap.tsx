@@ -18,6 +18,14 @@ import { WindowsFeatures } from "./apps/Features";
 import { Journal, XpsViewer, StickyNotes2, SpeechRecognition, Mobility, Reliability, AnytimeUpgrade } from "./apps/Utilities";
 import { Services, MsConfig } from "./apps/Services";
 import { OnScreenKeyboard, Narrator, StepsRecorder, MathPanel } from "./apps/Accessories7";
+import { TaskScheduler } from "./apps/TaskScheduler";
+import { ResourceMonitor } from "./apps/ResourceMonitor";
+import { ComputerManagement, DeviceManager, LocalUsers } from "./apps/ComputerManagement";
+import { DiskManagement } from "./apps/DiskManagement";
+import { PowerShell } from "./apps/PowerShell";
+import { SystemRestore } from "./apps/SystemRestore";
+import { Defender } from "./apps/Defender";
+import { Calendar } from "./apps/Calendar";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   explorer: Explorer,
@@ -35,6 +43,16 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   sysdiag: SystemDiagnostics,
   services: Services,
   msconfig: MsConfig,
+  tasksched: TaskScheduler,
+  resmon: ResourceMonitor,
+  compmgmt: ComputerManagement,
+  devmgr: DeviceManager,
+  diskmgmt: DiskManagement,
+  powershell: PowerShell,
+  sysrestore: SystemRestore,
+  defender: Defender,
+  calendar: Calendar,
+  lusrmgr: LocalUsers,
   osk: OnScreenKeyboard,
   narrator: Narrator,
   psr: StepsRecorder,

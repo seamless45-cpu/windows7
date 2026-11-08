@@ -11,16 +11,17 @@ import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
 import { playSys, playPreview, SCHEMES, SOUND_EVENTS, isNoSounds, type SysSound } from "../sound";
 import { wpStyle } from "../fileops";
 import { listMedia, addMedia, removeMedia, mediaUrl, prettySize, prettyDur, WP_FITS, type MediaMeta } from "../media";
+import { DeviceManager } from "./ComputerManagement";
 
 interface PageDef { title: string; icon: string; cat: string }
 const CATS: { id: string; title: string; icon: string; items: string[]; links: [string, string][] }[] = [
-  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
+  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
   { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "network"]] },
   { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
   { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
   { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
   { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
-  { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
+  { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region", "calendar"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
   { id: "cat-ease", title: "Ease of Access", icon: "ease", items: ["ease"], links: [["Let Windows suggest settings", "ease"], ["Optimize visual display", "ease"]] },
 ];
 const PAGES: Record<string, PageDef> = {
@@ -63,8 +64,16 @@ const PAGES: Record<string, PageDef> = {
   anytime: { title: "Windows Anytime Upgrade", icon: "trust", cat: "cat-system" },
   services: { title: "Administrative Tools", icon: "services", cat: "cat-system" },
   msconfig: { title: "System Configuration", icon: "msconfig", cat: "cat-system" },
+  compmgmt: { title: "Computer Management", icon: "cmg", cat: "cat-system" },
+  tasksched: { title: "Task Scheduler", icon: "tasksched", cat: "cat-system" },
+  resmon: { title: "Resource Monitor", icon: "resmon", cat: "cat-system" },
+  diskmgmt: { title: "Create and format hard disk partitions", icon: "diskmgmt", cat: "cat-system" },
+  sysrestore: { title: "System Restore", icon: "sysrestore", cat: "cat-system" },
+  defender: { title: "Windows Defender", icon: "defender", cat: "cat-system" },
+  powershell: { title: "Windows PowerShell", icon: "powershell", cat: "cat-system" },
+  calendar: { title: "Calendar", icon: "calendar", cat: "cat-clock" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "calendar"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -112,38 +121,6 @@ function System() {
       <p><a onClick={() => elevate("System Properties", () => promptBox({ title: "Computer Name", text: "Type a new computer name:", value: name, onOk: (v) => { if (v.trim()) { setName(v.trim()); lsSet("win7.pcname", v.trim()); notify({ title: "Computer name", text: "Computer renamed to " + v.trim(), icon: "info" }); } } }))}>Change settings</a></p>
       <div className="cp-sec">Windows activation</div>
       <div className="cp-flex"><Icon name="shield" size={32} />Windows is activated<br />Product ID: 00426-OEM-8992662-00006</div>
-    </div>
-  );
-}
-
-const DEVICES: [string, string[]][] = [
-  ["Computer", ["ACPI x64-based PC"]], ["Disk drives", ["ST3500418AS ATA Device", "Generic USB Flash Disk"]], ["Display adapters", ["Standard VGA Graphics Adapter"]],
-  ["DVD/CD-ROM drives", ["Virtual CD/DVD-ROM ATA Device"]], ["Keyboards", ["Standard PS/2 Keyboard"]], ["Mice and other pointing devices", ["HID-compliant mouse"]],
-  ["Network adapters", ["Realtek PCIe GBE Family Controller", "Microsoft Virtual WiFi Miniport Adapter"]], ["Processors", ["Virtual CPU @ 3.40GHz", "Virtual CPU @ 3.40GHz"]],
-  ["Sound, video and game controllers", ["High Definition Audio Device"]], ["Universal Serial Bus controllers", ["Intel(R) USB 3.0 eXtensible Host Controller", "USB Root Hub"]],
-];
-function DevMgr() {
-  const dis = useStore((s) => s.settings.deviceDisabled);
-  const [open, setOpen] = useState<string[]>(["Network adapters"]);
-  const [sel, setSel] = useState<string | null>(null);
-  const [scan, setScan] = useState(false);
-  const toggle = (d: string) => elevate("Device Manager", () => setSettings({ deviceDisabled: dis.includes(d) ? dis.filter((x) => x !== d) : [...dis, d] }));
-  return (
-    <div className="devmgr">
-      <div className="cp-toolbar"><Btn onClick={() => { setScan(true); setTimeout(() => { setScan(false); notify({ title: "Device Manager", text: "Scan complete. No new hardware found.", icon: "info" }); }, 1400); }}>Scan for hardware changes</Btn><Btn disabled={!sel} onClick={() => sel && toggle(sel)}>{sel && dis.includes(sel) ? "Enable" : "Disable"}</Btn><Btn disabled={!sel} onClick={() => sel && msgBox({ title: sel + " Properties", text: `Device status:\nThis device ${dis.includes(sel) ? "is disabled." : "is working properly."}\n\nManufacturer: Microsoft\nDriver version: 6.1.7600.16385`, icon: "info" })}>Properties</Btn>{scan && <span className="busy"><i className="busy-ring" /> Scanning...</span>}</div>
-      <div className="dm-tree">
-        <div className="dm-row"><Icon name="computer" size={16} /> <b>{lsGet("win7.pcname", "PC")}</b></div>
-        {DEVICES.map(([cat, devs]) => (
-          <div key={cat}>
-            <div className="dm-row" style={{ paddingLeft: 14 }} onClick={() => setOpen(open.includes(cat) ? open.filter((o) => o !== cat) : [...open, cat])}>{open.includes(cat) ? "▾" : "▸"} <Icon name="devmgr" size={14} /> {cat}</div>
-            {open.includes(cat) && devs.map((d, i) => (
-              <div key={d + i} className={"dm-row dev" + (sel === d ? " sel" : "")} style={{ paddingLeft: 48 }} onClick={() => setSel(d)} onDoubleClick={() => msgBox({ title: d + " Properties", text: `This device ${dis.includes(d) ? "is disabled." : "is working properly."}`, icon: "info" })} onContextMenu={(e) => { e.preventDefault(); setSel(d); import("../store").then((m) => m.showMenu(e, [{ label: dis.includes(d) ? "Enable" : "Disable", onClick: () => toggle(d) }, { label: "Uninstall", onClick: () => elevate("Device Manager", () => notify({ title: "Device Manager", text: d + " cannot be uninstalled in this simulation.", icon: "warn" })) }, { sep: true }, { label: "Properties", bold: true, onClick: () => msgBox({ title: d + " Properties", text: "This device is working properly.", icon: "info" }) }])); }}>
-                <Icon name="devmgr" size={14} /> {d} {dis.includes(d) && <span style={{ color: "#a00" }}>(disabled)</span>}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -962,7 +939,7 @@ function GamesPage() {
 
 /* --------------------------------------------------------------- shell */
 const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode> = {
-  system: () => <System />, devmgr: () => <DevMgr />, wupdate: () => <WUpdate />, firewall: () => <Firewall />, power: () => <Power />, sound: (p) => <SoundPage nav={p.nav} />,
+  system: () => <System />, devmgr: () => <DeviceManager win={{ id: "cp-devmgr", app: "controlpanel", title: "Device Manager", x: 0, y: 0, w: 0, h: 0, z: 0, min: false, max: false } as unknown as Win} />, wupdate: () => <WUpdate />, firewall: () => <Firewall />, power: () => <Power />, sound: (p) => <SoundPage nav={p.nav} />,
   personalization: (p) => <Personalization nav={p.nav} />, wallpaper: () => <Wallpaper />, wincolor: () => <WinColor />, screensaver: () => <ScreenSaver />, deskicons: () => <DeskIcons />, display: () => <Display />,
   mouse: () => <Mouse />, keyboard: () => <Keyboard />, datetime: () => <DateTime />, region: () => <Region />, users: () => <Users />, fonts: () => <Fonts />, defaultprogs: () => <DefaultProgs />,
   folderopts: () => <FolderOpts />, inetopts: () => <InetOpts />, programs: () => <Programs />, network: () => <Network />, actioncenter: () => <ActionCenter />, devices: () => <Devices />,
@@ -973,6 +950,14 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   cleanmgr: () => <CPLaunch app="cleanmgr" text="Disk Cleanup frees space by removing temporary files, thumbnails, crash dumps and the contents of the Recycle Bin." />,
   sysdiag: () => <CPLaunch app="sysdiag" text="System Diagnostics shows the kernel boot log, the drivers that loaded, the services that started, and lets you reproduce a bug check." />,
   services: () => <CPLaunch app="services" text="Administrative Tools collects the management consoles: Services, System Configuration, Event Viewer, Disk Cleanup and System Diagnostics." />,
+  compmgmt: () => <CPLaunch app="compmgmt" text="Computer Management is the console that groups the System Tools, Storage and Services snap-ins — Task Scheduler, Event Viewer, Device Manager, Disk Management and Services." />,
+  tasksched: () => <CPLaunch app="tasksched" text="Task Scheduler runs programs at a time, at logon or at startup. Run a task to see it move to Running and record its result." />,
+  resmon: () => <CPLaunch app="resmon" text="Resource Monitor shows live CPU, memory, disk and network graphs and the processes behind each of them." />,
+  diskmgmt: () => <CPLaunch app="diskmgmt" text="Disk Management shows the physical disks and the volumes on them, and changes drive letters." />,
+  sysrestore: () => <CPLaunch app="sysrestore" text="System Restore rolls the system settings — theme, wallpaper, sound scheme, DPI — back to an earlier restore point without touching your files." />,
+  defender: () => <CPLaunch app="defender" text="Windows Defender scans for spyware, keeps a quarantine and reports its scan history." />,
+  powershell: () => <CPLaunch app="powershell" text="Windows PowerShell runs cmdlets over the same files, processes and services as the rest of the shell, with working pipelines." />,
+  calendar: () => <CPLaunch app="calendar" text="Calendar is the month view behind the taskbar clock, with appointments stored on this PC." />,
   msconfig: () => <CPLaunch app="msconfig" text="System Configuration (msconfig) controls how Windows starts, which services run and which programs load at startup." />,
   features: () => <CPLaunch app="features" text="Turn Windows features on or off, and see everything this simulated PC can do." />,
 };
