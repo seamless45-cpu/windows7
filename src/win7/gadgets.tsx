@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { useStore, getState, setSettings, openApp, view, children, uid, openCP, GadgetInst } from "./store";
+import { useStore, getState, setSettings, openApp, view, children, uid, openCP, GadgetInst, Win, closeWin } from "./store";
 import { Icon } from "./icons";
-import { Btn } from "./ui";
+import { Btn, GroupBox } from "./ui";
 import { nowTz } from "./ui";
 import { scene } from "./data";
 
@@ -16,8 +16,9 @@ export const GADGET_TYPES: Record<string, { name: string; w: number; h: number; 
   rss: { name: "Feed Headlines", w: 200, h: 160, desc: "Displays headlines from an RSS feed (simulated)." },
 };
 
-function Clock() {
-  const tz = useStore((s) => s.settings.tz);
+function Clock({ opts }: { opts?: GadgetInst["opts"] }) {
+  const systemTz = useStore((s) => s.settings.tz);
+  const tz = opts?.tz ?? systemTz;
   const [, t] = useState(0);
   useEffect(() => {
     const i = setInterval(() => t((x) => x + 1), 1000);
@@ -90,10 +91,10 @@ const CITIES = [
   { n: "Tokyo, Japan", t: 72, c: "Sunny", i: "☀" },
   { n: "Sydney, AU", t: 77, c: "Partly cloudy", i: "⛅" },
 ];
-function Weather() {
-  const [i, setI] = useState(0);
-  const [c, setC] = useState(false);
-  const w = CITIES[i];
+function Weather({ opts }: { opts?: GadgetInst["opts"] }) {
+  const [i, setI] = useState(() => Math.max(0, CITIES.findIndex((c) => c.n === opts?.city)));
+  const [c, setC] = useState(opts?.unit === "C");
+  const w = CITIES[i] || CITIES[0];
   const t = c ? Math.round(((w.t - 32) * 5) / 9) : w.t;
   return (
     <div className="g-weather">
@@ -144,18 +145,26 @@ function Puzzle() {
   );
 }
 
-function Slideshow() {
+function Slideshow({ opts }: { opts?: GadgetInst["opts"] }) {
   const fs = useStore((s) => s.fs);
-  const pics = children("pics", fs).filter((n) => n.content?.startsWith("data:"));
+  const folder = opts?.folder || "pics";
+  const every = Math.max(2, Math.min(120, opts?.every || 6));
+  const pics = children(folder, fs).filter((n) => n.content?.startsWith("data:"));
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => x + 1), 4000);
+    const t = setInterval(() => setI((x) => x + 1), every * 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [every]);
   const p = pics[i % Math.max(1, pics.length)];
   return (
     <div className="g-slide" onDoubleClick={() => p && openApp("photos", { file: p.id })} style={p ? { backgroundImage: `url("${p.content}")` } : undefined} title="Double-click to view picture">
       {!p && <span>No pictures</span>}
+      {p && pics.length > 1 && (
+        <div className="g-slide-nav">
+          <button onClick={(e) => { e.stopPropagation(); setI((x) => x - 1 + pics.length); }} title="Previous">‹</button>
+          <button onClick={(e) => { e.stopPropagation(); setI((x) => x + 1); }} title="Next">›</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -168,10 +177,10 @@ const NEWS = [
   "Scientists unveil faster solid-state drives",
   "Weekend forecast: sunshine across the region",
 ];
-function Rss() {
+function Rss({ opts }: { opts?: GadgetInst["opts"] }) {
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % NEWS.length), 5000);
+    const t = setInterval(() => setI((x) => (x + 1) % NEWS.length), Math.max(3, opts?.every || 5) * 1000);
     return () => clearInterval(t);
   }, []);
   return (
@@ -185,7 +194,15 @@ function Rss() {
   );
 }
 
-const BODY: Record<string, () => React.ReactNode> = { clock: () => <Clock />, calendar: () => <Calendar />, cpu: () => <Cpu />, weather: () => <Weather />, puzzle: () => <Puzzle />, slideshow: () => <Slideshow />, rss: () => <Rss /> };
+const BODY: Record<string, (o?: GadgetInst["opts"]) => React.ReactNode> = {
+  clock: (o) => <Clock opts={o} />,
+  calendar: () => <Calendar />,
+  cpu: () => <Cpu />,
+  weather: (o) => <Weather opts={o} />,
+  puzzle: () => <Puzzle />,
+  slideshow: (o) => <Slideshow opts={o} />,
+  rss: (o) => <Rss opts={o} />,
+};
 
 function Gadget({ g, sw }: { g: GadgetInst; sw: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -227,7 +244,7 @@ function Gadget({ g, sw }: { g: GadgetInst; sw: number }) {
           m.showMenu(e, [
             { label: "Add gadgets...", onClick: () => openApp("gadgets") },
             { label: "Always on top", checked: !!g.top, onClick: () => setSettings({ gadgets: getState().settings.gadgets.map((q) => (q.id === g.id ? { ...q, top: !q.top } : q)) }) },
-            ...(g.type === "clock" ? [{ label: "Options... (time zone)", onClick: () => openCP("datetime") }] : []),
+            ...(OPTIONABLE.includes(g.type) ? [{ label: "Options...", onClick: () => openApp("gadgetopts", { id: g.id }) }] : []),
             { sep: true },
             { label: "Close gadget", onClick: remove },
           ])
@@ -238,7 +255,7 @@ function Gadget({ g, sw }: { g: GadgetInst; sw: number }) {
         <button title="Close" onClick={remove}>×</button>
         <button title={g.top ? "Send behind windows" : "Keep on top"} onClick={() => setSettings({ gadgets: getState().settings.gadgets.map((q) => (q.id === g.id ? { ...q, top: !q.top } : q)) })}>{g.top ? "▾" : "▴"}</button>
       </div>
-      {BODY[g.type]()}
+      {BODY[g.type](g.opts)}
     </div>
   );
 }
@@ -295,4 +312,90 @@ function GalPrev({ t }: { t: string }) {
   if (t === "puzzle") return <Icon name="photos" size={44} />;
   if (t === "slideshow") return <Icon name="pictures" size={44} />;
   return <Icon name="favorites" size={44} />;
+}
+
+
+/* ---------------------------------------------------- gadget options */
+const OPTIONABLE = ["clock", "slideshow", "weather", "rss"];
+const TZS: [number, string][] = [[-480, "(UTC-08:00) Pacific Time"], [-300, "(UTC-05:00) Eastern Time"], [0, "(UTC) London"], [60, "(UTC+01:00) Berlin"], [330, "(UTC+05:30) Mumbai"], [540, "(UTC+09:00) Tokyo"], [600, "(UTC+10:00) Sydney"]];
+
+function saveOpts(id: string, patch: NonNullable<GadgetInst["opts"]>) {
+  setSettings({ gadgets: getState().settings.gadgets.map((q) => (q.id === id ? { ...q, opts: { ...q.opts, ...patch } } : q)) });
+}
+
+/** Options dialog — the small property sheet that appears above a gadget. */
+export function GadgetOptions({ win }: { win: Win }) {
+  const gadgets = useStore((s) => s.settings.gadgets);
+  const g = gadgets.find((q) => q.id === win.props?.id);
+  const o = g?.opts || {};
+  if (!g) return <div className="gopt gopt-gone">This gadget has been closed.</div>;
+  const folders = ["pics", "docs", "desk", "home", "dl"];
+  const done = () => closeWin(win.id);
+  return (
+    <div className="gopt">
+      <div className="gopt-body">
+        <div className="gopt-name"><Icon name="gadgets" size={28} /><b>{GADGET_TYPES[g.type]?.name || "Gadget"}</b></div>
+        {g.type === "clock" && (
+          <GroupBox title="Clock options">
+            <div className="gopt-row"><span>Time zone</span>
+              <select className="w7input" value={o.tz ?? "sys"} onChange={(e) => saveOpts(g.id, { tz: e.target.value === "sys" ? undefined : Number(e.target.value) })}>
+                <option value="sys">(Use the system time zone)</option>
+                {TZS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+          </GroupBox>
+        )}
+        {g.type === "slideshow" && (
+          <GroupBox title="Slide show options">
+            <div className="gopt-row"><span>Folder</span>
+              <select className="w7input" value={o.folder || "pics"} onChange={(e) => saveOpts(g.id, { folder: e.target.value })}>
+                {folders.map((f) => <option key={f} value={f}>{f === "pics" ? "Pictures" : getState().fs[f]?.name || f}</option>)}
+              </select>
+            </div>
+            <div className="gopt-row"><span>Change picture every</span>
+              <select className="w7input" value={o.every || 6} onChange={(e) => saveOpts(g.id, { every: Number(e.target.value) })}>
+                {[3, 5, 6, 10, 15, 30, 60].map((n) => <option key={n} value={n}>{n} seconds</option>)}
+              </select>
+            </div>
+            <div className="gopt-hint">Pictures are never stretched — the image is scaled to fill the gadget and cropped if needed.</div>
+          </GroupBox>
+        )}
+        {g.type === "weather" && (
+          <GroupBox title="Weather options">
+            <div className="gopt-row"><span>Location</span>
+              <select className="w7input" value={o.city || CITIES[0].n} onChange={(e) => saveOpts(g.id, { city: e.target.value })}>
+                {CITIES.map((c) => <option key={c.n} value={c.n}>{c.n}</option>)}
+              </select>
+            </div>
+            <div className="gopt-row"><span>Temperature unit</span>
+              <select className="w7input" value={o.unit || "F"} onChange={(e) => saveOpts(g.id, { unit: e.target.value as "C" | "F" })}>
+                <option value="F">Fahrenheit (°F)</option>
+                <option value="C">Celsius (°C)</option>
+              </select>
+            </div>
+          </GroupBox>
+        )}
+        {g.type === "rss" && (
+          <GroupBox title="Feed options">
+            <div className="gopt-row"><span>Feed URL</span><input className="w7input" value={o.feed ?? ""} placeholder="http://example.com/feed.rss" onChange={(e) => saveOpts(g.id, { feed: e.target.value })} /></div>
+            <div className="gopt-row"><span>Show a new headline every</span>
+              <select className="w7input" value={o.every || 5} onChange={(e) => saveOpts(g.id, { every: Number(e.target.value) })}>
+                {[3, 5, 8, 12].map((n) => <option key={n} value={n}>{n} seconds</option>)}
+              </select>
+            </div>
+            <div className="gopt-hint">Feed headlines are simulated in this desktop.</div>
+          </GroupBox>
+        )}
+        {g.type === "calendar" && <GroupBox title="Calendar options"><div className="gopt-hint">The calendar follows the system date and time zone.</div></GroupBox>}
+        {g.type === "puzzle" && <GroupBox title="Picture puzzle options"><div className="gopt-hint">Click tiles to slide them. Use Shuffle to start a new game.</div></GroupBox>}
+        {g.type === "cpu" && <GroupBox title="CPU Meter options"><div className="gopt-hint">Usage is simulated from the number of open windows.</div></GroupBox>}
+      </div>
+      <div className="gopt-foot">
+        <Btn onClick={() => setSettings({ gadgets: getState().settings.gadgets.filter((q) => q.id !== g.id) })}>Remove</Btn>
+        <span style={{ flex: 1 }} />
+        <Btn def onClick={done}>OK</Btn>
+        <Btn onClick={done}>Cancel</Btn>
+      </div>
+    </div>
+  );
 }

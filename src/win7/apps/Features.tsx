@@ -44,6 +44,8 @@ const CAPABILITIES: { name: string; icon: string; where: string; go?: () => void
   { name: "Event Viewer", icon: "history", where: "Run → eventvwr", go: () => openApp("eventvwr") },
   { name: "Disk Cleanup", icon: "drive", where: "Run → cleanmgr", go: () => openApp("cleanmgr") },
   { name: "Registry Editor", icon: "cmd", where: "Run → regedit", go: () => openApp("regedit") },
+  { name: "Services and System Configuration", icon: "services", where: "Run → services.msc / msconfig", go: () => openApp("services") },
+  { name: "On-Screen Keyboard, Narrator, Steps Recorder, Math Input Panel", icon: "osk", where: "Accessories → Ease of Access / Control Panel → Ease of Access", go: () => openApp("osk") },
   { name: "Kernel boot log, drivers and bug checks", icon: "taskmgr", where: "Run → sysdiag", go: () => openApp("sysdiag") },
   { name: "User Account Control", icon: "shield", where: "Control Panel → User Accounts" },
   { name: "Recycle Bin with restore", icon: "recycle", where: "Desktop → Recycle Bin" },
@@ -53,6 +55,9 @@ const CAPABILITIES: { name: string; icon: string; where: string; go?: () => void
   { name: "Paint, WordPad, Notepad, Calculator", icon: "paint", where: "Start → All Programs → Accessories" },
   { name: "Games: FreeCell, Mahjong, Chess Titans, Purble Place", icon: "freecell", where: "Start → Games", go: () => openApp("gamecenter") },
   { name: "Screensavers, pointers and high contrast", icon: "display", where: "Control Panel → Personalization" },
+  { name: "RTF documents and PNG pictures", icon: "wordpad", where: "WordPad / Paint → Save as", go: () => openApp("wordpad") },
+  { name: "Console MODE and COLOR", icon: "cmd", where: "Command Prompt → MODE CON: COLS=120 LINES=40", go: () => openApp("cmd") },
+  { name: "Gadget options (time zone, slide show, weather, feeds)", icon: "gadgets", where: "Right-click a desktop gadget → Options", go: () => openApp("gadgets") },
 ];
 
 export function WindowsFeatures({ win }: { win: Win }) {

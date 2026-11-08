@@ -37,7 +37,8 @@ const PROGRAMS: PItem[] = [
     kids: [
       app("calc", "Calculator"),
       app("cmd"),
-      { label: "Ease of Access", icon: "folder", kids: [app("magnifier"), app("speech")] },
+      { label: "Ease of Access", icon: "folder", kids: [app("magnifier"), app("speech"), app("osk", "On-Screen Keyboard"), app("narrator"), app("psr", "Problem Steps Recorder")] },
+      app("mip", "Math Input Panel"),
       app("journal", "Windows Journal"),
       app("notepad"),
       app("paint"),
@@ -52,6 +53,8 @@ const PROGRAMS: PItem[] = [
           app("eventvwr", "Event Viewer"),
           app("reliability", "Reliability Monitor"),
           { label: "Registry Editor", icon: "cmd", run: () => openApp("regedit") },
+          app("services", "Services"),
+          app("msconfig", "System Configuration"),
           { label: "System Diagnostics", icon: "taskmgr", run: () => openApp("sysdiag") },
           app("taskmgr", "Task Manager"),
           app("xps", "XPS Viewer"),

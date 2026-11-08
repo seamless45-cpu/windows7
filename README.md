@@ -96,6 +96,25 @@ sounds are the real Windows 7 ones**:
   behind the shell: wallpaper, position, theme, sounds, Explorer options, UAC), System
   Diagnostics (boot log, drivers, services, bug checks) and Windows Features (optional
   features plus a directory of everything this PC can do, with shortcuts).
+* **Management consoles** — **Services** (`services.msc`) lists every Windows 7 service with
+  its start type, state, dependencies and log-on account; starting and stopping one really
+  changes the desktop (stopping Themes drops to Windows 7 Basic, stopping Windows Audio
+  silences the sound scheme) and writes Service Control Manager event 7036 to the event log.
+  **System Configuration** (`msconfig`) has the General, Boot, Services, Startup and Tools
+  tabs: hide Microsoft services, enable/disable services, toggle the Run-key startup items,
+  and write safe boot into the next restart.
+* **Ease of Access** — **On-Screen Keyboard** that types into whichever field has focus,
+  **Narrator** (speech synthesis, reads the focused window and whatever you click),
+  **Problem Steps Recorder** that captures clicks and keystrokes and exports a report, and the
+  **Math Input Panel** with a handwriting pad and a real expression evaluator.
+* **Real document formats** — WordPad saves and opens true **RTF** (font/colour tables, bold,
+  italic, underline, paragraph breaks) and Paint saves a real **PNG**.
+* **Console modes** — Command Prompt honours `MODE CON: COLS=n LINES=n` (the window resizes),
+  `COLOR` (16-colour console palette), `cmd /k` and `/c` startup commands, `winsat` and a
+  right-click menu for 80×25, 100×30 and 120×40.
+* **Gadget options** — right-click a desktop gadget → Options for the clock's time zone, the
+  slide show's picture folder and interval (with previous/next), the weather location and
+  °C/°F unit, and the feed refresh rate.
 * **Games** — Solitaire, Spider Solitaire, Hearts, Minesweeper, FreeCell (with Microsoft's
   numbered deals and supermove limit), Mahjong Titans (144-tile turtle layout), Chess Titans
   (a real move generator with castling, en passant, promotion and a searching opponent) and
@@ -122,9 +141,10 @@ Sound Recorder, Windows Journal (ink notes, pen/highlighter/eraser, pages).
 **Media** — Windows Media Player, Photo Viewer, DVD Maker, XPS Viewer.
 **Games** — Solitaire, Spider Solitaire, Hearts (all fully playable with bots, scoring and
 difficulty/deal options), Minesweeper, and the Games Explorer.
-**System** — Command Prompt, Task Manager, Control Panel (30+ pages incl. Reliability
+**System** — Command Prompt, Task Manager, Services, System Configuration, Control Panel (30+ pages incl. Reliability
 Monitor, Mobility Center, Aero options, Windows Anytime Upgrade), Explorer with Libraries,
 Search, Recycle Bin, Device Manager, Windows Update, Action Center.
+**Ease of Access** — On-Screen Keyboard, Narrator, Problem Steps Recorder, Math Input Panel.
 **Network / Other** — Internet Explorer, Speech Recognition (microphone engine where the
 browser supports it, otherwise type-a-command mode), Help and Support.
 

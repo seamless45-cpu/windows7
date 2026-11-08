@@ -5,6 +5,7 @@ import {
 } from "../store";
 import { MenuBar, Btn, Check } from "../ui";
 import { openFileDialog } from "../dialogs";
+import { htmlToRtf, rtfToHtml } from "../formats";
 import { Icon } from "../icons";
 
 function recent(app: string, id: string) {
@@ -253,7 +254,8 @@ export function WordPad({ win }: { win: Win }) {
     const n = id ? getState().fs[id] : null;
     if (!ed.current) return;
     const c = n?.content || "";
-    ed.current.innerHTML = c.startsWith("<") ? c : c.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>");
+    // .rtf documents are converted back to editable HTML, .txt is escaped
+    ed.current.innerHTML = c.startsWith("{\\rtf") ? rtfToHtml(c) || "<p></p>" : c.startsWith("<") ? c : c.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>");
     setFileId(id);
     setDirty(false);
     if (id) recent("wordpad", id);
@@ -263,7 +265,9 @@ export function WordPad({ win }: { win: Win }) {
   const saveAs = (then?: () => void) =>
     openFileDialog({ mode: "save", exts: ["rtf"], name: "Document.rtf", start: "docs", onDone: (id, nm, dir) => {
       const html = ed.current?.innerHTML || "";
-      const nid = id ? (writeFile(id, html), id) : mkfile(dir, nm, html);
+      // WordPad writes an RTF document, which is what the .rtf extension means
+      const body = /\.rtf$/i.test(nm) ? htmlToRtf(html) : html;
+      const nid = id ? (writeFile(id, body), id) : mkfile(dir, nm, body);
       setFileId(nid);
       setDirty(false);
       st.current.dirty = false;
@@ -273,7 +277,8 @@ export function WordPad({ win }: { win: Win }) {
   const save = (then?: () => void) => {
     const f = st.current.fileId;
     if (f && getState().fs[f]) {
-      writeFile(f, ed.current?.innerHTML || "");
+      const html = ed.current?.innerHTML || "";
+      writeFile(f, /\.rtf$/i.test(getState().fs[f]?.name || "") ? htmlToRtf(html) : html);
       setDirty(false);
       st.current.dirty = false;
       then?.();

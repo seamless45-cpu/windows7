@@ -14,7 +14,7 @@ import { listMedia, addMedia, removeMedia, mediaUrl, prettySize, prettyDur, WP_F
 
 interface PageDef { title: string; icon: string; cat: string }
 const CATS: { id: string; title: string; icon: string; items: string[]; links: [string, string][] }[] = [
-  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
+  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "wupdate"], ["Find and fix problems", "actioncenter"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
   { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "network"]] },
   { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
   { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
@@ -61,8 +61,10 @@ const PAGES: Record<string, PageDef> = {
   aero: { title: "Change the visuals and sounds on your computer", icon: "appearance", cat: "cat-appearance" },
   games: { title: "Games", icon: "gamecenter", cat: "cat-programs" },
   anytime: { title: "Windows Anytime Upgrade", icon: "trust", cat: "cat-system" },
+  services: { title: "Administrative Tools", icon: "services", cat: "cat-system" },
+  msconfig: { title: "System Configuration", icon: "msconfig", cat: "cat-system" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -903,8 +905,11 @@ function Ease() {
         <div onClick={() => { setState({ mag: { on: !mag.on, level: mag.level } }); if (!mag.on) openApp("magnifier"); }}><Icon name="magnifier" size={40} /><b>{mag.on ? "Stop Magnifier" : "Start Magnifier"}</b></div>
         <div onClick={() => setSettings(s.theme === "hc" ? { theme: "aero", wallpaper: "win7" } : { theme: "hc", wallpaper: "blacksolid" })}><Icon name="display" size={40} /><b>{s.theme === "hc" ? "Turn off High Contrast" : "Turn on High Contrast"}</b></div>
         <div onClick={() => setSettings({ highContrastText: !s.highContrastText })}><Icon name="fonts" size={40} /><b>{s.highContrastText ? "Normal text size" : "Make text bigger"}</b></div>
-        <div onClick={() => { try { const u = new SpeechSynthesisUtterance("Welcome to Windows 7. Narrator is now reading the screen."); speechSynthesis.speak(u); } catch { msgBox({ title: "Narrator", text: "Speech is not supported in this browser.", icon: "warn" }); } }}><Icon name="sound" size={40} /><b>Start Narrator</b></div>
-        <div onClick={() => openApp("cmd")}><Icon name="keyboard" size={40} /><b>Start On-Screen Keyboard</b></div>
+        <div onClick={() => openApp("narrator")}><Icon name="narrator" size={40} /><b>Start Narrator</b></div>
+        <div onClick={() => openApp("osk")}><Icon name="osk" size={40} /><b>Start On-Screen Keyboard</b></div>
+        <div onClick={() => openApp("psr")}><Icon name="support" size={40} /><b>Record the steps to a problem</b></div>
+        <div onClick={() => openApp("speech")}><Icon name="speech" size={40} /><b>Use speech recognition</b></div>
+        <div onClick={() => openApp("mip")}><Icon name="mip" size={40} /><b>Use the Math Input Panel</b></div>
       </div>
     </div>
   );
@@ -967,6 +972,8 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   eventvwr: () => <CPLaunch app="eventvwr" text="Event Viewer shows the System, Application and Security logs. Open it to read the events this PC has recorded." />,
   cleanmgr: () => <CPLaunch app="cleanmgr" text="Disk Cleanup frees space by removing temporary files, thumbnails, crash dumps and the contents of the Recycle Bin." />,
   sysdiag: () => <CPLaunch app="sysdiag" text="System Diagnostics shows the kernel boot log, the drivers that loaded, the services that started, and lets you reproduce a bug check." />,
+  services: () => <CPLaunch app="services" text="Administrative Tools collects the management consoles: Services, System Configuration, Event Viewer, Disk Cleanup and System Diagnostics." />,
+  msconfig: () => <CPLaunch app="msconfig" text="System Configuration (msconfig) controls how Windows starts, which services run and which programs load at startup." />,
   features: () => <CPLaunch app="features" text="Turn Windows features on or off, and see everything this simulated PC can do." />,
 };
 
