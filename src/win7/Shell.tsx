@@ -14,10 +14,21 @@ import { ContextMenuHost } from "./ui";
 import { PowerScreens, AltTab, Screensaver } from "./system";
 import { JumpList, Flip3D, SnapAssist, useShake, WallpaperShuffle } from "./aero";
 import { COLORS } from "./data";
+import { FadeLayer, ThemeMix } from "./Transitions";
 import { playClick, preload, unlockAudio } from "./sound";
+import { CURSOR_CSS } from "./cursors";
 
-const CURSOR_LARGE = `url("data:image/svg+xml;utf8,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><path d='M2 2 L2 30 L10 23 L16 36 L22 33 L16 21 L27 21Z' fill='white' stroke='black' stroke-width='2'/></svg>")}") 2 2, auto`;
-const CURSOR_BLACK = `url("data:image/svg+xml;utf8,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><path d='M2 2 L2 19 L7 15 L11 23 L14 22 L10 14 L17 14Z' fill='black' stroke='white' stroke-width='1.5'/></svg>")}") 2 2, auto`;
+/** The real Aero pointer set, inlined once as a stylesheet (see cursors.ts). */
+function CursorStyles() {
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.id = "w7-cursors";
+    el.textContent = CURSOR_CSS;
+    document.head.appendChild(el);
+    return () => el.remove();
+  }, []);
+  return null;
+}
 
 export default function Shell() {
   const settings = useStore((s) => s.settings);
@@ -302,7 +313,6 @@ export default function Shell() {
     height: screen.h,
     transform: view.scale !== 1 ? `scale(${view.scale})` : undefined,
     transformOrigin: "0 0",
-    cursor: settings.pointer === "large" ? CURSOR_LARGE : settings.pointer === "black" ? CURSOR_BLACK : undefined,
   } as React.CSSProperties;
 
   const closeOnDown = (e: React.PointerEvent) => {
@@ -329,6 +339,7 @@ export default function Shell() {
       }}
     >
       <IconDefs />
+      <CursorStyles />
       <div ref={magRef} className="mag-wrap" style={mag.on ? { transform: `scale(${mag.level})` } : undefined}>
         <Desktop />
         <WindowLayer />
@@ -342,8 +353,10 @@ export default function Shell() {
       <AltTab />
       <div ref={trailRef} className="trails">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>
       <Screensaver />
+      <ThemeMix />
       <WallpaperShuffle />
       <PowerScreens />
+      <FadeLayer />
     </div>
   );
 }

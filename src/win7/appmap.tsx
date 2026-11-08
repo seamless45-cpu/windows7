@@ -31,6 +31,7 @@ import { PrivateCharEditor, TabletInputPanel, StickyManager, SupportDiagnostic, 
 import { MediaCenter } from "./apps/MediaCenter";
 import { PlayTo, CardSpace, OpenWith } from "./apps/ShellExtras";
 import { GettingStarted, ColorCalibration, PowerShellISE, WindowsContacts } from "./apps/Extras7";
+import { FunFeatures } from "./apps/FunFeatures";
 import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./apps/PanelTools";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
@@ -76,6 +77,7 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   cardspace: CardSpace,
   openwith: OpenWith,
   gettingstarted: GettingStarted,
+  fun: FunFeatures,
   dccw: ColorCalibration,
   ise: PowerShellISE,
   contacts: WindowsContacts,

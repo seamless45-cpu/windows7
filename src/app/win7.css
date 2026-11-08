@@ -40,7 +40,7 @@
   /* Aero rounds the two top corners only (~6 px at 100%) and squares the bottom
      edge where the frame meets the desktop; maximised and snapped windows lose
      the rounding entirely. */
-  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1) both; transition: opacity .16s, transform .16s, visibility 0s, left .175s cubic-bezier(.2,.7,.3,1), top .175s cubic-bezier(.2,.7,.3,1), width .175s cubic-bezier(.2,.7,.3,1), height .175s cubic-bezier(.2,.7,.3,1), border-radius .175s; min-width: 0; min-height: 0; }
+  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .15s cubic-bezier(.2,.7,.3,1) both; transition: opacity .16s, transform .16s, visibility 0s, left .13s cubic-bezier(.2,.7,.3,1), top .13s cubic-bezier(.2,.7,.3,1), width .13s cubic-bezier(.2,.7,.3,1), height .13s cubic-bezier(.2,.7,.3,1), border-radius .13s; min-width: 0; min-height: 0; }
 /* maximising/snapping/restoring glides the frame; dragging or resizing never does */
 .win.dragging, .win.resizing, .win.min, .win.closing { transition-property: opacity, transform, visibility; }
 .win.dragging, .win.resizing { transition-duration: 0s; }
@@ -74,13 +74,14 @@
 .win.fixed .w-title { height: 28px; }
 /* DWM's "Animate windows when minimizing and maximizing": a quick fade with a
    slight scale, ~225 ms, ease-out. */
-@keyframes winopen { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+/* DWM's open animation is a 150 ms fade + scale from 90 %; the old one
+   lasted 225 ms and started at 94 %, which read as a soft "pop". */
+@keyframes winopen { from { opacity: 0; transform: scale(.90); } to { opacity: 1; transform: none; } }
 .w-title { position: relative; z-index: 1; height: 30px; flex: none; display: flex; align-items: center; gap: 5px; padding: 0 140px 0 2px; touch-action: none; cursor: default; overflow: hidden; }
 .win.fixed .w-title { padding-right: 56px; }
 .win.max .w-title { padding-left: 8px; }
 .w-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #16222f; text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 7px #fff, 0 0 10px #fff, 0 0 14px #fff; font-size: 12px; }
-.win.inactive .w-title-text { color: #59646f; text-shadow: 0 0 2px #fff, 0 0 5px #fff, 0 0 9px #fff; }
-.win.inactive .w-title-text { color: #3a3f48; text-shadow: 0 0 6px #fff, 0 0 8px #fff; }
+.win.inactive .w-title-text { color: #3a3f48; text-shadow: 0 0 3px #fff, 0 0 6px #fff, 0 0 9px #fff; }
 .w-btns { position: absolute; top: 1px; right: 6px; z-index: 5; display: flex; }
 .win.max .w-btns { right: 4px; }
 .cb { height: 19px; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(35,45,65,.8); border-top-color: rgba(35,45,65,.35); cursor: default; background: linear-gradient(#e8f0f9 0, #c0cfe5 46%, #a0b6d6 50%, #c4d8f0 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); color: #000; }
@@ -194,11 +195,15 @@
 .tb-show { width: 15px; flex: none; margin-left: 2px; border-left: 1px solid rgba(255,255,255,.6); background: linear-gradient(90deg, rgba(255,255,255,.12), rgba(255,255,255,.3)); }
 .tb-show:hover { background: linear-gradient(90deg, rgba(200,230,255,.5), rgba(255,255,255,.75)); box-shadow: inset 0 0 6px rgba(255,255,255,.8); }
 .tb-left .tb-show, .tb-right .tb-show { width: auto; height: 12px; margin: 2px 0 0; border-left: none; border-top: 1px solid rgba(255,255,255,.6); }
-.thumbs { position: absolute; z-index: 10001; display: flex; gap: 4px; padding: 6px; border-radius: 6px; background: rgba(var(--gc), .55); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.5), 0 6px 20px rgba(0,0,0,.5); animation: thumbin .18s cubic-bezier(.2,.7,.3,1) both; transform-origin: bottom center; }
-@keyframes thumbin { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+.thumbs { position: absolute; z-index: 10001; display: flex; gap: 4px; padding: 6px; border-radius: 6px; background: rgba(var(--gc), .55); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.5), 0 6px 20px rgba(0,0,0,.5); animation: thumbin .13s ease-out both; transform-origin: bottom center; }
+/* Aero thumbnails fade in and the strip grows in height; the tiles do not
+   slide or stagger. */
+@keyframes thumbin { from { opacity: 0; } to { opacity: 1; } }
 .glass .thumbs { backdrop-filter: blur(10px); }
 .theme-basic .thumbs, .noglass .thumbs { background: #5f8ccc; }
-@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+/* Tray flyouts open by growing their height out of the notification area
+   while fading in — no upward sliding. */
+@keyframes pop { from { opacity: 0; transform: scaleY(.82); } to { opacity: 1; transform: none; } }
 .thumb { width: 206px; padding: 4px 5px 6px; border-radius: 4px; border: 1px solid transparent; color: #000; }
 .thumb:hover { background: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.3)); border-color: rgba(255,255,255,.85); }
 .thumb.active { border-color: rgba(255,255,255,.55); }
@@ -211,7 +216,7 @@
 .thumb-host { position: relative; overflow: hidden; background: #fff; }
 
 /* flyouts */
-.flyout { position: absolute; z-index: 10002; color: #000; background: linear-gradient(#fbfcfe, #e9eff7); border: 1px solid #5f7391; border-radius: 3px; box-shadow: 0 0 0 4px rgba(var(--gc), .6), 0 0 0 5px rgba(0,0,0,.45), 0 8px 22px rgba(0,0,0,.5); animation: pop .15s cubic-bezier(.2,.7,.3,1) both; font-size: 12px; transform-origin: bottom right; }
+.flyout { position: absolute; z-index: 10002; color: #000; background: linear-gradient(#fbfcfe, #e9eff7); border: 1px solid #5f7391; border-radius: 3px; box-shadow: 0 0 0 4px rgba(var(--gc), .6), 0 0 0 5px rgba(0,0,0,.45), 0 8px 22px rgba(0,0,0,.5); animation: pop .14s ease-out both; font-size: 12px; transform-origin: bottom right; }
 .clock-fly { display: flex; width: 380px; }
 .cf-left { flex: 1; padding: 10px; background: #fff; }
 .cf-right { width: 160px; display: flex; align-items: center; justify-content: center; background: linear-gradient(#f1f5fb, #dfe8f4); border-left: 1px solid #d0d9e6; }
@@ -244,8 +249,8 @@
 .ac-head { padding: 8px 10px; color: #1e3a8a; font-size: 14px; }
 .ac-list { max-height: 220px; overflow: auto; }
 .ac-item { display: flex; gap: 8px; padding: 6px 10px; border-top: 1px solid #e3e9f2; }
-.balloon { position: absolute; z-index: 10004; width: 280px; padding: 8px 10px; background: #ffffe1; border: 1px solid #333; border-radius: 6px; box-shadow: 2px 3px 6px rgba(0,0,0,.4); margin: 0 6px 4px; animation: balloonin .28s cubic-bezier(.2,.7,.3,1) both; }
-@keyframes balloonin { from { opacity: 0; transform: translateY(12px) scale(.94); } to { opacity: 1; transform: none; } }
+.balloon { position: absolute; z-index: 10004; width: 280px; padding: 8px 10px; background: #ffffe1; border: 1px solid #333; border-radius: 6px; box-shadow: 2px 3px 6px rgba(0,0,0,.4); margin: 0 6px 4px; animation: balloonin .2s ease-out both; }
+@keyframes balloonin { from { opacity: 0; } to { opacity: 1; } }
 .balloon-h { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; } .balloon-h span { margin-left: auto; color: #555; }
 
 /* ---------- start menu ---------- */
@@ -295,7 +300,7 @@
 /* ---------- context menu ---------- */
 .ctx-host { position: absolute; z-index: 20000; }
 .ctx { position: relative; min-width: 168px; padding: 2px; background: linear-gradient(90deg, #f1f1f1 0 27px, #e0e0e0 27px 28px, #fcfcfc 28px); border: 1px solid #979797; box-shadow: 2px 2px 4px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.8); color: #000; font-size: 12px; animation: ctxin .12s ease-out both; }
-@keyframes ctxin { from { opacity: 0; transform: scaleY(.98); } to { opacity: 1; transform: none; } }
+@keyframes ctxin { from { opacity: 0; } to { opacity: 1; } }
 .ctx.sub { position: absolute; left: 100%; top: -3px; margin-left: -2px; }
 .ctx.sub.flip { left: auto; right: 100%; margin-right: -2px; }
 .ctx-item { position: relative; display: flex; align-items: center; height: 22px; padding: 0 22px 0 0; border: 1px solid transparent; border-radius: 2px; white-space: nowrap; cursor: default; }
@@ -530,23 +535,20 @@ textarea.w7input { height: auto; padding: 3px; }
    its tiles slide up from the taskbar. */
 .alttab { background: rgba(0,0,0,0); animation: altab-dim .16s ease-out forwards; }
 @keyframes altab-dim { to { background: rgba(0,0,0,.22); } }
-.alttab-box { animation: altab-in .17s cubic-bezier(.2,.7,.3,1) both; }
-@keyframes altab-in { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+.alttab-box { animation: altab-in .13s ease-out both; }
+/* The Alt+Tab switcher is a straight cross-fade over the dimmed desktop. */
+@keyframes altab-in { from { opacity: 0; } to { opacity: 1; } }
 .alttab-item { transition: background-color .12s ease-out, border-color .12s ease-out, box-shadow .12s ease-out; }
 
 /* Taskbar thumbnails fly out of the button: the strip grows from the bottom
    edge and the tiles stagger in. */
-.thumb { animation: thumbtile .16s cubic-bezier(.2,.7,.3,1) both; }
-.thumb:nth-child(1) { animation-delay: 0s; }
-.thumb:nth-child(2) { animation-delay: .025s; }
-.thumb:nth-child(3) { animation-delay: .05s; }
-.thumb:nth-child(4) { animation-delay: .075s; }
-@keyframes thumbtile { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+.thumb { animation: thumbtile .12s ease-out both; }
+@keyframes thumbtile { from { opacity: 0; } to { opacity: 1; } }
 
 /* Jump lists appear as a short fade plus a small upward slide, origin at the
    taskbar button. */
-.jumplist { animation: jumpin .15s cubic-bezier(.2,.7,.3,1) both; transform-origin: bottom center; }
-@keyframes jumpin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.jumplist { animation: jumpin .12s ease-out both; transform-origin: bottom center; }
+@keyframes jumpin { from { opacity: 0; } to { opacity: 1; } }
 
 /* Dragging to the top/side of the screen shows the translucent snap overlay,
    which fades in rather than popping. */
@@ -573,8 +575,8 @@ textarea.w7input { height: auto; padding: 3px; }
 .cb:active { filter: brightness(.94); }
 
 /* Balloon tips slide up out of the notification area. */
-.balloon { animation: balloonin .28s cubic-bezier(.2,.7,.3,1) both, balloonout .3s ease-in forwards; animation-delay: 0s, 6s; }
-@keyframes balloonout { to { opacity: 0; transform: translateY(10px); } }
+.balloon { animation: balloonin .2s ease-out both, balloonout .28s ease-in forwards; animation-delay: 0s, 6s; }
+@keyframes balloonout { to { opacity: 0; } }
 
 /* Dialogs: Windows 7 fades a modal dialog in behind a dimmed owner window. */
 .modal-dim { animation: fadein .15s ease-out both; }
@@ -585,7 +587,7 @@ textarea.w7input { height: auto; padding: 3px; }
 /* tray flyouts (volume, network, clock, battery) open with a short pop that
    grows out of the notification area. */
 .flyout.clock-fly, .flyout.vol-fly, .flyout.net-fly, .flyout.bat-fly, .flyout.ovf-fly, .flyout.ac-fly {
-  animation: pop .15s cubic-bezier(.2,.7,.3,1) both;
+  animation: pop .14s ease-out both;
   transform-origin: bottom right;
 }
 
@@ -693,14 +695,21 @@ textarea.w7input { height: auto; padding: 3px; }
 .boot-safe { margin-top: 4px; padding: 1px 8px; border: 1px solid #7a8fa6; border-radius: 3px; color: #dfe9f3; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
 
 /* The Windows 7 bug check: the classic full-screen blue with white Consolas. */
+/* Windows 7's stop screen is a plain, screen-filling blue (#0000AA) with
+   small white text aligned to the left margin — not the Windows 8+ sad face. */
 .bsod {
   position: fixed; inset: 0; z-index: 100004; background: #0000aa; color: #fff;
-  font: 13px/1.55 Consolas, "Lucida Console", "Courier New", monospace;
-  padding: 8vh 9vw; cursor: pointer; overflow: auto;
+  font: 13px/1.62 Consolas, "Lucida Console", "Courier New", monospace;
+  padding: 7vh 8vw; cursor: pointer; overflow: auto;
+  text-shadow: none;
 }
+.bsod-win7 { max-width: 900px; margin: 0; }
+.bsod-win7 p { margin: 0 0 14px; }
+.bsod-win7 .bsod-code { background: none; padding: 0; color: #fff; }
+.bsod-win7 .bsod-tech { color: #fff; font-weight: 700; }
 .bsod-inner { max-width: 860px; margin: 0 auto; }
 .bsod p { margin: 0 0 12px; }
-.bsod-code { white-space: pre-wrap; background: rgba(0,0,0,.18); padding: 6px 8px; }
+.bsod-code { white-space: pre-wrap; background: none; padding: 0; }
 .bsod-tech { white-space: pre-wrap; }
 .bsod-count b { color: #ffff9e; }
 .bsod-hint { margin-top: 22px; color: #b9b9ff; }
@@ -747,3 +756,187 @@ textarea.w7input { height: auto; padding: 3px; }
 .cm-item u { text-decoration: none; }
 .cmenubar.alt .cm-item u { text-decoration: underline; }
 .cm-item:hover, .cm-item.on { background: linear-gradient(#f2f8ff, #d8e9fb); border-color: #9bbbe4; }
+
+/* ===================== Gadgets: the real Sidebar look ===================== */
+/* Every gadget sits on a 2 px bright rim with a dark outer line and a soft
+   drop shadow, and the frame fades in only while the pointer is over it. */
+.gadget {
+  border-radius: 8px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 7px rgba(0,0,0,.45));
+}
+.g-clock, .g-cpu, .g-weather { filter: drop-shadow(0 3px 8px rgba(0,0,0,.4)); }
+.g-clock-svg, .g-dial { display: block; }
+
+/* Calendar: white glass plate with a blue date banner, like the real gadget. */
+.g-cal {
+  width: 100%; height: 100%; padding: 0; overflow: hidden; border-radius: 6px;
+  background: linear-gradient(#fdfefe 0%, #f0f5fb 44%, #dbe6f3 100%);
+  border: 1px solid rgba(255,255,255,.85);
+  box-shadow: inset 0 0 0 1px rgba(40,60,90,.22);
+  color: #1d2c3d; text-shadow: none;
+}
+.g-cal-top { display: flex; flex-direction: column; align-items: center; padding: 3px 0 2px; background: linear-gradient(#cfe4f9, #9dc2e8 55%, #7aa9d8); border-bottom: 1px solid #5c86b3; color: #10233a; }
+.g-cal-dow { font-size: 10.5px; letter-spacing: .3px; }
+.g-cal-day { font-size: 26px; font-weight: 300; line-height: 1; }
+.g-cal-h { text-align: center; font-size: 11px; padding: 3px 0 1px; color: #24425f; }
+.g-cal-g { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 10.5px; gap: 0; padding: 0 4px 4px; }
+.g-cal-g b { color: #6b8bab; font-weight: 600; }
+.g-cal-g span { padding: 2px 0; border-radius: 2px; }
+.g-cal-g .today { background: linear-gradient(#4b9bea, #2b74c4); color: #fff; font-weight: 700; box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
+
+/* Weather: glass plate with the weather glyph in a bright round window. */
+.g-weather {
+  width: 100%; height: 100%; color: #fff;
+  background: linear-gradient(rgba(52,92,150,.62), rgba(16,38,78,.72));
+  border: 1px solid rgba(255,255,255,.5); border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+}
+.g-w-ico { width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; font-size: 30px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), rgba(255,255,255,.08) 70%); border: 1px solid rgba(255,255,255,.45); }
+.g-w-city { font-size: 12px; font-weight: 600; }
+.g-w-t { font-size: 24px; font-weight: 300; line-height: 1.1; cursor: pointer; }
+.g-w-c { font-size: 11px; color: #dceaf8; }
+.g-w-city { cursor: pointer; }
+
+/* CPU Meter: the two dials share one dark round plate. */
+.g-cpu { gap: 0; padding: 0; background: none; border-radius: 50%; }
+.g-cpu .g-dial + .g-dial { margin-left: -8px; }
+
+/* Picture puzzle: dark glass plate with a bright 3×3 grid. */
+.g-puz { width: 100%; height: 100%; justify-content: center; background: linear-gradient(rgba(40,62,96,.55), rgba(12,26,52,.65)); border: 1px solid rgba(255,255,255,.45); border-radius: 8px; }
+.g-puz-grid { grid-template-columns: repeat(3, 36px); gap: 1px; background: rgba(0,0,0,.35); padding: 2px; border-radius: 3px; }
+.g-tile { width: 36px; height: 36px; border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
+.g-tile:hover { box-shadow: inset 0 0 0 2px #9fe0ff; }
+
+/* Slide show: white photo frame with a thin inner border. */
+.g-slide { border: 4px solid #fdfdfd; border-radius: 4px; box-shadow: 0 0 0 1px rgba(30,50,80,.45), inset 0 0 0 1px rgba(0,0,0,.25); }
+.g-slide-nav button { width: 22px; height: 20px; border: none; background: rgba(20,40,70,.55); color: #fff; font-size: 13px; }
+
+/* Feed Headlines: glass plate with the orange feed badge. */
+.g-rss {
+  width: 100%; height: 100%; border-radius: 8px; color: #fff;
+  background: linear-gradient(rgba(48,86,140,.6), rgba(14,34,68,.72));
+  border: 1px solid rgba(255,255,255,.45);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.g-rss-h { font-weight: 600; font-size: 11.5px; border-bottom: 1px solid rgba(255,255,255,.35); padding-bottom: 2px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+.g-rss-h::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: linear-gradient(#ffb347, #e06c00); box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
+.g-rss-i { padding: 3px 3px; font-size: 11px; line-height: 1.2; border-radius: 2px; }
+.g-rss-i:hover { background: rgba(255,255,255,.22); }
+.g-rss-i::before { content: "› "; color: #a9d4ff; }
+
+/* The gadget chrome (close / always-on-top) rides outside the frame. */
+.g-chrome { right: -20px; top: 0; gap: 3px; }
+.g-chrome button {
+  width: 17px; height: 17px; font-size: 11px; line-height: 1;
+  border-radius: 3px; border: 1px solid rgba(255,255,255,.55);
+  background: linear-gradient(rgba(70,100,140,.85), rgba(24,44,74,.9));
+  box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.16);
+  color: #eaf4ff; cursor: default;
+}
+.g-chrome button:hover { background: linear-gradient(#e8f4ff, #b9d9f8); color: #123; }
+.g-chrome button:first-child:hover { background: linear-gradient(#f3a99a, #c4351c); color: #fff; }
+
+/* ===================== Start orb that fits the taskbar =================== */
+/* The 54 px artwork overhangs a 40 px bar by design, but the button box must
+   stay inside the bar so the orb never looks bigger than the taskbar itself. */
+.orb { width: 54px; height: 100%; display: flex; align-items: stretch; justify-content: center; }
+.orb-img {
+  position: relative; left: auto; top: auto;
+  display: flex; align-items: center; justify-content: center;
+  width: 54px !important; height: 100% !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.55));
+}
+.orb-img img { width: 100%; height: 100%; object-fit: contain; }
+.small .orb { width: 44px; }
+.small .orb-img { left: auto; top: auto; width: 44px !important; }
+.tb-left .orb, .tb-right .orb { width: 100%; height: 46px; }
+.tb-left .orb-img, .tb-right .orb-img { margin-left: 0; position: relative; left: 0; top: 0; }
+.tb-top .orb-img { top: auto; }
+/* hover / open glow, kept subtle: the real orb brightens, it does not bloom */
+.orb:hover .orb-img { filter: brightness(1.12) drop-shadow(0 0 6px rgba(140,210,255,.75)); }
+.orb.on .orb-img, .orb:active .orb-img { filter: brightness(1.2) drop-shadow(0 0 9px rgba(160,225,255,.85)); }
+
+/* Aero taskbar: a 1 px bright top edge, glass body, 1 px dark line below. */
+.taskbar {
+  border-top: 1px solid rgba(255,255,255,.55);
+  box-shadow: 0 -1px 0 rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.tb-top { border-top: none; border-bottom: 1px solid rgba(255,255,255,.5); box-shadow: 0 1px 0 rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.18); }
+.tb-btn { border-radius: 2px; }
+/* running buttons get the faint inner bevel Windows draws, not a full outline */
+.tb-btn.run { background: linear-gradient(rgba(255,255,255,.3), rgba(255,255,255,.08) 48%, rgba(255,255,255,.04) 52%, rgba(255,255,255,.16)); border-color: rgba(255,255,255,.38); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), inset 0 -2px 0 -1px rgba(180,220,255,.45); }
+.tb-btn.active { background: linear-gradient(rgba(255,255,255,.52), rgba(255,255,255,.24) 48%, rgba(255,255,255,.16) 52%, rgba(255,255,255,.34)); border-color: rgba(255,255,255,.7); box-shadow: inset 0 0 0 1px rgba(255,255,255,.3), 0 0 5px rgba(190,230,255,.35); }
+.tb-tray { padding-right: 6px; }
+
+/* ===================== The Windows 7 progress ring ======================= */
+.w7-spinner { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.w7-spinner-ring { transform-origin: 16px 16px; animation: w7ring 1.35s linear infinite; }
+.w7-spinner-bead { animation: w7bead 1.08s linear infinite; opacity: .18; }
+@keyframes w7bead {
+  0% { opacity: 1; }
+  35% { opacity: 1; }
+  100% { opacity: .12; }
+}
+@keyframes w7ring {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.w7-spinner-label { margin-top: 8px; font-size: 12px; color: #cfe4f7; }
+/* the small inline ring used inside dialogs */
+.busy-ring { border: none; background: none; position: relative; }
+.blue-msg .w7-spinner { margin: 0 auto 14px; }
+
+/* ===================== Fade-through-black and theme cross-dissolve ======= */
+.fade-black { position: absolute; inset: 0; z-index: 200000; background: #000; pointer-events: none; }
+.fade-black.out { animation: fadeto .26s ease-in forwards; }
+.fade-black.in { animation: fadefrom .3s ease-out forwards; }
+@keyframes fadeto { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadefrom { from { opacity: 1; } to { opacity: 0; } }
+
+.theme-mix {
+  position: absolute; inset: 0; z-index: 9000; pointer-events: none;
+  animation: thememix .42s ease-out forwards;
+}
+@keyframes thememix { from { opacity: 1; } to { opacity: 0; } }
+/* while the theme cross-fades, the shell itself eases its colours */
+.w7 { transition: background-color .3s linear; }
+.win, .taskbar, .start-menu { transition-property: background-color, box-shadow, opacity, transform, left, top, width, height, visibility; }
+
+/* ===================== Icon rendering: Win7 depth ======================= */
+/* Drawn icons get a 1 px dark outline (the shell draws them on a light or a
+   dark desktop) and a soft contact shadow, which is what gives the real
+   artwork its weight. */
+.w7 .ico:not(.art) > svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.dlabel, .sm-item .ico, .cp-bt .ico { shape-rendering: geometricPrecision; }
+/* the 48 px desktop grid centres icons on their own baseline */
+.dicon .ico { display: flex; align-items: center; justify-content: center; }
+.dicon .ico > svg, .dicon .ico > img { display: block; }
+
+/* ===================== Accurate Aero frame details ===================== */
+/* DWM draws a 1 px dark hairline outside a 1 px white inner rim, and the frame
+   is ~18 % brighter on the side the light comes from (top-left). */
+.win::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.55),
+    inset 0 1px 0 rgba(255,255,255,.85),
+    inset 1px 0 0 rgba(255,255,255,.32),
+    inset -1px 0 0 rgba(0,0,0,.16),
+    inset 0 -1px 0 rgba(0,0,0,.26);
+}
+/* DWM lights the frame from the top-left: the active window is the brighter
+   one, and the highlight follows the window colour rather than the desktop. */
+.win.active { background-image: linear-gradient(115deg, rgba(255,255,255,.14), rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,.06)); }
+.win.inactive { background-image: none; }
+/* the caption text: dark, white-glow outlined, and 1 px lower on the active
+   window, exactly as DWM renders it */
+.win.active .w-title-text { color: #0d1c2c; text-shadow: 0 0 1px #fff, 0 0 3px #fff, 0 0 6px #fff, 0 0 11px rgba(255,255,255,.9), 0 1px 0 rgba(0,0,0,.15); }
+.win.inactive .w-title-text { color: #4a5561; text-shadow: 0 0 2px #fff, 0 0 5px #fff, 0 0 9px #fff; }
+/* caption buttons: 3 px inset from the rim, 19 px tall, 1 px apart */
+.w-btns { top: 1px; right: 4px; }
+.cb { height: 20px; border-radius: 3px; }
+.cmin { border-radius: 3px 0 0 3px; }
+.cmax { border-radius: 0; }
+.cclose { border-radius: 0 3px 3px 0; }

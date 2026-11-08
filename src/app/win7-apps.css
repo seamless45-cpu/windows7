@@ -1597,3 +1597,15 @@ body.col-resize { cursor: col-resize; }
 .wc-actions { display: flex; gap: 8px; margin-top: 12px; }
 .wc-empty { padding: 14px; color: #6b7a8b; font-style: italic; }
 .wc-status { padding: 3px 10px; background: linear-gradient(#f7fafd, #e4edf7); border-top: 1px solid #b9c8d9; color: #44607c; }
+
+/* ===================== Fun experimental features ======================== */
+.fun { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: auto; padding: 14px 18px 20px; background: #f6f9fc; color: #14273d; font-size: 12px; }
+.fun .gb, .fun .groupbox { margin-bottom: 12px; }
+.fun-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 8px 0; }
+.fun-grid label { display: flex; flex-direction: column; gap: 4px; color: #45607c; }
+.fun-grid select { min-width: 320px; }
+.fun-note { color: #5b7085; font-style: italic; margin: 6px 0; }
+.fun-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+.fun-tile { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border: 1px solid #dbe5f0; border-radius: 4px; cursor: default; }
+.fun-tile:hover { border-color: #8fb8e0; background: #f4faff; }
+.fun-tile span { color: #123a63; }

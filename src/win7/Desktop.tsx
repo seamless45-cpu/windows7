@@ -103,9 +103,13 @@ export function Desktop() {
 
   /** Windows 7's "Next desktop background" — steps through the installed wallpapers. */
   const nextBackground = () => {
-    const all = WALLPAPERS.map((w) => w.key);
-    const i = all.indexOf(settings.wallpaper);
-    setSettings({ wallpaper: all[(i + 1 + all.length) % all.length] });
+    // Step through the pictures of the *active theme's* wallpaper set, which is
+    // what the shell verb does; falling back to the whole installed set.
+    const cur = WALLPAPERS.find((w) => w.key === settings.wallpaper);
+    const samePack = WALLPAPERS.filter((w) => cur && w.pack === cur.pack).map((w) => w.key);
+    const pool = samePack.length > 1 ? samePack : WALLPAPERS.map((w) => w.key);
+    const i = pool.indexOf(settings.wallpaper);
+    setSettings({ wallpaper: pool[(i + 1 + pool.length) % pool.length] });
   };
 
   const bgMenu = (e: React.MouseEvent) => {
@@ -194,6 +198,10 @@ export function Desktop() {
     if (renaming) return;
     const sx = e.clientX, sy = e.clientY, sc = view.scale;
     let dragging = false;
+    // capture keeps the drag alive if the pointer leaves the desktop or the
+    // window mid-drag (it used to stop dead at the edge)
+    const host = ref.current;
+    try { host?.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     const els = () => cur.map((k) => ref.current?.querySelector(`[data-icon="${CSS.escape(k)}"]`) as HTMLElement | null).filter(Boolean) as HTMLElement[];
     const mv = (ev: PointerEvent) => {
       const dx = ev.clientX - sx, dy = ev.clientY - sy;
@@ -209,6 +217,7 @@ export function Desktop() {
     const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", mv);
       window.removeEventListener("pointerup", up);
+      try { host?.releasePointerCapture(e.pointerId); } catch { /* gone */ }
       const list = els();
       if (!dragging) {
         if (!multi && cur.length > 1) setSel([it.key]);
@@ -253,6 +262,9 @@ export function Desktop() {
   /* -------- rubber band -------- */
   const bgDown = (e: React.PointerEvent) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest("[data-icon],.gadget")) return;
+    // A press that starts on a window body belongs to that window: clearing the
+    // focus here would un-activate the frame you just grabbed.
+    if ((e.target as HTMLElement).closest(".win,.taskbar,.start-menu,.flyout,.ctx-host,.jumplist,.thumbs")) return;
     setState({ focus: null });
     const r = ref.current!.getBoundingClientRect();
     const sc = view.scale;
@@ -261,6 +273,7 @@ export function Desktop() {
     if (!e.ctrlKey) setSel([]);
     setRenaming(null);
     let on = false;
+    try { ref.current?.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     const mv = (ev: PointerEvent) => {
       const x = (ev.clientX - r.left) / sc, y = (ev.clientY - r.top) / sc;
       if (!on && Math.abs(x - sx) + Math.abs(y - sy) < 4) return;
@@ -278,10 +291,13 @@ export function Desktop() {
     const up = () => {
       window.removeEventListener("pointermove", mv);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      try { ref.current?.releasePointerCapture(e.pointerId); } catch { /* gone */ }
       setBand(null);
     };
     window.addEventListener("pointermove", mv);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   /* -------- keyboard when desktop focused -------- */
