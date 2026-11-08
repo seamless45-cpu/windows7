@@ -6,8 +6,8 @@ screenshot images: every window frame, icon and Aero effect is drawn with CSS an
 
 ## Play it
 
-**https://seamless45-cpu.github.io/windows7/** — the simulator is published as a static
-site by the GitHub Pages workflow in `.github/workflows/pages.yml`.
+**https://seamless45-cpu.github.io/windows7/** — the simulator is published from the static
+export committed at the repository root (see [Publishing](#publishing)).
 
 ## Running it locally
 
@@ -28,13 +28,25 @@ Pages for this repository is a legacy *"deploy from the `main` branch"* site ser
 the repository root next to the source.
 
 ```bash
-npm run build:pages   # builds with basePath=/windows7 and copies it to the repo root
+npm run build:pages   # build with basePath=/windows7, copy to the repo root, verify
 git add -A && git commit -m "Publish site" && git push
 ```
+
+`npm run build:pages` ends with `scripts/verify-publish.mjs`, which **fails** if the
+committed export is stale — a referenced asset missing, chunks left over from an older
+build, or a bundle without features that must ship (Start menu search, 3D Text, Lightning,
+Fun experimental features, the fade / theme-mix CSS). `npm run verify:pages` runs the same
+check on its own, so "the site never changes" is caught before it is pushed instead of after.
+
+> This step is not optional. Merging to `main` updates only the sources; Pages keeps serving
+> whatever export was committed last, so a merge without `npm run build:pages` ships
+> nothing.
 
 `scripts/pages-workflow.yml` is a ready-made GitHub Actions workflow for a fully automatic
 deploy (build + `actions/deploy-pages`); copy it to `.github/workflows/pages.yml` and set
 Pages → Source to *GitHub Actions* if you prefer that to the manual publish step below.
+Note that adding a file under `.github/workflows/` needs a token with the `workflows`
+permission — the Arena GitHub App does not have it, so that copy has to be done by hand.
 
 `scripts/publish-pages.mjs` copies `out/index.html`, `out/_next/**` and `out/404.html` to the
 repository root and writes `.nojekyll` (so GitHub serves the files verbatim instead of
