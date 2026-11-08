@@ -5,6 +5,7 @@ import {
   runCommand, view,
 } from "../store";
 import { Icon, nodeIcon } from "../icons";
+import { FunFeatures } from "./FunFeatures";
 import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./PanelTools";
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
@@ -1059,7 +1060,9 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   stkmgr: () => <CPLaunch app="stkmgr" text="Sticky Notes keeps quick notes on the desktop in any of six colours." />,
   calendar: () => <CPLaunch app="calendar" text="Calendar is the month view behind the taskbar clock, with appointments stored on this PC." />,
   msconfig: () => <CPLaunch app="msconfig" text="System Configuration (msconfig) controls how Windows starts, which services run and which programs load at startup." />,
-  fun: () => <CPLaunch app="fun" text="Fun experimental features collects the sandbox-only toys: crash the kernel on demand, break a driver, and preview the screen savers." />,
+  // Win7 renders Control Panel items inline in the same window; the crash toys
+  // belong here rather than behind an "Open" button.
+  fun: () => <FunFeatures />,
   features: () => <CPLaunch app="features" text="Turn Windows features on or off, and see everything this simulated PC can do." />,
 };
 

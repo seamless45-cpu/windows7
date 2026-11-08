@@ -3,6 +3,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MenuItem, hideMenu, showMenu, useStore, view, locale, baseOf, Settings, getState, tbThick } from "./store";
 import { Icon } from "./icons";
+import { focusNoKeyboard } from "./softKeyboard";
 
 /* ------------------------------------------------------------ clock utils */
 export function nowTz(tz: number | null): Date {
@@ -212,7 +213,7 @@ export function InlineEdit({ value, onDone, folder, multiline }: { value: string
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.focus();
+    focusNoKeyboard(el);
     el.setSelectionRange(0, folder ? value.length : baseOf(value).length);
   }, [value, folder]);
   const finish = (v: string | null) => {

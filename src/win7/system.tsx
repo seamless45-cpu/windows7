@@ -8,6 +8,7 @@ import { userPic } from "./data";
 import { WALLPAPERS } from "./data";
 import { playSys, startBlueScreenStutter, stopBlueScreenStutter } from "./sound";
 import { Mystify, Text3D, GradientSS, Lightning } from "./Screensavers";
+import { useAutoFocus } from "./softKeyboard";
 
 const LOGIN_BG = WALLPAPERS[0].css;
 
@@ -97,6 +98,7 @@ export function LoginScreen({ locked }: { locked?: boolean }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(false);
   const [menu, setMenu] = useState(false);
+  const pwRef = useAutoFocus<HTMLInputElement>();
   const users = locked ? settings.users.filter((u) => u.name === settings.currentUser) : settings.users;
   const attempt = (name: string) => {
     const u = settings.users.find((x) => x.name === name);
@@ -124,7 +126,7 @@ export function LoginScreen({ locked }: { locked?: boolean }) {
             <img src={userPic(settings.users.find((u) => u.name === sel)?.pic || "flower")} alt="" />
             <div className="login-name">{sel}</div>
             <div className="login-pw">
-              <input type="password" autoFocus placeholder="Password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(false); }} onKeyDown={(e) => e.key === "Enter" && attempt(sel)} />
+              <input type="password" ref={pwRef} placeholder="Password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(false); }} onKeyDown={(e) => e.key === "Enter" && attempt(sel)} />
               <button onClick={() => attempt(sel)}>➜</button>
             </div>
             {err && <div className="login-err">The user name or password is incorrect.</div>}
