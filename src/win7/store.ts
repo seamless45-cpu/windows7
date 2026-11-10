@@ -79,7 +79,7 @@ export interface Settings {
   currentUser: string;
   volume: number;
   muted: boolean;
-  taskbar: { lock: boolean; autohide: boolean; small: boolean; pos: "bottom" | "top" | "left" | "right"; combine: "always" | "never"; peek: boolean };
+  taskbar: { lock: boolean; autohide: boolean; small: boolean; pos: "bottom" | "top" | "left" | "right"; combine: "always" | "never"; peek: boolean; bars: TaskbarBar[] };
   pinned: string[];
   recent: string[];
   gadgets: GadgetInst[];
@@ -96,6 +96,8 @@ export interface Settings {
   hiddenTray: string[];
   defaults: Record<string, string>;
   highContrastText: boolean;
+  /** ClearType font smoothing (Control Panel → Display → Adjust ClearType text) */
+  clearType: boolean;
   deviceDisabled: string[];
   wpShuffle: boolean;
   wpInterval: number;
@@ -127,6 +129,10 @@ export interface Win {
 }
 
 export interface Notif { id: number; title: string; text: string; icon: string; time: number }
+/** taskbar toolbars, in the order they are added */
+export type TaskbarBar = "address" | "links" | "desktop";
+export const TASKBAR_BAR_IDS: TaskbarBar[] = ["address", "links", "desktop"];
+
 export type Power = "boot" | "login" | "welcome" | "desktop" | "locked" | "shuttingdown" | "off" | "sleep" | "restarting" | "logoff";
 
 export interface State {
@@ -202,7 +208,7 @@ export const DEFAULTS: Settings = {
   currentUser: "User",
   volume: 60,
   muted: false,
-  taskbar: { lock: true, autohide: false, small: false, pos: "bottom", combine: "always", peek: true },
+  taskbar: { lock: true, autohide: false, small: false, pos: "bottom", combine: "always", peek: true, bars: [] as TaskbarBar[] },
   pinned: ["ie", "explorer", "wmp"],
   recent: ["notepad", "paint", "calc"],
   gadgets: [
@@ -227,6 +233,7 @@ export const DEFAULTS: Settings = {
   hiddenTray: ["net-tools"],
   defaults: { browser: "ie", music: "wmp", photos: "photos", text: "notepad", email: "none" },
   highContrastText: false,
+  clearType: true,
   deviceDisabled: [],
   wpShuffle: false,
   wpInterval: 30,
@@ -389,6 +396,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
       pos: oneOf(taskbar.pos, TASKBAR_SIDES, d.taskbar.pos),
       combine: oneOf(taskbar.combine, COMBINE_MODES, d.taskbar.combine),
       peek: bool(taskbar.peek, d.taskbar.peek),
+      bars: (Array.isArray(taskbar.bars) ? taskbar.bars : d.taskbar.bars).filter((b: string) => (TASKBAR_BAR_IDS as string[]).includes(b)) as TaskbarBar[],
     },
     pinned: strArr(saved.pinned, d.pinned).filter((a) => !!APPS[a]),
     recent: strArr(saved.recent, d.recent).filter((a) => !!APPS[a]),
@@ -422,6 +430,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     hiddenTray: strArr(saved.hiddenTray, d.hiddenTray),
     defaults: defaultsOut,
     highContrastText: bool(saved.highContrastText, d.highContrastText),
+    clearType: bool(saved.clearType, d.clearType),
     deviceDisabled: strArr(saved.deviceDisabled, []),
     wpShuffle: bool(saved.wpShuffle, d.wpShuffle),
     wpInterval: num(saved.wpInterval, d.wpInterval, 1, 1440),
@@ -820,7 +829,21 @@ export function searchFs(root: string | null, q: string): FsNode[] {
   };
   if (root) walk(root);
   else Object.values(fs).filter((n) => n.parent === null).forEach((d) => walk(d.id));
+  // Control Panel → Indexing Options decides which locations Windows Search
+  // looks in; a location that has been removed from the index still matches by
+  // name if it is asked for directly (root set), which is how the real index
+  // behaves, but not in the global Start-menu search.
   return out;
+}
+
+/**
+ * True when a folder is included in the search index. The Start menu calls this
+ * so un-ticking a location in Indexing Options really removes its files from the
+ * results, instead of being a settings page that does nothing.
+ */
+export function isIndexed(folderId: string): boolean {
+  const locs = lsGet<string[]>("win7.index.locs", ["docs", "music", "pics", "vids", "desk"]);
+  return locs.includes(folderId);
 }
 
 /* --------------------------------------------------------------- windows */

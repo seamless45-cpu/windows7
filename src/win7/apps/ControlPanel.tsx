@@ -2,10 +2,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Win, useStore, getState, setState, setSettings, openApp, openCP, msgBox, uac, notify, restart, lsGet, lsSet, children, setWin, promptBox, progressDialog, fmtBig, Settings, resetAll,
-  runCommand, view,
+  runCommand, view, TaskbarBar,
 } from "../store";
 import { Icon, nodeIcon } from "../icons";
 import { FunFeatures } from "./FunFeatures";
+import { IndexingOptions, ClearTypeTuner } from "./IndexingAndClearType";
+import { GadgetGallery } from "../gadgets";
 import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./PanelTools";
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
@@ -57,6 +59,8 @@ const PAGES: Record<string, PageDef> = {
   taskbar: { title: "Taskbar and Start Menu", icon: "taskbar", cat: "cat-appearance" },
   folderopts: { title: "Folder Options", icon: "folderopts", cat: "cat-appearance" },
   fonts: { title: "Fonts", icon: "fonts", cat: "cat-appearance" },
+  indexing: { title: "Indexing Options", icon: "search", cat: "cat-system" },
+  cleartype: { title: "ClearType Text Tuner", icon: "display", cat: "cat-appearance" },
   datetime: { title: "Date and Time", icon: "clock", cat: "cat-clock" },
   region: { title: "Region and Language", icon: "region", cat: "cat-clock" },
   ease: { title: "Ease of Access Center", icon: "ease", cat: "cat-ease" },
@@ -96,7 +100,7 @@ const PAGES: Record<string, PageDef> = {
   tabtip: { title: "Tablet PC Input Panel", icon: "osk", cat: "cat-ease" },
   stkmgr: { title: "Sticky Notes", icon: "sticky2", cat: "cat-programs" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "calendar", "fw", "secpol", "perfmon", "mdsched", "fun", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "calendar", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "fun", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -947,7 +951,21 @@ function TaskbarPage() {
           </>
         )}
         {tab === "Start Menu" && <GroupBox title="Start menu"><p>Power button action: Shut down</p><p><Btn onClick={() => setSettings({ recent: [] })}>Clear recent programs list</Btn></p><p><Btn onClick={() => setSettings({ pinned: ["ie", "explorer", "wmp"] })}>Reset pinned taskbar programs</Btn></p></GroupBox>}
-        {tab === "Toolbars" && <p className="cp-desc">Select which toolbars to add to the taskbar. (Address, Links and Desktop toolbars are not available in this version.)</p>}
+        {tab === "Toolbars" && (
+          <GroupBox title="Toolbars">
+            <p className="cp-desc">Select which toolbars to add to the taskbar. You can also right-click the taskbar and point to Toolbars.</p>
+            {([["address", "Address"], ["links", "Links"], ["desktop", "Desktop"]] as [TaskbarBar, string][]).map(([id, label]) => (
+              <div key={id}>
+                <Check
+                  checked={t.bars.includes(id)}
+                  onChange={(v) => set({ bars: v ? [...t.bars.filter((x) => x !== id), id] : t.bars.filter((x) => x !== id) })}
+                  label={label}
+                />
+              </div>
+            ))}
+            <p className="cp-desc">The Address toolbar opens a path or a web address; Links shows the Favorites Links folder; Desktop lists the icons on the desktop.</p>
+          </GroupBox>
+        )}
         <GroupBox title="Notification area"><p className="cp-desc">Hidden icons: {s.hiddenTray.length + 3}. Click the ▲ arrow on the taskbar to view them.</p></GroupBox>
       </div>
     </div>
@@ -1060,6 +1078,9 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   stkmgr: () => <CPLaunch app="stkmgr" text="Sticky Notes keeps quick notes on the desktop in any of six colours." />,
   calendar: () => <CPLaunch app="calendar" text="Calendar is the month view behind the taskbar clock, with appointments stored on this PC." />,
   msconfig: () => <CPLaunch app="msconfig" text="System Configuration (msconfig) controls how Windows starts, which services run and which programs load at startup." />,
+  gadgets: () => <GadgetGallery />,
+  indexing: () => <IndexingOptions />,
+  cleartype: () => <ClearTypeTuner />,
   // Win7 renders Control Panel items inline in the same window; the crash toys
   // belong here rather than behind an "Open" button.
   fun: () => <FunFeatures />,

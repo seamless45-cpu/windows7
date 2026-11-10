@@ -79,11 +79,24 @@ const MARKERS = {
   "Fun experimental features": "Fun experimental",
   "fade-through-black transition": "fade-black",
   "theme cross-dissolve": "theme-mix",
+  // added in the PWA / deep-research pass
+  "calculator programmer mode": "Qword",
+  "indexing options": "Indexing Options",
+  "toolbars": "Toolbars",
+  "internet games": "Internet Reversi",
+  "ClearType tuner": "ClearType",
 };
 for (const [label, marker] of Object.entries(MARKERS)) {
   const hay = marker === "fade-black" || marker === "theme-mix" ? css : bundle;
   if (!hay.includes(marker)) problems.push(`published bundle is missing: ${label} (looked for "${marker}")`);
 }
+
+// 5: the PWA files are part of the published site.
+for (const f of ["manifest.webmanifest", "sw.js", "icons/pwa/icon-192.png", "icons/pwa/icon-512.png"]) {
+  if (!(await exists(path.join(root, f)))) problems.push(`PWA file missing from the publish: ${f}`);
+}
+const swSrc = await readFile(path.join(root, "sw.js"), "utf8").catch(() => "");
+if (swSrc && !/caches\.open/.test(swSrc)) problems.push("sw.js has no cache logic");
 
 if (problems.length) {
   console.error("Published site is stale or incomplete:");

@@ -792,6 +792,10 @@ const GAME_LIST: { app: string; name: string; icon: string; desc: string }[] = [
   { app: "mahjong", name: "Mahjong Titans", icon: "mahjong", desc: "Match pairs of free tiles to clear the turtle layout." },
   { app: "chess", name: "Chess Titans", icon: "chess", desc: "Glossy 3D-styled chess against the computer." },
   { app: "purble", name: "Purble Place", icon: "purble", desc: "Comfy Cakes, Purble Shop and Purble Pairs." },
+  { app: "reversi", name: "Internet Reversi", icon: "chess", desc: "Flip your opponent's discs until the board is full." },
+  { app: "checkers", name: "Internet Checkers", icon: "chess", desc: "Jump and crown your way to the far row." },
+  { app: "backgammon", name: "Internet Backgammon", icon: "chess", desc: "Roll, hit blots and bear off before the computer." },
+  { app: "spades", name: "Internet Spades", icon: "hearts", desc: "Bid your tricks and take them with a partner." },
 ];
 
 export function GamesExplorer({ win }: { win: Win }) {
@@ -832,6 +836,46 @@ export function GamesExplorer({ win }: { win: Win }) {
         </div>
       </div>
       {void win}
+    </div>
+  );
+}
+
+/**
+ * "Get more games from Windows Marketplace", the hidden page the Games Explorer
+ * links to. Windows 7 shipped no store client for it, so the page lists what the
+ * old Games for Windows Marketplace offered and explains that the service is
+ * gone — which is what the real link does today.
+ */
+export function MoreGames() {
+  const offered: [string, string, string][] = [
+    ["Tinker", "adventure", "A free puzzle game Microsoft published for Games for Windows LIVE."],
+    ["Viva Piñata", "animals", "The garden simulation, ported from the Xbox 360."],
+    ["Where's Waldo?", "search", "The hidden-object game, with the Windows LIVE achievements."],
+    ["Age of Empires III", "strategy", "The real-time strategy classic."],
+    ["Halo 2", "shooter", "The Windows Vista/7 port with LIVE multiplayer."],
+    ["Shadowrun", "shooter", "Cross-platform multiplayer between PC and console."],
+  ];
+  return (
+    <div className="moregames">
+      <div className="mg-head">
+        <Icon name="moregames" size={44} />
+        <div>
+          <h2>Games for Windows — Marketplace</h2>
+          <p>The Marketplace service was closed in 2013, so these titles can no longer be downloaded. They are listed here to show what the link did.</p>
+        </div>
+      </div>
+      <div className="mg-list">
+        {offered.map(([name, icon, desc]) => (
+          <div key={name} className="mg-item">
+            <Icon name={icon === "animals" ? "purble" : icon === "shooter" ? "mines" : "gamecenter"} size={36} />
+            <div>
+              <b>{name}</b>
+              <div className="mg-desc">{desc}</div>
+            </div>
+            <Btn disabled>Download</Btn>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

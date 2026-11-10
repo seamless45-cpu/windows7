@@ -18,6 +18,16 @@ import { FadeLayer, ThemeMix } from "./Transitions";
 import { playClick, preload, unlockAudio } from "./sound";
 import { CURSOR_CSS } from "./cursors";
 import { installSoftKeyboardGuard } from "./softKeyboard";
+import { usePwa } from "./pwa";
+
+/**
+ * Registers the service worker and listens for the browser's install prompt, so
+ * the Start menu can offer "Install this PC".
+ */
+function PwaLifecycle() {
+  usePwa();
+  return null;
+}
 
 /**
  * Keeps programmatic focus (the Start menu's search box, dialogs, the logon
@@ -40,7 +50,31 @@ function CursorStyles() {
   return null;
 }
 
+/**
+ * PWA entry points. The manifest's shortcuts point at `?app=notepad` and
+ * friends, so an installed copy can launch straight into a program the way a
+ * pinned Windows 7 Jump List item does. Runs once, after the desktop appears.
+ */
+function useDeepLink() {
+  const power = useStore((s) => s.power);
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || power !== "desktop") return;
+    done.current = true;
+    const app = new URLSearchParams(window.location.search).get("app");
+    if (!app) return;
+    if (!APPS[app]) return;
+    // Drop the parameter so a refresh restarts on the desktop, not in the app.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("app");
+    url.searchParams.delete("source");
+    window.history.replaceState(null, "", url.toString());
+    window.setTimeout(() => openApp(app), 260);
+  }, [power]);
+}
+
 export default function Shell() {
+  useDeepLink();
   const settings = useStore((s) => s.settings);
   const power = useStore((s) => s.power);
   const mag = useStore((s) => s.mag);
@@ -341,7 +375,7 @@ export default function Shell() {
   return (
     <div
       ref={ref}
-      className={`w7 theme-${settings.theme}${settings.transparency && settings.theme === "aero" ? " glass" : " noglass"}${settings.highContrastText ? " bigtext" : ""} ptr-${settings.pointer} tbpos-${settings.taskbar.pos}${settings.aero.animations ? " motion" : " nomotion"}`}
+      className={`w7 theme-${settings.theme}${settings.transparency && settings.theme === "aero" ? " glass" : " noglass"}${settings.highContrastText ? " bigtext" : ""} ptr-${settings.pointer} tbpos-${settings.taskbar.pos}${settings.aero.animations ? " motion" : " nomotion"}${settings.clearType ? "" : " nocleartype"}`}
       style={style}
       onPointerDownCapture={closeOnDown}
       onContextMenu={(e) => {
@@ -351,6 +385,7 @@ export default function Shell() {
       <IconDefs />
       <CursorStyles />
       <SoftKeyboardGuard />
+      <PwaLifecycle />
       <div ref={magRef} className="mag-wrap" style={mag.on ? { transform: `scale(${mag.level})` } : undefined}>
         <Desktop />
         <WindowLayer />

@@ -3,7 +3,8 @@ import React from "react";
 import type { Win } from "./store";
 import { Explorer } from "./apps/Explorer";
 import { ControlPanel } from "./apps/ControlPanel";
-import { Notepad, WordPad, Calculator, CharMap, StickyNotes, Magnifier } from "./apps/Accessories";
+import { Notepad, WordPad, CharMap, StickyNotes, Magnifier } from "./apps/Accessories";
+import { Calculator } from "./apps/Calculator";
 import { Paint } from "./apps/Paint";
 import { MediaPlayer, PhotoViewer, DvdMaker, SoundRecorder } from "./apps/Media";
 import { IE } from "./apps/IE";
@@ -33,6 +34,8 @@ import { PlayTo, CardSpace, OpenWith } from "./apps/ShellExtras";
 import { GettingStarted, ColorCalibration, PowerShellISE, WindowsContacts } from "./apps/Extras7";
 import { FunFeatures } from "./apps/FunFeatures";
 import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./apps/PanelTools";
+import { Backgammon, CheckersGame, Reversi, Spades } from "./apps/InternetGames";
+import { MoreGames } from "./apps/Games";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   explorer: Explorer,
@@ -41,6 +44,10 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   notepad: Notepad,
   paint: Paint,
   calc: Calculator,
+  reversi: Reversi,
+  checkers: CheckersGame,
+  backgammon: Backgammon,
+  spades: Spades,
   wmp: MediaPlayer,
   wordpad: WordPad,
   snip: SnippingTool,
@@ -102,6 +109,10 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   dvdmaker: DvdMaker,
   help: HelpApp,
   gadgets: () => <GadgetGallery />,
+  gadgets2: () => <GadgetGallery />,
+  // "More Games" is the hidden page the Games explorer links to; it lists the
+  // downloadable games and opens the store stub.
+  moregames: () => <MoreGames />,
   gadgetopts: GadgetOptions,
   minesweeper: Minesweeper,
   run: Run,

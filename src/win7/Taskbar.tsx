@@ -2,10 +2,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useStore, getState, setState, setSettings, openApp, focusWin, minWin, closeWin, toggleStart, toggleFlyout, showMenu, showDesktop, tbThick, workArea, view, setWin, openCP, openPath,
-  notify, lsGet, Win, MenuItem, lock, openJumpList, taskbarActivate,
+  notify, lsGet, Win, MenuItem, lock, openJumpList, taskbarActivate, TASKBAR_BAR_IDS, TaskbarBar, openNode,
 } from "./store";
 import { APPS } from "./registry";
-import { Icon, appIcon } from "./icons";
+import { Icon, appIcon, nodeIcon } from "./icons";
 import { useNow, fmtTime, fmtShortDate, fmtLongDate, nowTz, Slider } from "./ui";
 import { playSys } from "./sound";
 
@@ -60,6 +60,79 @@ function Thumb({ win }: { win: Win }) {
 }
 
 interface Group { key: string; app: string; wins: Win[]; pinned: boolean }
+
+/**
+ * Taskbar toolbars (Windows 7: right-click the taskbar ▸ Toolbars). The
+ * Address toolbar is a mini address bar, Links is the Favorites Links folder,
+ * Desktop lists the desktop icons. Toolbars sit on their own strip at the near
+ * edge of the taskbar, as they do in the real shell.
+ */
+function TaskbarToolbars({ bars, vertical }: { bars: TaskbarBar[]; vertical: boolean }) {
+  const fs = useStore((s) => s.fs);
+  const [addr, setAddr] = useState("");
+  const go = () => {
+    const q = addr.trim();
+    if (!q) return;
+    setAddr("");
+    if (/^(https?:|www\.)/i.test(q) || /\.\w{2,}$/.test(q) && q.includes(".") && !q.includes("\\")) openApp("ie", { url: q });
+    else if (fs[q]) openPath(q);
+    else if (fs["libraries"]) openPath("libraries");
+  };
+  const links = ["Desktop", "Downloads", "Pictures", "Music"].filter((n) => Object.values(fs).some((f) => f.name === n));
+  const deskItems = Object.values(fs).filter((n) => n.parent === "desk" && !n.trash);
+  if (!bars.length) return null;
+  return (
+    <div className={"tb-bars" + (vertical ? " v" : "")}>
+      {bars.map((b) => (
+        <div className="tb-bar" key={b}>
+          {b === "address" && (
+            <>
+              <span className="tb-bar-lbl">Address</span>
+              <input
+                className="tb-bar-in"
+                value={addr}
+                placeholder="Type a path or a web address"
+                onChange={(e) => setAddr(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") go();
+                  if (e.key === "Escape") { setAddr(""); (e.target as HTMLInputElement).blur(); }
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+              />
+            </>
+          )}
+          {b === "links" && (
+            <>
+              <span className="tb-bar-lbl">Links</span>
+              {links.length === 0 && <span className="tb-bar-empty">(empty)</span>}
+              {links.map((n) => {
+                const node = Object.values(fs).find((f) => f.name === n)!;
+                return (
+                  <button key={n} className="tb-link" onClick={() => openPath(node.id)} onPointerDown={(e) => e.stopPropagation()}>
+                    <Icon name={nodeIcon(node)} size={14} />
+                    <span>{n}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+          {b === "desktop" && (
+            <>
+              <span className="tb-bar-lbl">Desktop</span>
+              {deskItems.length === 0 && <span className="tb-bar-empty">(empty)</span>}
+              {deskItems.slice(0, 8).map((n) => (
+                <button key={n.id} className="tb-link" onClick={() => openNode(n.id)} onPointerDown={(e) => e.stopPropagation()} title={n.name}>
+                  <Icon name={nodeIcon(n)} size={14} />
+                  <span>{n.name}</span>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function Taskbar() {
   const settings = useStore((s) => s.settings);
@@ -177,6 +250,11 @@ export function Taskbar() {
     }
   };
 
+  const toggleBar = (b: TaskbarBar) => {
+    const cur = getState().settings.taskbar.bars;
+    return cur.includes(b) ? cur.filter((x) => x !== b) : [...TASKBAR_BAR_IDS.filter((x) => x === b || cur.includes(x))];
+  };
+
   const barMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const arrange = (mode: "cascade" | "stack" | "side") => {
@@ -189,7 +267,14 @@ export function Taskbar() {
       });
     };
     showMenu(e, [
-      { label: "Toolbars", sub: [{ label: "Address", disabled: true }, { label: "Links", disabled: true }, { label: "Desktop", disabled: true }] },
+      {
+        label: "Toolbars",
+        sub: [
+          { label: "Address", checked: tb.bars.includes("address"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("address") } }) },
+          { label: "Links", checked: tb.bars.includes("links"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("links") } }) },
+          { label: "Desktop", checked: tb.bars.includes("desktop"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("desktop") } }) },
+        ],
+      },
       { sep: true },
       { label: "Cascade windows", onClick: () => arrange("cascade") },
       { label: "Show windows stacked", onClick: () => arrange("stack") },
@@ -266,6 +351,7 @@ export function Taskbar() {
         <div className={"orb" + (startOpen ? " on" : "")} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); toggleStart(); }} title="Start">
           <StartOrb size={tb.small ? 42 : 54} />
         </div>
+        <TaskbarToolbars bars={tb.bars} vertical={vertical} />
         <div className="tb-items">
           {groups.map((g, groupIdx) => {
             const active = g.wins.some((w) => w.id === focus && !w.min);
