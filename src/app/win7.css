@@ -943,3 +943,39 @@ textarea.w7input { height: auto; padding: 3px; }
 .cmin { border-radius: 3px 0 0 3px; }
 .cmax { border-radius: 0; }
 .cclose { border-radius: 0 3px 3px 0; }
+.props-note { color: #5b6b7c; font-style: italic; }
+
+/* ===================== ClearType text rendering ========================= */
+/* Windows 7 renders UI text with ClearType subpixel smoothing; turning it off in
+   the ClearType Tuner gives the harder, unstroked edges of a non-smoothed
+   display. The gamma the tuner picks drives the weight/contrast of the glyphs. */
+.w7 { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+.w7.nocleartype { -webkit-font-smoothing: none; text-rendering: geometricPrecision; }
+.w7.nocleartype * { -webkit-font-smoothing: none !important; }
+
+/* ------------------------------------------------- taskbar toolbars */
+.tb-bars { display: flex; align-items: center; gap: 6px; padding-left: 6px; min-width: 0; }
+.tb-bars.v { flex-direction: column; align-items: stretch; padding: 4px 2px 0; }
+.tb-bar { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px 0 4px; border-left: 1px solid rgba(255,255,255,.18); border-right: 1px solid rgba(0,0,0,.35); }
+.tb-bars.v .tb-bar { border-left: 0; border-right: 0; border-top: 1px solid rgba(255,255,255,.18); border-bottom: 1px solid rgba(0,0,0,.35); padding: 2px; }
+.tb-bar:first-child { border-left: 0; }
+.tb-bar-lbl { font-size: 11px; color: #eaf2fb; text-shadow: 0 0 3px rgba(0,0,0,.8); opacity: .85; white-space: nowrap; }
+.tb-bars.v .tb-bar-lbl { display: none; }
+.tb-bar-empty { font-size: 11px; opacity: .6; font-style: italic; }
+.tb-bar-in {
+  width: 190px; height: 22px; font: 12px "Segoe UI", Tahoma, sans-serif; color: #000;
+  background: #fff; border: 1px solid #7a9bbd; border-radius: 2px; padding: 0 6px; outline: none;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,.18);
+}
+.tb-bars.v .tb-bar-in { width: auto; min-width: 0; flex: 1; }
+.tb-bar-in:focus { border-color: #3d6ea5; box-shadow: inset 1px 1px 2px rgba(0,0,0,.25), 0 0 0 1px rgba(120,180,250,.7); }
+.tb-link {
+  display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; cursor: default;
+  background: transparent; border: 1px solid transparent; border-radius: 2px; color: #fff;
+  font: 12px "Segoe UI", Tahoma, sans-serif; text-shadow: 0 0 3px rgba(0,0,0,.8); white-space: nowrap; max-width: 150px;
+}
+.tb-link span { overflow: hidden; text-overflow: ellipsis; }
+.tb-link:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.38); }
+.tb-link:active { background: rgba(255,255,255,.3); }
+.theme-classic .tb-bar-lbl, .theme-classic .tb-link { color: #000; text-shadow: none; }
+.theme-classic .tb-link:hover { background: #cfe0f5; border-color: #7a9bbd; }

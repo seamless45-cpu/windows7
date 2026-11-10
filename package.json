@@ -9,7 +9,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:softkb": "node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs",
-    "verify:pages": "node scripts/verify-publish.mjs"
+    "verify:pages": "node scripts/verify-publish.mjs",
+    "test:sw": "node tests/sw.test.mjs",
+    "test:pwa": "node tests/pwa.test.mjs",
+    "test": "node tests/sw.test.mjs && node tests/registry.test.mjs && node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

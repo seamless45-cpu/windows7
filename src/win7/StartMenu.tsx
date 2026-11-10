@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  useStore, getState, setState, openApp, openCP, openPath, openNode, searchFs, tbThick, shutdown, restart, sleep, lock, logoff, showMenu, view, setSettings, MenuItem,
+  useStore, getState, setState, openApp, openCP, openPath, openNode, searchFs, isIndexed, tbThick, shutdown, restart, sleep, lock, logoff, showMenu, view, setSettings, MenuItem,
   jumpRecent, openJumpList,
 } from "./store";
 import { APPS } from "./registry";
@@ -9,6 +9,7 @@ import { allPrograms } from "./catalog";
 import { Icon, appIcon, nodeIcon } from "./icons";
 import { userPic } from "./data";
 import { focusNoKeyboard } from "./softKeyboard";
+import { useCanInstall, promptInstall, markInstallFlag } from "./pwa";
 
 interface PItem { label: string; icon: string; run?: () => void; kids?: PItem[]; desc?: string }
 
@@ -134,6 +135,7 @@ export function StartMenu() {
   const [exp, setExp] = useState<string[]>([]);
   const [pwr, setPwr] = useState(false);
   const inp = useRef<HTMLInputElement>(null);
+  const canInstall = useCanInstall();
   const th = tbThick(settings);
   const pos = settings.taskbar.pos;
   const user = settings.users.find((u) => u.name === settings.currentUser);
@@ -145,11 +147,15 @@ export function StartMenu() {
       // screen with a keyboard.
       setTimeout(() => focusNoKeyboard(inp.current), 30);
     } else {
-      setAll(false);
-      setQ("");
-      setCur(0);
-      setExp([]);
-      setPwr(false);
+      // Reset after the menu has closed, not during the effect body.
+      const t = window.setTimeout(() => {
+        setAll(false);
+        setQ("");
+        setCur(0);
+        setExp([]);
+        setPwr(false);
+      }, 0);
+      return () => window.clearTimeout(t);
     }
   }, [open]);
 
@@ -182,7 +188,10 @@ export function StartMenu() {
     const progs = [...flat(PROGRAMS), ...flat(MORE)].filter((p) => p.label.toLowerCase().includes(t) || p.desc?.toLowerCase().includes(t));
     const uniq = progs.filter((p, i) => progs.findIndex((x) => x.label === p.label) === i);
     const cp = CPL.filter((c) => c[0].toLowerCase().includes(t));
-    const files = searchFs(null, t).filter((n) => !n.id.startsWith("exe_")).slice(0, 12);
+    // only files in indexed locations, mirroring Windows Search
+    const files = searchFs(null, t)
+      .filter((n) => !n.id.startsWith("exe_") && (!n.parent || isIndexed(n.parent as string)))
+      .slice(0, 12);
     return { progs: uniq, cp, files };
   }, [q]);
 
@@ -362,6 +371,9 @@ export function StartMenu() {
         {place("Mobility Center", "power", () => openApp("mobility"))}
         {place("Default Programs", "defaultprogs", () => openCP("defaultprogs"))}
         {place("Help and Support", "help", () => openApp("help"))}
+        {/* Windows has no such item; on a browser the "PC" can be installed as an
+            app, so it belongs here rather than in a banner over the desktop. */}
+        {canInstall && place("Install this PC", "setup", () => { void promptInstall().then((r) => { if (r === "accepted") markInstallFlag(); }); })}
         <div className="sm-rspace" />
         <div className="sm-power">
           <button className="sm-shut" onClick={() => run(shutdown)}>Shut down</button>

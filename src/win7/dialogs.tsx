@@ -257,11 +257,17 @@ export function Props({ win }: { win: Win }) {
   const t = win.props as { kind: "fs"; id: string } | { kind: "sys"; key: string };
   const fs = useStore((s) => s.fs);
   const [tab, setTab] = useState("General");
+  const [shared, setShared] = useState(false);
+  const [rb, setRb] = useState<"dedicate" | "use" | "none">(() => lsGet("win7.readyboost", "none"));
   const n = t.kind === "fs" ? fs[t.id] : null;
   const [hidden, setHidden] = useState(!!n?.hidden);
   const [ro, setRo] = useState(false);
   const apply = () => {
     if (n) setState({ fs: { ...getState().fs, [n.id]: { ...n, hidden } } });
+    // ReadyBoost and sharing are per-device settings in Windows; keep them in
+    // the shell's local storage rather than in the virtual file system.
+    lsSet("win7.readyboost", rb);
+    if (shared && n) lsSet("win7.shared." + n.id, "1");
   };
   if (t.kind === "sys") {
     const items = trashed(fs);
@@ -284,7 +290,7 @@ export function Props({ win }: { win: Win }) {
   const used = (n.total || 0) - (n.free || 0);
   return (
     <div className="dlg props">
-      <Tabs tabs={isDrive ? ["General", "Tools", "Hardware", "Sharing"] : ["General", "Security", "Details"]} value={tab} onChange={setTab} />
+      <Tabs tabs={isDrive ? ["General", "Tools", "Hardware", "Sharing", "ReadyBoost", "Previous Versions"] : ["General", "Security", "Details", "Previous Versions"]} value={tab} onChange={setTab} />
       <div className="props-body">
         {tab === "General" && (
           <>
@@ -324,12 +330,56 @@ export function Props({ win }: { win: Win }) {
         )}
         {tab === "Security" && <div><p>Object name: {pathOf(n.id)}</p><GroupBox title="Group or user names:"><div>SYSTEM<br />Administrators (PC\Administrators)<br />{getState().settings.currentUser} (PC\{getState().settings.currentUser})</div></GroupBox></div>}
         {tab === "Details" && <table className="props-t"><tbody><tr><td>Name</td><td>{n.name}</td></tr><tr><td>Item type</td><td>{kindOf(n)}</td></tr><tr><td>Folder path</td><td>{pathOf(n.id)}</td></tr><tr><td>Size</td><td>{fmtSize(n.size)}</td></tr><tr><td>Date created</td><td>{fmtDate(n.created)}</td></tr><tr><td>Date modified</td><td>{fmtDate(n.modified)}</td></tr><tr><td>Owner</td><td>{getState().settings.currentUser}</td></tr></tbody></table>}
-        {(tab === "Tools" || tab === "Hardware" || tab === "Sharing") && (
+        {tab === "Tools" && (
           <div>
-            <GroupBox title={tab === "Tools" ? "Error-checking" : tab === "Hardware" ? "All disk drives" : "Network File and Folder Sharing"}>
-              <p>{tab === "Tools" ? "This option will check the volume for errors." : tab === "Hardware" ? "ST3500418AS ATA Device — Working properly" : "Not shared"}</p>
-              <Btn onClick={() => msgBox({ title: "Windows", text: tab === "Tools" ? "Your disk was successfully scanned. Windows found no errors." : "This operation is not available in the simulation.", icon: "info" })}>{tab === "Tools" ? "Check now..." : "Properties"}</Btn>
+            <GroupBox title="Error-checking">
+              <p>This option will check the volume for errors.</p>
+              <Btn onClick={() => msgBox({ title: "Windows", text: "Your disk was successfully scanned. Windows found no errors.", icon: "info" })}>Check now...</Btn>
             </GroupBox>
+            <GroupBox title="Defragmentation">
+              <p>This option will defragment files on this volume.</p>
+              <Btn onClick={() => openApp("cleanmgr")}>Defragment now...</Btn>
+            </GroupBox>
+            <GroupBox title="Backup">
+              <p>This option will back up files on this volume.</p>
+              <Btn onClick={() => openApp("backup")}>Back up now...</Btn>
+            </GroupBox>
+          </div>
+        )}
+        {tab === "Hardware" && (
+          <GroupBox title="All disk drives">
+            <table className="props-t"><tbody>
+              <tr><td>Type:</td><td>Disk drives</td></tr>
+              <tr><td>Manufacturer:</td><td>(Standard disk drives)</td></tr>
+              <tr><td>Location:</td><td>System Reserved</td></tr>
+              <tr><td>Device type:</td><td>Disk drives</td></tr>
+              <tr><td>Device status:</td><td>This device is working properly.</td></tr>
+            </tbody></table>
+          </GroupBox>
+        )}
+        {tab === "Sharing" && (
+          <GroupBox title="Network File and Folder Sharing">
+            <p>Not shared</p>
+            <Btn onClick={() => setShared(true)}>Advanced Sharing...</Btn>
+            {shared && <p className="props-note">Shared as <b>{n.name.replace(/[():\\/]/g, "")}</b> — permissions: Everyone (Read).</p>}
+          </GroupBox>
+        )}
+        {tab === "ReadyBoost" && (
+          <GroupBox title="ReadyBoost">
+            <p>ReadyBoost can speed up your computer by using storage space on most USB flash drives and flash memory cards.</p>
+            <p>
+              <label style={{ display: "block" }}><input type="radio" name="rb" checked={rb === "dedicate"} onChange={() => setRb("dedicate")} /> Dedicate this device to ReadyBoost</label>
+              <label style={{ display: "block" }}><input type="radio" name="rb" checked={rb === "use"} onChange={() => setRb("use")} /> Use this device</label>
+              <label style={{ display: "block" }}><input type="radio" name="rb" checked={rb === "none"} onChange={() => setRb("none")} /> Do not use this device</label>
+            </p>
+            <p className="props-note">{rb === "none" ? "ReadyBoost is not enabled on this device." : `Reserved for system speed: ${rb === "dedicate" ? "all available" : "4,096"} MB of the free space on this device.`}</p>
+          </GroupBox>
+        )}
+        {(tab === "Previous Versions") && (
+          <div>
+            <p>Previous versions come from restore points or from Windows Backup. This simulation keeps neither, so there is nothing to restore here.</p>
+            <table className="props-t"><tbody><tr><td colSpan={2} style={{ color: "#666" }}>There are no previous versions available.</td></tr></tbody></table>
+            <p><Btn disabled>Open</Btn> <Btn disabled>Copy...</Btn> <Btn disabled>Restore...</Btn></p>
           </div>
         )}
       </div>
