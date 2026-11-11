@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Win, useStore, getState, setWin, showMenu, openApp, openCP, openNode, mkdir, searchFs, children, trashed, restoreNodes, kindOf, fmtDate, fmtSize, fmtBig, extOf, pathOf, msgBox,
-  FsNode, MenuItem, setSettings, moveNodes, copyNodes, setState, view, resolvePath, openPath,
+  FsNode, MenuItem, setSettings, moveNodes, copyNodes, setState, view, resolvePath, openPath, closeWin,
 } from "../store";
 import { Icon, nodeIcon } from "../icons";
 import { GlassBar, cmpLocale } from "../ui";
@@ -52,6 +52,7 @@ export function Explorer({ win }: { win: Win }) {
   const [navPane, setNavPane] = useState(settings.folder.navPane);
   const [open, setOpen] = useState<string[]>(["c", "home"]);
   const rootRef = useRef<HTMLDivElement>(null);
+  const typeAhead = useRef({ text: "", at: 0 });
 
   useEffect(() => {
     const t = setTimeout(() => setQ2(query), 160);
@@ -243,12 +244,43 @@ export function Explorer({ win }: { win: Win }) {
     const t = e.target as HTMLElement;
     if (t.tagName === "INPUT") return;
     const k = e.key.toLowerCase();
-    if (e.altKey && k === "arrowleft") return back();
-    if (e.altKey && k === "arrowright") return fwd();
-    if (e.altKey && k === "arrowup") return up();
+    const focusSearch = () => {
+      e.preventDefault();
+      (document.getElementById("exs-" + win.id) as HTMLInputElement | null)?.focus();
+    };
+    const focusAddress = () => {
+      e.preventDefault();
+      setAddr(isVirtual(path) ? title : pathOf(path, fs));
+    };
+    if (e.altKey && k === "arrowleft") { e.preventDefault(); return back(); }
+    if (e.altKey && k === "arrowright") { e.preventDefault(); return fwd(); }
+    if (e.altKey && k === "arrowup") { e.preventDefault(); return up(); }
+    if (e.altKey && k === "enter") {
+      e.preventDefault();
+      if (selRows.length === 1 && selRows[0].node) showProps({ kind: "fs", id: selRows[0].id });
+      else if (fs[path]) showProps({ kind: "fs", id: path });
+      return;
+    }
+    if (e.altKey && k === "d") return focusAddress();
+    if (e.altKey && k === "p") { e.preventDefault(); return setPreview((v) => !v); }
+    if (k === "f4") return focusAddress();
+    if (e.ctrlKey && e.shiftKey && k === "n") { e.preventDefault(); return doNew(); }
+    if (e.ctrlKey && k === "n") { e.preventDefault(); return openApp("explorer", { path }); }
+    if (e.ctrlKey && k === "w") { e.preventDefault(); return closeWin(win.id); }
+    if ((e.ctrlKey && (k === "e" || k === "f")) || k === "f3") return focusSearch();
+    if ((e.shiftKey && k === "f10") || k === "contextmenu") {
+      e.preventDefault();
+      const row = rows.find((r) => r.id === anchor) || selRows[0];
+      if (row) {
+        const el = rootRef.current?.querySelector<HTMLElement>(`[data-row="${row.id}"]`);
+        const r = el?.getBoundingClientRect() || rootRef.current!.getBoundingClientRect();
+        itemMenu({ preventDefault() {}, stopPropagation() {}, clientX: r.left + 24, clientY: r.top + 20 } as unknown as React.MouseEvent, row);
+      }
+      return;
+    }
     if (k === "backspace") { e.preventDefault(); return back(); }
     if (k === "f5") { e.preventDefault(); return setState({ rev: getState().rev + 1 }); }
-    if (k === "enter") { selRows.forEach(openRow); return; }
+    if (k === "enter") { e.preventDefault(); selRows.forEach(openRow); return; }
     if (k === "f2" && fsSel.length === 1 && canWrite) return setRename(fsSel[0]);
     if (k === "delete" && fsSel.length && !(path === "computer")) { e.preventDefault(); return deleteNodes(fsSel, { permanent: e.shiftKey, inTrash }); }
     if (e.ctrlKey && k === "a") { e.preventDefault(); return setSel(rows.map((r) => r.id)); }
@@ -257,7 +289,20 @@ export function Explorer({ win }: { win: Win }) {
     if (e.ctrlKey && k === "v") return paste();
     if (e.ctrlKey && k === "z") return undoLast();
     if (e.ctrlKey && e.shiftKey && k === "n") return doNew();
-    if (e.ctrlKey && k === "f") { e.preventDefault(); return (document.getElementById("exs-" + win.id) as HTMLInputElement | null)?.focus(); }
+    if (e.ctrlKey && k === " " && anchor) {
+      e.preventDefault();
+      setSel((selected) => selected.includes(anchor) ? selected.filter((id) => id !== anchor) : [...selected, anchor]);
+      return;
+    }
+    if (k.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && k !== " ") {
+      const now = Date.now();
+      const text = now - typeAhead.current.at < 700 ? typeAhead.current.text + k : k;
+      typeAhead.current = { text, at: now };
+      const matches = rows.filter((r) => r.name.toLocaleLowerCase().startsWith(text));
+      const match = matches[0] || rows.find((r) => r.name.toLocaleLowerCase().startsWith(k));
+      if (match) { e.preventDefault(); setSel([match.id]); setAnchor(match.id); }
+      return;
+    }
     if (["arrowdown", "arrowup", "arrowleft", "arrowright", "home", "end"].includes(k)) {
       e.preventDefault();
       if (!rows.length) return;
@@ -368,9 +413,9 @@ export function Explorer({ win }: { win: Win }) {
     const r = e.currentTarget.getBoundingClientRect();
     showMenu({ x: r.left / view.scale, y: r.bottom / view.scale }, viewItems());
   };
-  const cycleView = () => {
+  const cycleView = (direction = 1) => {
     const order: ViewMode[] = ["details", "list", "small", "medium", "large", "xl", "tiles"];
-    setMode(order[(order.indexOf(mode) + 1) % order.length]);
+    setMode(order[(order.indexOf(mode) + direction + order.length) % order.length]);
   };
 
   const cmds: { label: string; fn: () => void; arrow?: boolean }[] = [];
@@ -413,6 +458,7 @@ export function Explorer({ win }: { win: Win }) {
 
   const itemProps = (r: Row) => ({
     "data-id": r.id,
+    "data-row": r.id,
     className: "ex-item" + (sel.includes(r.id) ? " sel" : "") + (clip?.mode === "cut" && clip.ids.includes(r.id) ? " cut" : ""),
     draggable: !!r.node && r.node.parent !== null && !inTrash && !rename,
     onDragStart: (e: React.DragEvent) => dragStart(e, r),
@@ -491,7 +537,7 @@ export function Explorer({ win }: { win: Win }) {
   const trashCount = trashed(fs).length;
 
   return (
-    <div className="explorer" ref={rootRef} tabIndex={0} onKeyDown={key} data-dropdir={path} {...(canWrite && fs[path] ? dropProps(path) : {})}>
+    <div className="explorer" ref={rootRef} tabIndex={0} onKeyDown={key} onWheel={(e) => { if (e.ctrlKey) { e.preventDefault(); cycleView(e.deltaY < 0 ? 1 : -1); } }} data-dropdir={path} {...(canWrite && fs[path] ? dropProps(path) : {})}>
       <GlassBar winId={win.id}>
         <div className="ex-navbar">
           <div className="ex-navbtns">
@@ -524,7 +570,7 @@ export function Explorer({ win }: { win: Win }) {
         <button className="cmd" onClick={organize}>Organize <i>▾</i></button>
         {cmds.map((c) => <button key={c.label} className="cmd" onClick={c.fn}>{c.label}</button>)}
         <div style={{ flex: 1 }} />
-        <button className="cmd" onClick={cycleView} title="Change your view">
+        <button className="cmd" onClick={() => cycleView()} title="Change your view">
           <Icon name="folder" size={14} /> <i onClick={(e) => { e.stopPropagation(); viewsBtn(e); }}>▾</i>
         </button>
         <button className={"cmd sq" + (preview ? " on" : "")} title="Show the preview pane" onClick={() => setPreview(!preview)}><svg width="16" height="14" viewBox="0 0 16 14"><rect x="1" y="1" width="14" height="12" fill="#fff" stroke="#556" /><rect x="9" y="1" width="6" height="12" fill="#bcd2ee" stroke="#556" /></svg></button>

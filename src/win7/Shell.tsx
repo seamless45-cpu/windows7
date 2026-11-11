@@ -3,11 +3,12 @@ import React, { useEffect, useRef } from "react";
 import {
   useStore, getState, setState, view, closeAllMenus, toggleStart, showDesktop, openApp, openPath, lock, closeWin, focusWin, maxWin, snapWin, minWin, hideMenu, openCP, setSettings, setWin, workArea, notify,
   flipStart, flipCommit, flipCancel, jumpTouch, closeJumpList, openJumpList, toggleFlyout,
+  minimizeAll, restoreMinimized, activateTaskbarSlot, taskbarFocus,
 } from "./store";
 import { APPS } from "./registry";
 import { IconDefs } from "./icons";
 import { Desktop } from "./Desktop";
-import { WindowLayer } from "./Window";
+import { WindowLayer, showWindowSystemMenu } from "./Window";
 import { Taskbar } from "./Taskbar";
 import { StartMenu } from "./StartMenu";
 import { ContextMenuHost } from "./ui";
@@ -153,11 +154,18 @@ export default function Shell() {
         metaCombo = true;
         let handled = true;
         const fw = st.windows.find((w) => w.id === st.focus);
-        if (k === "d") showDesktop();
+        if (/^[0-9]$/.test(k)) {
+          const slot = k === "0" ? 9 : Number(k) - 1;
+          activateTaskbarSlot(slot, e.altKey ? "jump" : e.shiftKey ? "new" : e.ctrlKey ? "cycle" : "activate");
+        }
+        else if (k === "d") showDesktop();
         else if (k === "e") openPath("computer");
         else if (k === "r") openApp("run");
         else if (k === "l") lock();
-        else if (k === "m") st.windows.filter((w) => !APPS[w.app].noTask).forEach((w) => minWin(w.id));
+        else if (k === "m") e.shiftKey ? restoreMinimized() : minimizeAll();
+        else if (k === "u") openCP("ease");
+        else if (k === "b") taskbarFocus(-1);
+        else if (k === " " && st.settings.taskbar.peek) setState({ peek: "all", startOpen: false, flyout: null });
         else if (k === "w" && e.ctrlKey && e.altKey) { if (fw) closeWin(fw.id); }
         else if (k === "f" ) openApp("explorer", { path: "search" });
         else if (k === "pause") openCP("system");
@@ -165,25 +173,39 @@ export default function Shell() {
         else if (k === "arrowright" && fw) snapWin(fw.id, "r");
         else if (k === "arrowup" && fw && !fw.max) maxWin(fw.id);
         else if (k === "arrowdown" && fw) (fw.max || fw.snap ? maxWin(fw.id) : minWin(fw.id));
-        else if (k === "tab" && combo && !(e.ctrlKey && e.altKey)) { flipStart(e.shiftKey ? -1 : 1); }
-        else if (k === "home" && combo) { shakeDesktop(); }
-        else if (k === "t" && combo) {
-          setState({ taskbarIdx: 0 });
-        }
-        else if (k === "p" && combo) { openApp("mobility"); }
-        else if (k === "x" && combo) { openApp("mobility"); }
+        else if (k === "tab" && !(e.ctrlKey && e.altKey)) { flipStart(e.shiftKey ? -1 : 1); }
+        else if (k === "home") { shakeDesktop(); }
+        else if (k === "t") taskbarFocus(st.taskbarIdx === null ? 0 : st.taskbarIdx + (e.shiftKey ? -1 : 1));
+        else if (k === "p") { openApp("mobility"); }
+        else if (k === "x") { openApp("mobility"); }
         else if (k === "+" || k === "=" ) { setState({ mag: { on: true, level: Math.min(8, st.mag.level + 0.5) } }); openApp("magnifier"); }
         else if (k === "-") setState({ mag: { ...st.mag, level: Math.max(1, st.mag.level - 0.5) } });
-        else if (k === "tab" && e.ctrlKey && e.altKey) {
-          handled = true;
-          altTab(e);
-        } else handled = false;
+        else if (k === "tab" && e.ctrlKey && e.altKey) altTab(e);
+        else handled = false;
         if (handled) e.preventDefault();
         return;
       }
-      if (e.ctrlKey && e.key === "Escape") {
+      if (e.ctrlKey && e.shiftKey && e.key === "Escape") {
+        e.preventDefault();
+        openApp("taskmgr");
+        return;
+      }
+      if (e.ctrlKey && !e.shiftKey && e.key === "Escape") {
         e.preventDefault();
         toggleStart();
+        return;
+      }
+      if (e.altKey && e.key === " ") {
+        e.preventDefault();
+        const w = st.windows.find((q) => q.id === st.focus);
+        if (w) showWindowSystemMenu(w.id);
+        return;
+      }
+      if (e.altKey && e.key === "Escape") {
+        e.preventDefault();
+        const ids = st.windows.filter((w) => !APPS[w.app].noTask && !w.closing).sort((a, b) => a.z - b.z).map((w) => w.id);
+        const at = ids.indexOf(st.focus || "");
+        if (ids.length) focusWin(ids[(at + 1) % ids.length]);
         return;
       }
       if (e.altKey && e.key === "Tab") {
@@ -237,8 +259,10 @@ export default function Shell() {
     const ku = (e: KeyboardEvent) => {
       if ((e.key === "Meta" || e.key === "OS") && metaDown) {
         if (!metaCombo && getState().power === "desktop") toggleStart();
+        if (getState().peek === "all") setState({ peek: null });
         metaDown = false;
       }
+      if (e.key === " " && getState().peek === "all") setState({ peek: null });
       if ((e.key === "Alt" || e.key === "Control") && getState().altTab) {
         const a = getState().altTab!;
         setState({ altTab: null });

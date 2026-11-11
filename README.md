@@ -171,7 +171,7 @@ sounds are the real Windows 7 ones**:
 | Start menu | Search across programs, files and Control Panel, pinned & recent programs, jump-list arrows, all-programs tree, power menu |
 | Desktop | Icons with drag selection, rename, arrange/sort, system icons, recycle bin, gadgets, per-icon positions |
 | Personalisation | Themes (Aero, Basic, Classic, High Contrast), wallpapers + own pictures, wallpaper slideshow, window colour, screensaver (bubbles, ribbons, photos), cursors, pointer trails, DPI scaling |
-| Keyboard | `Win`/`Ctrl`+`Esc` Start, `Win`+`D`, `Win`+`E`, `Win`+`R`, `Win`+`L`, `Win`+`P`/`X` Mobility Center, `Win`+`T`, `Win`+`Tab` Flip 3D, `Win`+`Home` shake, `Alt`+`Tab`, `Alt`+`F4`, snap arrows, F11 |
+| Keyboard | `Win`/`Ctrl`+`Esc` Start, `Win`+`D`, separate `Win`+`M` / `Win`+`Shift`+`M`, `Win`+number taskbar launch/switch (with Shift/Ctrl/Alt variants), held `Win`+`Space` Peek, `Win`+`E`, `Win`+`R`, `Win`+`L`, `Win`+`U`, `Win`+`P`/`X` Mobility Center, `Win`+`T`/`B`, `Win`+`Tab` Flip 3D, `Win`+`Home` shake, `Alt`+`Tab`/`Esc`/`Space`/`F4`, `Ctrl`+`Shift`+`Esc`, snap arrows, F11 |
 
 ## Applications
 
@@ -193,6 +193,10 @@ browser supports it, otherwise type-a-command mode), Help and Support.
 Everything you create — files, notes, wallpapers, journal pages, settings, icon positions,
 game best scores — is stored in `localStorage`. *Control Panel → Action Center → Reset this
 simulated PC* restores the original system.
+
+The shell, Explorer and Calculator behaviors are cross-checked against Windows 7 references
+in [`docs/windows7-behavior.md`](docs/windows7-behavior.md). Run `npm test`, `npm run
+typecheck` and `npm run build` after changing them.
 
 ## Layout
 

@@ -1,6 +1,6 @@
 "use client";
 import React, { memo, useEffect, useRef, useState } from "react";
-import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, setGeom, view, getState, workArea, shakeWin } from "./store";
+import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, setGeom, view, getState, workArea, shakeWin, showMenu } from "./store";
 import { APPS } from "./registry";
 import { Icon } from "./icons";
 import { COMPONENTS } from "./appmap";
@@ -26,6 +26,53 @@ class Boundary extends React.Component<{ win: Win; children: React.ReactNode }, 
 }
 
 const DIRS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+
+/** Keyboard form of the system menu's Move and Size commands (Alt+Space). */
+function keyboardAdjust(id: string, mode: "move" | "size") {
+  const original = getState().windows.find((w) => w.id === id);
+  if (!original) return;
+  const finish = () => {
+    window.removeEventListener("keydown", key, true);
+    window.removeEventListener("blur", finish);
+  };
+  const key = (e: KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); finish(); return; }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setGeom(id, { x: original.x, y: original.y, w: original.w, h: original.h });
+      finish();
+      return;
+    }
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const w = getState().windows.find((q) => q.id === id);
+    if (!w) return finish();
+    const step = e.ctrlKey ? 1 : 8;
+    const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+    const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+    if (mode === "move") setGeom(id, { x: w.x + dx, y: w.y + dy, w: w.w, h: w.h });
+    else setGeom(id, { x: w.x, y: w.y, w: Math.max(240, w.w + dx), h: Math.max(120, w.h + dy) });
+  };
+  window.addEventListener("keydown", key, true);
+  window.addEventListener("blur", finish);
+}
+
+export function showWindowSystemMenu(id: string, at?: { x: number; y: number }) {
+  const w = getState().windows.find((q) => q.id === id);
+  if (!w) return;
+  const fixed = !!APPS[w.app].fixed;
+  const restored = !w.max && !w.snap;
+  showMenu(at || { x: w.x + 7, y: w.y + 27 }, [
+    { label: "Restore", disabled: restored || fixed, onClick: () => maxWin(id) },
+    { label: "Move", disabled: !restored || fixed, onClick: () => keyboardAdjust(id, "move") },
+    { label: "Size", disabled: !restored || fixed, onClick: () => keyboardAdjust(id, "size") },
+    { label: "Minimize", disabled: w.min || fixed, onClick: () => minWin(id) },
+    { label: "Maximize", disabled: w.max || fixed, onClick: () => maxWin(id) },
+    { sep: true },
+    { label: "Close", shortcut: "Alt+F4", onClick: () => closeWin(id) },
+  ]);
+}
 
 const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, wh }: { win: Win; active: boolean; peek: string; wx: number; wy: number; ww: number; wh: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -293,8 +340,10 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     <div ref={ref} className={cls} data-win={win.id} style={{ ...geom, zIndex: win.z, ...anim }} onPointerDownCapture={() => focusWin(win.id)} onPointerDown={onDown}>
       {!frameless && (
         <>
-          <div className="w-title win-drag" onDoubleClick={(e) => { if (!fixed && !(e.target as HTMLElement).closest(".w-btns")) maxWin(win.id); }}>
-            <Icon name={meta.icon} size={16} className="w-ico" />
+          <div className="w-title win-drag" onDoubleClick={(e) => { if (!fixed && !(e.target as HTMLElement).closest(".w-btns,.w-icon-button")) maxWin(win.id); }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); showWindowSystemMenu(win.id, { x: e.clientX / view.scale, y: e.clientY / view.scale }); }}>
+            <span className="w-icon-button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); showWindowSystemMenu(win.id); }} onDoubleClick={(e) => { e.stopPropagation(); closeWin(win.id); }}>
+              <Icon name={meta.icon} size={16} className="w-ico" />
+            </span>
             <span className="w-title-text">{win.title}</span>
           </div>
           <div className="w-btns" onPointerDown={(e) => e.stopPropagation()}>
