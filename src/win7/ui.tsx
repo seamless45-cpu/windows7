@@ -33,8 +33,51 @@ export function fmtLongDate(d: Date, s: Settings): string {
 /* ----------------------------------------------------------- context menu */
 function MenuPanel({ items, onClose, sub, flip }: { items: MenuItem[]; onClose: () => void; sub?: boolean; flip?: boolean }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [active, setActive] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [fl, setFl] = useState(!!flip);
+  const enabled = (i: number) => !!items[i] && !items[i].sep && !items[i].disabled;
+  const move = (direction: number) => {
+    if (!items.length) return;
+    let i = active ?? (direction > 0 ? -1 : items.length);
+    for (let n = 0; n < items.length; n++) {
+      i = (i + direction + items.length) % items.length;
+      if (enabled(i)) break;
+    }
+    setActive(i);
+    setOpen(items[i]?.sub ? i : null);
+  };
+  const invoke = (i: number) => {
+    const it = items[i];
+    if (!it || it.disabled || it.sep) return;
+    if (it.sub) { setOpen(i); setActive(i); return; }
+    onClose();
+    setTimeout(() => it.onClick?.(), 0);
+  };
+  const key = (e: React.KeyboardEvent) => {
+    if (["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "Enter", " ", "Escape", "Tab"].includes(e.key) || e.key.length === 1) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (e.key === "ArrowDown") move(1);
+    else if (e.key === "ArrowUp") move(-1);
+    else if (e.key === "Home" || e.key === "End") {
+      const order = items.map((_, i) => e.key === "Home" ? i : items.length - 1 - i);
+      const match = order.find(enabled);
+      if (match !== undefined) { setActive(match); setOpen(items[match].sub ? match : null); }
+    }
+    else if (e.key === "ArrowRight" && active !== null && items[active]?.sub) setOpen(active);
+    else if (e.key === "ArrowLeft" && sub) onClose();
+    else if (e.key === "Escape" || e.key === "Tab") onClose();
+    else if ((e.key === "Enter" || e.key === " ") && active !== null) invoke(active);
+    else if (e.key.length === 1 && e.key !== " ") {
+      const k = e.key.toLocaleLowerCase();
+      const start = (active ?? -1) + 1;
+      const order = items.map((_, i) => (start + i) % items.length);
+      const match = order.find((i) => enabled(i) && items[i].label?.toLocaleLowerCase().startsWith(k));
+      if (match !== undefined) { setActive(match); setOpen(items[match].sub ? match : null); }
+    }
+  };
   useLayoutEffect(() => {
     if (sub && ref.current) {
       const r = ref.current.getBoundingClientRect();
@@ -42,20 +85,18 @@ function MenuPanel({ items, onClose, sub, flip }: { items: MenuItem[]; onClose: 
     }
   }, [sub]);
   return (
-    <div ref={ref} className={"ctx" + (sub ? " sub" : "") + (fl ? " flip" : "")} onContextMenu={(e) => e.preventDefault()} onPointerDown={(e) => e.stopPropagation()}>
+    <div ref={ref} className={"ctx" + (sub ? " sub" : "") + (fl ? " flip" : "")} tabIndex={sub ? -1 : 0} onKeyDown={key} onContextMenu={(e) => e.preventDefault()} onPointerDown={(e) => e.stopPropagation()}>
       {items.map((it, i) =>
         it.sep ? (
           <div key={i} className="ctx-sep" />
         ) : (
           <div
             key={i}
-            className={"ctx-item" + (it.disabled ? " disabled" : "") + (open === i ? " open" : "") + (it.bold ? " bold" : "")}
-            onMouseEnter={() => setOpen(it.sub && !it.disabled ? i : null)}
+            className={"ctx-item" + (it.disabled ? " disabled" : "") + (open === i || active === i ? " open" : "") + (it.bold ? " bold" : "")}
+            onMouseEnter={() => { setActive(i); setOpen(it.sub && !it.disabled ? i : null); }}
             onClick={(e) => {
               e.stopPropagation();
-              if (it.disabled || it.sub) return;
-              onClose();
-              setTimeout(() => it.onClick?.(), 0);
+              invoke(i);
             }}
           >
             <span className="ctx-check">{it.checked ? (it.radio ? "●" : "✓") : it.icon ? <Icon name={it.icon} size={16} /> : null}</span>
@@ -74,6 +115,9 @@ export function ContextMenuHost() {
   const menu = useStore((s) => s.menu);
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (menu) ref.current?.querySelector<HTMLElement>(".ctx")?.focus();
+  }, [menu]);
   useLayoutEffect(() => {
     if (!menu || !ref.current) return setPos(null);
     const r = ref.current.getBoundingClientRect();

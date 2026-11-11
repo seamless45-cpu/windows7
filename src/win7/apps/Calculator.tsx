@@ -15,6 +15,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Win, setWin, openApp, msgBox, showMenu, MenuItem } from "../store";
 import { MenuBar } from "../ui";
+import { evaluateStandard, groupDigits, percentValue } from "../calcEngine";
 
 /* ------------------------------------------------------------ arithmetic */
 
@@ -566,6 +567,7 @@ export function Calculator({ win }: { win: Win }) {
   const [err, setErr] = useState<string | null>(null);
   const [hist, setHist] = useState<string[]>([]);
   const [showHist, setShowHist] = useState(false);
+  const [grouping, setGrouping] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const sci = mode === "scientific";
 
@@ -605,7 +607,9 @@ export function Calculator({ win }: { win: Win }) {
     if (t[t.length - 1] !== ")" && t[t.length - 1] !== "(") t.push(entry);
     try {
       const expr = t.join(" ").replace(/×/g, "*").replace(/÷/g, "/");
-      const r = safeEval(expr);
+      // Standard calc.exe behaves like a desk calculator and evaluates each
+      // operation immediately; only Scientific view applies precedence.
+      const r = sci ? safeEval(expr) : evaluateStandard(t, entry);
       const s = fmt(r);
       setHist((h) => [`${t.join(" ")} = ${s}`, ...h].slice(0, 40));
       setEntry(s);
@@ -625,7 +629,7 @@ export function Calculator({ win }: { win: Win }) {
   };
   const rad = (x: number) => (deg ? (x * Math.PI) / 180 : x);
   const unrad = (x: number) => (deg ? (x * 180) / Math.PI : x);
-  const percent = () => { const prev = tokens.length >= 2 ? parseFloat(tokens[tokens.length - 2]) : 0; un((x) => (prev * x) / 100); };
+  const percent = () => un(() => percentValue(tokens, entry));
   const back = () => { if (fresh || err) return; setEntry(entry.length > 1 && !(entry.length === 2 && entry.startsWith("-")) ? entry.slice(0, -1) : "0"); };
   const sign = () => setEntry(entry.startsWith("-") ? entry.slice(1) : entry === "0" ? entry : "-" + entry);
   const fact = (x: number) => { if (x < 0 || !Number.isInteger(x)) throw new Error("Invalid input"); let r = 1; for (let i = 2; i <= x; i++) r *= i; return r; };
@@ -687,7 +691,7 @@ export function Calculator({ win }: { win: Win }) {
         { label: "Worksheets", checked: mode === "worksheet", radio: true, onClick: () => setModeAndClear("worksheet") },
         { sep: true },
         { label: "History", shortcut: "Ctrl+H", checked: showHist, onClick: () => setShowHist(!showHist) },
-        { label: "Digit grouping", onClick: () => msgBox({ title: "Calculator", text: "Digit grouping is on: 1,234,567.", icon: "info" }) },
+        { label: "Digit grouping", checked: grouping, onClick: () => setGrouping((v) => !v) },
       ],
     },
     {
@@ -707,7 +711,7 @@ export function Calculator({ win }: { win: Win }) {
     },
   ];
 
-  const display = err ?? (entry.length > 18 ? Number(entry).toExponential(8) : entry);
+  const display = err ?? (entry.length > 18 ? Number(entry).toExponential(8) : grouping ? groupDigits(entry) : entry);
 
   return (
     <div className="calc" ref={ref} tabIndex={0} onKeyDown={key}>

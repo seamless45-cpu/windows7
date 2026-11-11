@@ -308,6 +308,8 @@
 .ctx.sub.flip { left: auto; right: 100%; margin-right: -2px; }
 .ctx-item { position: relative; display: flex; align-items: center; height: 22px; padding: 0 22px 0 0; border: 1px solid transparent; border-radius: 2px; white-space: nowrap; cursor: default; }
 .ctx-item:hover, .ctx-item.open { background: linear-gradient(#f9fcff, #dcebfb); border-color: #a8cff5; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); }
+.ctx:focus { outline: none; }
+.w-icon-button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 22px; }
 .ctx-item.disabled { color: #8d8d8d; } .ctx-item.disabled:hover { background: none; border-color: transparent; box-shadow: none; }
 .ctx-item.bold .ctx-label { font-weight: 700; }
 .ctx-check { width: 26px; flex: none; text-align: center; font-size: 11px; display: flex; justify-content: center; }

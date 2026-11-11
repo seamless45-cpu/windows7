@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useStore, state as gs, getState, showMenu, setState, setSettings, openApp, openCP, openPath, openNode, children, trashed, setIconPos, workArea, view, setWin, extOf,
-  moveNodes, kindOf, uid,
+  moveNodes, kindOf, uid, mkdir,
 } from "./store";
 import { Icon, nodeIcon } from "./icons";
 import { InlineEdit } from "./ui";
@@ -308,7 +308,25 @@ export function Desktop() {
       const t = e.target as HTMLElement;
       if (t?.closest?.("input,textarea,select,[contenteditable]")) return;
       const fsIds = selFs();
-      if (e.key === "Delete" && fsIds.length) {
+      if (e.altKey && e.key === "Enter" && sel.length) {
+        e.preventDefault();
+        const it = items.find((q) => q.key === sel[0]);
+        if (it?.sys) showProps({ kind: "sys", key: it.sys });
+        else if (it) showProps({ kind: "fs", id: it.key });
+      } else if ((e.shiftKey && e.key === "F10") || e.key === "ContextMenu") {
+        e.preventDefault();
+        const it = items.find((q) => q.key === sel[0]);
+        const el = it && ref.current?.querySelector<HTMLElement>(`[data-icon="${it.key}"]`);
+        if (it && el) {
+          const r = el.getBoundingClientRect();
+          iconMenu({ preventDefault() {}, stopPropagation() {}, clientX: r.left + 20, clientY: r.top + 24 } as unknown as React.MouseEvent, it);
+        }
+      } else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        const id = mkdir("desk");
+        setSel([id]);
+        setRenaming(id);
+      } else if (e.key === "Delete" && fsIds.length) {
         e.preventDefault();
         deleteNodes(fsIds, { permanent: e.shiftKey });
       } else if (e.key === "F2" && fsIds.length === 1) setRenaming(fsIds[0]);

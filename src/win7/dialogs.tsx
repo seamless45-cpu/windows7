@@ -34,7 +34,10 @@ export function MsgBox({ win }: { win: Win }) {
     setTimeout(() => p.onResult?.(b), 0);
   };
   return (
-    <div className="dlg">
+    <div className="dlg" tabIndex={-1} autoFocus onKeyDown={(e) => {
+      if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "BUTTON") { e.preventDefault(); e.stopPropagation(); done(buttons[0]); }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(buttons[buttons.length - 1]); }
+    }}>
       <div className="dlg-main">
         <Icon name={p.icon === "warn" ? "warn" : p.icon || "info"} size={40} />
         <div className="dlg-text">{p.text || ""}</div>

@@ -917,7 +917,7 @@ export function openApp(app: string, props: any = {}, opts: Partial<Win> = {}): 
   }
   const win: Win = { id: "w" + winSeq++, app, title: opts.title || meta.title, x: opts.x ?? x, y: opts.y ?? y, w, h, min: false, max: false, z: ++zTop, props, modal: meta.modal, ...opts };
   const settings = !meta.noTask && !meta.hidden && !state.settings.recent.includes(app) ? { ...state.settings, recent: [app, ...state.settings.recent].slice(0, 6) } : state.settings;
-  setState({ windows: [...state.windows, win], focus: win.id, startOpen: false, flyout: null, desktopShown: false, settings });
+  setState({ windows: [...state.windows, win], focus: win.id, startOpen: false, flyout: null, desktopShown: false, hiddenIds: [], settings });
   return win.id;
 }
 
@@ -931,7 +931,7 @@ export function focusWin(id: string) {
     setState({ focus: modal.id });
     return;
   }
-  setState({ windows: state.windows.map((q) => (q.id === id ? { ...q, min: false, z: ++zTop } : q)), focus: id, desktopShown: false });
+  setState({ windows: state.windows.map((q) => (q.id === id ? { ...q, min: false, z: ++zTop } : q)), focus: id, desktopShown: false, hiddenIds: [] });
 }
 
 export function closeWin(id: string, force = false) {
@@ -1024,13 +1024,31 @@ export function shakeWin(id: string) {
   });
 }
 
+/** Win+M: minimize the current set once, remembering exactly what was hidden. */
+export function minimizeAll() {
+  const vis = state.windows.filter((w) => !w.min && !w.closing && !APPS[w.app].noTask).map((w) => w.id);
+  setState({
+    windows: state.windows.map((w) => (vis.includes(w.id) ? { ...w, min: true } : w)),
+    desktopShown: true,
+    hiddenIds: vis,
+    focus: null,
+    startOpen: false,
+    flyout: null,
+    peek: null,
+  });
+}
+
+/** Win+Shift+M restores only windows hidden by minimize-all, not older ones. */
+export function restoreMinimized() {
+  if (!state.desktopShown) return;
+  const windows = state.windows.map((w) => (state.hiddenIds.includes(w.id) ? { ...w, min: false } : w));
+  const top = windows.filter((w) => state.hiddenIds.includes(w.id) && !w.closing).sort((a, b) => b.z - a.z)[0];
+  setState({ windows, desktopShown: false, hiddenIds: [], focus: top?.id ?? null, peek: null });
+}
+
 export function showDesktop() {
-  if (state.desktopShown) {
-    setState({ windows: state.windows.map((w) => (state.hiddenIds.includes(w.id) ? { ...w, min: false } : w)), desktopShown: false, hiddenIds: [], peek: null });
-  } else {
-    const vis = state.windows.filter((w) => !w.min && !APPS[w.app].noTask).map((w) => w.id);
-    setState({ windows: state.windows.map((w) => (vis.includes(w.id) ? { ...w, min: true } : w)), desktopShown: true, hiddenIds: vis, focus: null, startOpen: false, flyout: null, peek: null });
-  }
+  if (state.desktopShown) restoreMinimized();
+  else minimizeAll();
 }
 export function closeAllMenus() {
   if (state.startOpen || state.flyout || state.menu) setState({ startOpen: false, flyout: null, menu: null });
@@ -1101,35 +1119,63 @@ export function flipCancel() {
   if (state.flip) setState({ flip: null });
 }
 
-export function taskbarFocus(idx: number) {
-  const stops: string[] = [];
+export interface TaskbarSlot { key: string; app: string; wins: Win[] }
+
+/** Pinned programs first, then unpinned running programs — the visual taskbar order. */
+export function taskbarSlots(): TaskbarSlot[] {
+  const slots: TaskbarSlot[] = [];
+  state.settings.pinned.filter((app) => !!APPS[app]).forEach((app) => {
+    slots.push({ app, key: APPS[app].group || app, wins: [] });
+  });
   state.windows.filter((w) => !APPS[w.app].noTask && !w.closing).forEach((w) => {
     const key = APPS[w.app].group || w.app;
-    if (!stops.includes(key)) stops.push(key);
+    let slot = slots.find((s) => s.key === key);
+    if (!slot) {
+      slot = { app: w.app, key, wins: [] };
+      slots.push(slot);
+    }
+    slot.wins.push(w);
   });
-  stops.push("$tray");
-  if (idx < 0) idx = stops.length - 1;
-  if (idx >= stops.length) idx = 0;
+  return slots;
+}
+
+export function taskbarFocus(idx: number) {
+  const count = taskbarSlots().length + 1; // final stop is the notification area
+  if (idx < 0) idx = count - 1;
+  if (idx >= count) idx = 0;
   setState({ taskbarIdx: idx });
 }
+
 export function taskbarActivate(dir = 0) {
   const i = state.taskbarIdx;
   if (i === null) return;
-  const groups: string[] = [];
-  state.windows.filter((w) => !APPS[w.app].noTask && !w.closing).forEach((w) => {
-    const key = APPS[w.app].group || w.app;
-    if (!groups.includes(key)) groups.push(key);
-  });
-  const key = groups[i];
-  if (!key) return; // tray
-  const wins = state.windows
-    .filter((w) => !APPS[w.app].noTask && !w.closing && (APPS[w.app].group || w.app) === key)
-    .sort((a, b) => a.z - b.z);
-  if (!wins.length) { void dir; return; }
-  const cur = wins.findIndex((w) => w.id === state.focus && !w.min);
-  const next = wins[(cur + 1) % wins.length] || wins[0];
-  if (next.min) setState({ windows: state.windows.map((w) => (w.id === next.id ? { ...w, min: false } : w)) });
+  const slot = taskbarSlots()[i];
+  if (!slot) return; // notification area
+  if (!slot.wins.length) { openApp(slot.app); return; }
+  activateTaskbarSlot(i, dir ? "cycle" : "activate");
+}
+
+/** Win+1…0 and its Shift/Ctrl/Alt variants. Slot zero is keyboard key 1. */
+export function activateTaskbarSlot(index: number, mode: "activate" | "new" | "cycle" | "jump" = "activate") {
+  const slot = taskbarSlots()[index];
+  if (!slot) return;
+  if (mode === "new") { openApp(slot.app); return; }
+  if (mode === "jump") {
+    if (typeof document !== "undefined") {
+      const el = document.querySelector<HTMLElement>(`[data-tbkey="${slot.key}"]`);
+      const r = el?.getBoundingClientRect();
+      openJumpList(slot.app, r ? { x: r.left / view.scale, y: r.bottom / view.scale } : { x: 48 + index * 48, y: state.screen.h - tbThick(state.settings) });
+    }
+    return;
+  }
+  const sorted = [...slot.wins].sort((a, b) => b.z - a.z);
+  if (!sorted.length) { openApp(slot.app); return; }
+  const active = sorted.findIndex((w) => w.id === state.focus && !w.min);
+  if (mode === "activate" && sorted.length === 1 && active === 0) { minWin(sorted[0].id); return; }
+  // Ctrl+Win+number repeatedly cycles, including minimized windows.
+  const next = active >= 0 ? sorted[(active + 1) % sorted.length] : sorted[0];
   focusWin(next.id);
+  setState({ taskbarIdx: null, peek: null });
 }
 
 /* ------------------------------------------------------------- snap assist */
