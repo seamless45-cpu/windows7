@@ -945,7 +945,7 @@ export function closeWin(id: string, force = false) {
     const wins = state.windows.filter((q) => q.id !== id);
     const top = wins.filter((q) => !q.min && !q.closing).sort((a, b) => b.z - a.z)[0];
     setState({ windows: wins, focus: state.focus === id ? top?.id ?? null : state.focus, peek: state.peek === id ? null : state.peek });
-  }, 140);
+  }, 300);
 }
 
 export function minWin(id: string) {
@@ -982,13 +982,13 @@ export function maxWin(id: string) {
   if (!w || APPS[w.app].fixed) return;
   if (w.max || w.snap) {
     const p = w.prev;
-    // Windows 7's maximize/restore runs in ~120 ms; the minimize sound is the
-    // "restore" clip, and maximizing itself is silent.
-    animateChange(id, 125);
+    // Aero glides a restored frame into place in roughly 175 ms. The minimize
+    // sound is the "restore" clip; maximizing itself is silent.
+    animateChange(id, 175);
     patchWin(id, { max: false, snap: null, ...(p ? { x: p.x, y: p.y, w: p.w, h: p.h } : {}), prev: null });
     playSys("restore");
   } else {
-    animateChange(id, 125);
+    animateChange(id, 175);
     patchWin(id, { max: true, prev: { x: w.x, y: w.y, w: w.w, h: w.h } });
   }
   focusWin(id);
@@ -999,7 +999,7 @@ export function snapWin(id: string, side: "l" | "r") {
   playSys("restore");
   const wa = workArea(state);
   const hw = Math.floor(wa.w / 2);
-  animateChange(id, 125);
+  animateChange(id, 175);
   patchWin(id, { max: false, snap: side, prev: w.prev || { x: w.x, y: w.y, w: w.w, h: w.h }, x: side === "l" ? wa.x : wa.x + hw, y: wa.y, w: hw, h: wa.h });
 }
 /**

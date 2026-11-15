@@ -573,6 +573,27 @@ function Display() {
   const s = useStore((st) => st.settings);
   const [res, setRes] = useState(s.resolution === "native" ? "1366x768" : s.resolution);
   const [dpi, setDpi] = useState(s.dpi);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullscreen(!!document.fullscreenElement);
+    const initialSync = window.setTimeout(sync, 0);
+    document.addEventListener("fullscreenchange", sync);
+    return () => {
+      window.clearTimeout(initialSync);
+      document.removeEventListener("fullscreenchange", sync);
+    };
+  }, []);
+  const toggleFullscreen = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        if (!document.documentElement.requestFullscreen) throw new Error("Full screen is not supported by this browser.");
+        await document.documentElement.requestFullscreen();
+      } else if (document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+      setFullscreen(!!document.fullscreenElement);
+      notify({ title: "Display Settings", text: "Full screen mode could not be changed. Your browser may block this feature.", icon: "warn" });
+    }
+  };
   const apply = () => {
     const old = { resolution: s.resolution, dpi: s.dpi };
     setSettings({ resolution: res, dpi });
@@ -590,6 +611,7 @@ function Display() {
             <tr><td>Resolution:</td><td><Sel value={res} onChange={setRes} opts={[["native", "Native (fit window)"], ...RES.map((r) => [r, r.replace("x", " × ") + (r === "1366x768" ? " (Recommended)" : "")] as [string, string])]} /></td></tr>
             <tr><td>Orientation:</td><td><Sel value="l" onChange={() => {}} opts={[["l", "Landscape"], ["p", "Portrait"]]} /></td></tr>
           </tbody></table>
+          <p><Check checked={fullscreen} onChange={toggleFullscreen} label="Use full screen (hide browser controls; press Esc to exit)" /></p>
           <p><Btn def onClick={apply}>Apply</Btn> <Btn onClick={() => msgBox({ title: "Identify", text: "1", icon: "info" })}>Identify</Btn> <Btn onClick={() => msgBox({ title: "Display", text: "No other displays were detected.", icon: "info" })}>Detect</Btn></p>
         </div>
         <div className="monitor"><div className="monitor-screen" style={{ aspectRatio: res === "native" ? "16/9" : res.replace("x", "/") }}>{res === "native" ? "Native" : res}</div></div>
