@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Win, useStore, focusWin, closeWin, minWin, maxWin, snapWin, setWin, setGeom, view, getState, workArea, shakeWin, showMenu } from "./store";
 import { APPS } from "./registry";
 import { Icon } from "./icons";
@@ -80,6 +80,7 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
   const Comp = COMPONENTS[win.app];
   const fixed = !!meta.fixed;
   const frameless = meta.chrome === "none";
+  const animationsEnabled = useStore((s) => s.settings.aero.animations);
 
   const geom = win.max ? { left: wx, top: wy, width: ww, height: wh } : { left: win.x, top: win.y, width: win.w, height: win.h };
 
@@ -293,51 +294,61 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
   };
 
   /**
-   * Aero minimize: Windows animates the window to its taskbar button with a
-   * quick shrink + fade (about 150 ms, eased in). There are no FLIP snapshots
-   * to take here, so the destination is read from the taskbar button, the
-   * window is transformed towards it for the length of the animation and then
-   * the `min` class hides it for real.
+   * DWM's minimize/restore motion follows the taskbar button, not a generic
+   * fade. Derive both endpoints from untransformed frame geometry so restore
+   * starts at the same app button even though the minimized frame is scaled.
    */
-  const [anim, setAnim] = useState<React.CSSProperties>({});
   const prevMin = useRef(win.min);
-  useEffect(() => {
-    if (win.min === prevMin.current) return;
+  const minMotion = useRef<Animation | null>(null);
+  useLayoutEffect(() => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (win.min === prevMin.current) {
+      if (!animationsEnabled || reduced) {
+        minMotion.current?.cancel();
+        minMotion.current = null;
+      }
+      return;
+    }
     prevMin.current = win.min;
-    if (fixed) return;
+    minMotion.current?.cancel();
+    minMotion.current = null;
+    if (fixed || !animationsEnabled || reduced) return;
     const el = ref.current;
     if (!el) return;
-    // Windows 7 minimizes with a short fade + slight shrink toward the taskbar
-    // button (about 200 ms) and restores with the reverse; anything longer
-    // feels wrong, anything shorter reads as a cut.
-    if (win.min) {
-      const btn = document.querySelector<HTMLElement>(`[data-tbkey="${APPS[win.app]?.group || win.app}"]`);
-      const r = el.getBoundingClientRect();
-      const br = btn?.getBoundingClientRect();
-      const sc = view.scale;
-      const w = r.width, h = r.height;
-      const tx = br ? (br.left + br.width / 2 - (r.left + w / 2)) / sc : 0;
-      const ty = br ? (br.top + br.height / 2 - (r.top + h / 2)) / sc : 40;
-      const s2 = br ? Math.max(0.1, Math.min(0.45, br.width / w)) : 0.06;
-      setAnim({ transform: `translate(${tx}px, ${ty}px) scale(${s2}, ${s2 * 0.6})`, transformOrigin: "center center", opacity: 0.2, transition: "transform 190ms cubic-bezier(.4,0,.9,1), opacity 190ms ease-in" });
-      const t = setTimeout(() => setAnim({}), 200);
-      return () => clearTimeout(t);
-    }
-    setAnim({ transform: "translateY(18px) scale(.94)", transformOrigin: "center bottom", opacity: 0.5, transition: "none" });
-    const raf = requestAnimationFrame(() => {
-      setAnim({ transform: "none", opacity: 1, transition: "transform 160ms cubic-bezier(.2,.7,.3,1), opacity 120ms ease-out" });
+    const btn = document.querySelector<HTMLElement>(`[data-tbkey="${APPS[win.app]?.group || win.app}"]`);
+    const br = btn?.getBoundingClientRect();
+    const sc = view.scale || 1;
+    const frame = win.max ? { x: wx, y: wy, w: ww, h: wh } : { x: win.x, y: win.y, w: win.w, h: win.h };
+    const cx = (frame.x + frame.w / 2) * sc;
+    const cy = (frame.y + frame.h / 2) * sc;
+    const sx = br ? Math.max(0.04, Math.min(0.3, br.width / Math.max(1, frame.w * sc))) : 0.08;
+    const sy = br ? Math.max(0.04, Math.min(0.3, br.height / Math.max(1, frame.h * sc))) : 0.08;
+    const tx = br ? (br.left + br.width / 2 - cx) / sc : 0;
+    const ty = br ? (br.top + br.height / 2 - cy) / sc : 40;
+    const fromTaskbar = `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`;
+    const keyframes = win.min
+      ? [{ transform: "none", opacity: 1, visibility: "visible" }, { transform: fromTaskbar, opacity: 0, visibility: "hidden" }]
+      : [{ transform: fromTaskbar, opacity: 0, visibility: "visible" }, { transform: "none", opacity: 1, visibility: "visible" }];
+    const animation = el.animate(keyframes, {
+      duration: 150,
+      easing: win.min ? "cubic-bezier(.4,0,.9,1)" : "cubic-bezier(.2,.7,.3,1)",
+      fill: "forwards",
     });
-    const t2 = setTimeout(() => setAnim({}), 175);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(t2);
+    minMotion.current = animation;
+    animation.onfinish = () => {
+      animation.cancel();
+      if (minMotion.current === animation) minMotion.current = null;
     };
-  }, [win.min, fixed, win.app]);
+    return () => {
+      animation.cancel();
+      if (minMotion.current === animation) minMotion.current = null;
+    };
+  }, [win.min, win.max, win.snap, win.x, win.y, win.w, win.h, fixed, win.app, animationsEnabled, wx, wy, ww, wh]);
 
   const cls = ["win", `app-${win.app}`, active ? "active" : "inactive", win.max ? "max" : "", win.min ? "min" : "", win.closing ? "closing" : "", win.changing ? "changing" : "", win.max || win.snap ? "snapped" : "", frameless ? "frameless" : "", fixed ? "fixed" : "", peek].filter(Boolean).join(" ");
 
   return (
-    <div ref={ref} className={cls} data-win={win.id} style={{ ...geom, zIndex: win.z, ...anim }} onPointerDownCapture={() => focusWin(win.id)} onPointerDown={onDown}>
+    <div ref={ref} className={cls} data-win={win.id} style={{ ...geom, zIndex: win.z }} onPointerDownCapture={() => focusWin(win.id)} onPointerDown={onDown}>
       {!frameless && (
         <>
           <div className="w-title win-drag" onDoubleClick={(e) => { if (!fixed && !(e.target as HTMLElement).closest(".w-btns,.w-icon-button")) maxWin(win.id); }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); showWindowSystemMenu(win.id, { x: e.clientX / view.scale, y: e.clientY / view.scale }); }}>
