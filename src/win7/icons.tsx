@@ -337,43 +337,39 @@ const G: Record<string, () => React.ReactNode> = {
   zip: () => <Folder g={<path d="M24 20v18M21 22h6M21 26h6M21 30h6M21 34h6" stroke="#6a4a00" strokeWidth="2" />} />,
   font: () => <Paper g={<text x="24" y="38" textAnchor="middle" fontSize="26" fontWeight="bold" fill="#c22" fontFamily="Georgia">A</text>} />,
   iso: () => <Paper g={<circle cx="24" cy="30" r="10" fill="url(#iSilver)" stroke="#556" />} />,
-  // The Windows 7 logo: four waving panes — orange-red, green, blue, yellow —
-  // each shaded with the vertical gradient the real flag artwork uses. It is
-  // drawn in vector so it stays crisp at any size on the logon screen, in
-  // winver and in Control Panel.
-  /**
-   * The Windows 7 flag. It is a plain 2x2 grid of panes: square inner corners
-   * (so the white cross gap is a perfect plus), generously rounded *outer*
-   * corners, a vertical gloss on each pane and a 1 px lighter top rim. The old
-   * artwork used freehand beziers, which is why it read as lopsided.
-   */
-  flag: () => (
-    <>
-      <defs>
-        <linearGradient id="w7paneRed" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#ff8a4c" /><stop offset=".5" stopColor="#f65314" /><stop offset="1" stopColor="#d63e05" /></linearGradient>
-        <linearGradient id="w7paneGreen" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#b0e04a" /><stop offset=".5" stopColor="#7cbb00" /><stop offset="1" stopColor="#5f9600" /></linearGradient>
-        <linearGradient id="w7paneBlue" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#5ec8f8" /><stop offset=".5" stopColor="#00a1f1" /><stop offset="1" stopColor="#0078bb" /></linearGradient>
-        <linearGradient id="w7paneYellow" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#ffdf6e" /><stop offset=".5" stopColor="#ffbb00" /><stop offset="1" stopColor="#e09b00" /></linearGradient>
-        <linearGradient id="w7paneGloss" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity=".55" />
-          <stop offset=".48" stopColor="#fff" stopOpacity=".14" />
-          <stop offset=".52" stopColor="#000" stopOpacity=".05" />
-          <stop offset="1" stopColor="#000" stopOpacity=".12" />
-        </linearGradient>
-      </defs>
-      <g>
-        <path d="M6.5 5H22.5V22.5H3V8.5A3.5 3.5 0 0 1 6.5 5Z" fill="url(#w7paneRed)" />
-        <path d="M25.5 5H41.5A3.5 3.5 0 0 1 45 8.5V22.5H25.5Z" fill="url(#w7paneGreen)" />
-        <path d="M3 25.5H22.5V43H6.5A3.5 3.5 0 0 1 3 39.5Z" fill="url(#w7paneBlue)" />
-        <path d="M25.5 25.5H45V39.5A3.5 3.5 0 0 1 41.5 43H25.5Z" fill="url(#w7paneYellow)" />
-        {/* one gloss pass over all four panes so the highlight lines up */}
-        <path d="M6.5 5H22.5V22.5H3V8.5A3.5 3.5 0 0 1 6.5 5Z" fill="url(#w7paneGloss)" />
-        <path d="M25.5 5H41.5A3.5 3.5 0 0 1 45 8.5V22.5H25.5Z" fill="url(#w7paneGloss)" />
-        <path d="M3 25.5H22.5V43H6.5A3.5 3.5 0 0 1 3 39.5Z" fill="url(#w7paneGloss)" />
-        <path d="M25.5 25.5H45V39.5A3.5 3.5 0 0 1 41.5 43H25.5Z" fill="url(#w7paneGloss)" />
-      </g>
-    </>
-  ),
+  // The Windows 7 flag is a small glossy, billowing cloth mark—not four
+  // square tiles. Each pane bows with the wind, tapering toward the center
+  // cross, while the outer edge and top/bottom edges ripple in opposite phases.
+  // Keep the four paths shared by their gloss overlays so the bevel follows the
+  // cloth silhouette exactly at every icon size.
+  flag: () => {
+    const panes = [
+      ["M5.8 6.8C10.4 5.1 16.3 4.4 22.6 4.7L22.4 21.9C16 22.1 9.6 22.9 3.8 24.1V10.2C3.8 8.7 4.5 7.4 5.8 6.8Z", "w7paneRed"],
+      ["M25.6 4.8C32 5 38.1 6.5 42.7 8.5C44.1 9.1 45 10.5 45 12.1V23.8C38.7 22.7 32.1 22 25.5 21.9Z", "w7paneGreen"],
+      ["M3.8 26C9.7 25 16 24.2 22.4 24.3L22.6 43.5C16.2 43.7 10.1 42.9 5.7 41.3C4.5 40.8 3.8 39.6 3.8 38.2Z", "w7paneBlue"],
+      ["M25.5 24.3C32.1 24.3 38.7 25.3 45 26.3V37.9C45 39.5 44.1 40.8 42.7 41.4C38.1 43.2 32 44 25.6 43.6Z", "w7paneYellow"],
+    ] as const;
+    return (
+      <>
+        <defs>
+          <linearGradient id="w7paneRed" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#ff985f" /><stop offset=".48" stopColor="#f65314" /><stop offset="1" stopColor="#c93805" /></linearGradient>
+          <linearGradient id="w7paneGreen" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#c3ed65" /><stop offset=".48" stopColor="#7cbb00" /><stop offset="1" stopColor="#568700" /></linearGradient>
+          <linearGradient id="w7paneBlue" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#73d8ff" /><stop offset=".48" stopColor="#00a1f1" /><stop offset="1" stopColor="#0072b4" /></linearGradient>
+          <linearGradient id="w7paneYellow" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stopColor="#ffe77d" /><stop offset=".48" stopColor="#ffbb00" /><stop offset="1" stopColor="#d99400" /></linearGradient>
+          <linearGradient id="w7paneGloss" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity=".56" />
+            <stop offset=".45" stopColor="#fff" stopOpacity=".13" />
+            <stop offset=".53" stopColor="#000" stopOpacity=".04" />
+            <stop offset="1" stopColor="#000" stopOpacity=".15" />
+          </linearGradient>
+        </defs>
+        <g filter="url(#iShadow)" stroke="#fff" strokeOpacity=".2" strokeWidth=".55" strokeLinejoin="round">
+          {panes.map(([d, fill]) => <path key={fill} d={d} fill={`url(#${fill})`} />)}
+          {panes.map(([d, fill]) => <path key={`${fill}-gloss`} d={d} fill="url(#w7paneGloss)" stroke="none" />)}
+        </g>
+      </>
+    );
+  },
   shield: () => (
     <>
       <path d="M24 3l17 6v13c0 11-8 19-17 23C15 41 7 33 7 22V9z" fill="url(#iBlue)" stroke="#0a3a8c" />
