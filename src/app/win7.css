@@ -45,7 +45,10 @@
 .win.dragging, .win.resizing, .win.min, .win.closing { transition-property: opacity, transform, visibility; }
 .win.dragging, .win.resizing { transition-duration: 0s; }
 .win.changing { will-change: left, top, width, height; }
-.glass .win { backdrop-filter: blur(9px) saturate(1.4); -webkit-backdrop-filter: blur(9px) saturate(1.4); }
+.glass .win { backdrop-filter: blur(9px) saturate(1.4); -webkit-backdrop-filter: blur(9px) saturate(1.4); will-change: transform; }
+/* During open/close/minimize animations, drop the expensive backdrop-filter blur so
+   the compositor doesn't have to re-blur the background every frame. */
+.win.closing, .win.min { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* Aero glass: a vertical sheen on the top half of the frame, the diagonal
    reflection band across the caption, and a bright 1 px rim — three layers, the
    same structure DWM draws. The client area sits above all of it. */
@@ -151,7 +154,7 @@
 
 /* ---------- taskbar ---------- */
 .taskbar { position: absolute; z-index: 10000; display: flex; align-items: stretch; color: #fff; transition: transform .2s; background: linear-gradient(rgba(var(--gc), calc(var(--ga) * .3)), rgba(var(--gc), calc(var(--ga) * .3))), linear-gradient(180deg, rgba(200,222,250,.5) 0, rgba(90,128,184,.42) 22%, rgba(22,46,92,.62) 52%, rgba(12,30,70,.78) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 0 0 1px rgba(0,0,0,.35); }
-.glass .taskbar { backdrop-filter: blur(10px) saturate(1.3); -webkit-backdrop-filter: blur(10px) saturate(1.3); }
+.glass .taskbar { backdrop-filter: blur(10px) saturate(1.3); -webkit-backdrop-filter: blur(10px) saturate(1.3); will-change: transform; }
 .noglass .taskbar { background: linear-gradient(#4b78b4, #223f6b); }
 .theme-classic .taskbar { background: #d4d0c8; color: #000; box-shadow: inset 0 2px 0 #fff, inset 0 1px 0 #d4d0c8; }
 .theme-classic .tray-clock, .theme-classic .tb-tray { color: #000; text-shadow: none; }
@@ -197,7 +200,13 @@
 /* Aero thumbnails fade in and the strip grows in height; the tiles do not
    slide or stagger. */
 @keyframes thumbin { from { opacity: 0; } to { opacity: 1; } }
-.glass .thumbs { backdrop-filter: blur(10px); }
+.glass .thumbs { backdrop-filter: blur(10px); will-change: transform, opacity; }
+/* Reduce blur during thumbnail fly-in animation to avoid per-frame re-blur cost. */
+.thumbs { animation: thumbin .13s ease-out both; }
+@keyframes thumbin {
+  from { opacity: 0; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  to { opacity: 1; }
+}
 .theme-basic .thumbs, .noglass .thumbs { background: #5f8ccc; }
 /* Tray flyouts open by growing their height out of the notification area
    while fading in — no upward sliding. */
@@ -253,7 +262,10 @@
 
 /* ---------- start menu ---------- */
 .start-menu { position: absolute; z-index: 10003; width: 418px; height: 486px; display: flex; padding: 6px; border-radius: 9px; background: rgba(var(--gc), .6); box-shadow: 0 0 0 1px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.55), 0 10px 28px rgba(0,0,0,.6); visibility: hidden; opacity: 0; transform: translateY(22px) scale(.985); transform-origin: bottom left; transition: opacity .18s ease-out, transform .18s cubic-bezier(.2,.7,.3,1), visibility 0s .18s; }
-.glass .start-menu { backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4); }
+.glass .start-menu { backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4); will-change: transform, opacity; }
+/* Drop backdrop-filter blur while the Start menu is animating open so the
+   compositor doesn't re-blur the background every frame of the transition. */
+.start-menu.open { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 .noglass .start-menu { background: linear-gradient(#5f8fd0, #3a68a8); }
 .start-menu.tb-top { transform-origin: top left; }
 .start-menu.open { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
@@ -467,7 +479,13 @@ textarea.w7input { height: auto; padding: 3px; }
 .power-btn { background: none; border: 2px solid #3a5; border-radius: 50%; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
 .power-btn:hover { box-shadow: 0 0 14px #3a5; }
 .alttab { position: absolute; inset: 0; z-index: 30000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); }
-.alttab-box { padding: 24px 28px 18px; border-radius: 7px; background: rgba(255,255,255,.72); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.9), 0 16px 40px rgba(0,0,0,.55); backdrop-filter: blur(14px); text-align: center; }
+.alttab-box { padding: 24px 28px 18px; border-radius: 7px; background: rgba(255,255,255,.72); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.9), 0 16px 40px rgba(0,0,0,.55); backdrop-filter: blur(14px); text-align: center; will-change: transform, opacity; }
+/* Reduce backdrop-filter blur during Alt+Tab switcher fade-in to avoid
+   per-frame re-blur cost while the switcher slides up. */
+@keyframes altab-in {
+  from { opacity: 0; transform: translateY(8px); backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  to { opacity: 1; transform: none; }
+}
 .alttab-row { display: flex; gap: 16px; align-items: center; justify-content: center; }
 .alttab-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border-radius: 5px; border: 1px solid transparent; min-width: 150px; }
 .alttab-item.sel { background: rgba(255,255,255,.6); border-color: #3b83d3; box-shadow: 0 0 14px rgba(59,131,211,.7); }
@@ -477,7 +495,7 @@ textarea.w7input { height: auto; padding: 3px; }
 
 /* ---------- gadgets ---------- */
 .gadget { position: absolute; border-radius: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); background: linear-gradient(rgba(30,50,90,.5), rgba(10,25,60,.6)); border: 1px solid rgba(255,255,255,.45); box-shadow: 0 4px 14px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; touch-action: none; }
-.glass .gadget { backdrop-filter: blur(5px); }
+.glass .gadget { backdrop-filter: blur(5px); will-change: transform; }
 .g-clock, .g-cpu { background: transparent; border-color: transparent; box-shadow: none; backdrop-filter: none !important; }
 .g-chrome { position: absolute; right: -22px; top: 2px; display: none; flex-direction: column; gap: 2px; }
 .gadget:hover .g-chrome { display: flex; }
