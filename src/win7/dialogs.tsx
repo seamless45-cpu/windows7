@@ -61,18 +61,18 @@ export function Uac({ win }: { win: Win }) {
         <b>Do you want to allow the following program to make changes to this computer?</b>
       </div>
       <div className="uac-body">
-        <Icon name="shield" size={48} />
-        <div>
+        <div className="uac-shield"><Icon name="shield" size={48} /></div>
+        <div className="uac-info">
           <div className="uac-name">{p.name}</div>
-          <div>Verified publisher: <b>{p.publisher || "Microsoft Windows"}</b></div>
-          <div style={{ color: "#555" }}>File origin: Hard drive on this computer</div>
+          <div className="uac-pub">Verified publisher: <b>{p.publisher || "Microsoft Windows"}</b></div>
+          <div className="uac-origin">File origin: Hard drive on this computer</div>
         </div>
       </div>
       {more && <div className="uac-more">Program location: {p.path || "C:\\Windows\\System32\\" + String(p.name).replace(/\s/g, "") + ".exe"}</div>}
       <div className="uac-foot">
-        <a onClick={() => setMore(!more)}>{more ? "Hide details" : "Show details"}</a>
-        <div>
-          <Btn def onClick={() => { closeWin(win.id, true); playSys("ding"); p.onAllow?.(); }}>Yes</Btn>
+        <a className="uac-details" onClick={() => setMore(!more)}>{more ? "Hide details" : "Show details"}</a>
+        <div className="uac-btns">
+          <Btn def className="uac-yes" onClick={() => { closeWin(win.id, true); playSys("ding"); p.onAllow?.(); }}>Yes</Btn>
           <Btn onClick={() => closeWin(win.id, true)}>No</Btn>
         </div>
       </div>
