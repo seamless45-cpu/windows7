@@ -31,7 +31,7 @@ export const APPS: Record<string, AppMeta> = {
   eventvwr: { title: "Event Viewer", icon: "taskmgr", w: 900, h: 580, single: true, exe: "eventvwr.exe", desc: "Read the Windows event logs" },
   cleanmgr: { title: "Disk Cleanup for (C:)", icon: "drive", w: 620, h: 540, single: true, fixed: true, exe: "cleanmgr.exe", desc: "Free space on your hard disk" },
   regedit: { title: "Registry Editor", icon: "cmd", w: 860, h: 580, single: true, exe: "regedit.exe", desc: "View and change system settings" },
-  sysdiag: { title: "System Diagnostics", icon: "taskmgr", w: 780, h: 560, single: true, exe: "msinfo32.exe", desc: "Kernel boot log, drivers, services and bug checks" },
+  sysdiag: { title: "System Information", icon: "taskmgr", w: 780, h: 560, single: true, exe: "msinfo32.exe", desc: "View hardware resources, components and software environment" },
   services: { title: "Services", icon: "services", w: 900, h: 600, single: true, exe: "services.msc", desc: "Start, stop and configure Windows services" },
   tasksched: { title: "Task Scheduler", icon: "tasksched", w: 940, h: 620, single: true, exe: "taskschd.msc", desc: "Schedule programs to run automatically" },
   resmon: { title: "Resource Monitor", icon: "resmon", w: 880, h: 600, single: true, exe: "resmon.exe", desc: "Watch CPU, memory, disk and network in real time" },
