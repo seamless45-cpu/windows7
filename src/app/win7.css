@@ -40,7 +40,7 @@
   /* Aero rounds the two top corners only (~6 px at 100%) and squares the bottom
      edge where the frame meets the desktop; maximised and snapped windows lose
      the rounding entirely. */
-  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1) both; transition: opacity .25s linear, transform .25s linear, visibility 0s, left .25s linear, top .25s linear, width .25s linear, height .25s linear, border-radius .25s linear; min-width: 0; min-height: 0; }
+  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1) both; transition: opacity .25s linear, transform .25s linear, visibility 0s, left .25s linear, top .25s linear, width .25s linear, height .25s linear, border-radius .25s linear, box-shadow .25s linear; min-width: 0; min-height: 0; }
 /* maximising/snapping/restoring glides the frame; dragging or resizing never does */
 .win.dragging, .win.resizing, .win.min, .win.closing { transition-property: opacity, transform, visibility; }
 .win.dragging, .win.resizing { transition-duration: 0s; }
@@ -70,11 +70,11 @@
 /* Minimize/restore endpoint transforms are calculated from the live taskbar
    button in Window.tsx; hide only after DWM's short ~150 ms flight completes. */
 .win.min { opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .25s linear, transform .25s linear, visibility 0s .25s; }
-.win.closing { opacity: 0; transform: scale(.94); pointer-events: none; transition: opacity .155s cubic-bezier(.2,.7,.3,1), transform .155s cubic-bezier(.2,.7,.3,1); }
+.win.closing { opacity: 0; transform: scale(.92); pointer-events: none; transition: opacity .155s cubic-bezier(.2,.7,.3,1), transform .155s cubic-bezier(.2,.7,.3,1), box-shadow .155s cubic-bezier(.2,.7,.3,1); box-shadow: 0 0 0 1px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.3), 0 6px 16px rgba(0,0,0,.3); }
 .win.dragging { box-shadow: 0 0 0 1px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.5), 0 18px 40px rgba(0,0,0,.45); }
 .win.fixed .w-title { height: 28px; }
 /* Aero opens over ~225 ms with a short fade/scale and eases into place. */
-@keyframes winopen { from { opacity: 0; transform: scale(.90); } to { opacity: 1; transform: none; } }
+@keyframes winopen { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
 .w-title { position: relative; z-index: 1; height: 30px; flex: none; display: flex; align-items: center; gap: 5px; padding: 0 140px 0 2px; touch-action: none; cursor: default; overflow: hidden; }
 .win.fixed .w-title { padding-right: 56px; }
 .win.max .w-title { padding-left: 8px; }
