@@ -184,6 +184,33 @@ const G: Record<string, () => React.ReactNode> = {
       <circle cx="40" cy="8" r="3" fill="#ffd23a" />
     </>
   ),
+  chrome: () => (
+    <>
+      <defs>
+        <radialGradient id="cBlue" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#1a73e8" />
+          <stop offset="100%" stopColor="#0a58ca" />
+        </radialGradient>
+        <radialGradient id="cRed" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#d93025" />
+          <stop offset="100%" stopColor="#bd2c1a" />
+        </radialGradient>
+        <radialGradient id="cYellow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fbbc05" />
+          <stop offset="100%" stopColor="#e8a800" />
+        </radialGradient>
+        <radialGradient id="cGreen" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#34a853" />
+          <stop offset="100%" stopColor="#2d8e46" />
+        </radialGradient>
+      </defs>
+      <circle cx="25" cy="25" r="20" fill="url(#cBlue)" />
+      <path d="M25 5 A20 20 0 0 1 45 25 L25 25 Z" fill="url(#cRed)" />
+      <path d="M25 45 A20 20 0 0 1 5 25 L25 25 Z" fill="url(#cYellow)" />
+      <path d="M5 25 A20 20 0 0 1 25 5 L25 25 Z" fill="url(#cGreen)" />
+      <circle cx="25" cy="25" r="7" fill="#fff" />
+    </>
+  ),
   explorer: () => (
     <>
       <path d="M3 12h13l3 3h26v26H3z" fill="url(#iFolderB)" stroke="#a6761a" />

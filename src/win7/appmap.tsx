@@ -8,6 +8,7 @@ import { Calculator } from "./apps/Calculator";
 import { Paint } from "./apps/Paint";
 import { MediaPlayer, PhotoViewer, DvdMaker, SoundRecorder } from "./apps/Media";
 import { IE } from "./apps/IE";
+import { Chrome } from "./apps/Chrome";
 import { Cmd, TaskManager, HelpApp, SnippingTool, Minesweeper } from "./apps/SystemApps";
 import { GadgetGallery, GadgetOptions } from "./gadgets";
 import { MsgBox, Uac, Progress, Props, Run, FileDialog, Winver, Setup, InputBox } from "./dialogs";
@@ -41,6 +42,7 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   explorer: Explorer,
   controlpanel: ControlPanel,
   ie: IE,
+  chrome: Chrome,
   notepad: Notepad,
   paint: Paint,
   calc: Calculator,
