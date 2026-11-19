@@ -792,10 +792,10 @@ const GAME_LIST: { app: string; name: string; icon: string; desc: string }[] = [
   { app: "mahjong", name: "Mahjong Titans", icon: "mahjong", desc: "Match pairs of free tiles to clear the turtle layout." },
   { app: "chess", name: "Chess Titans", icon: "chess", desc: "Glossy 3D-styled chess against the computer." },
   { app: "purble", name: "Purble Place", icon: "purble", desc: "Comfy Cakes, Purble Shop and Purble Pairs." },
-  { app: "reversi", name: "Internet Reversi", icon: "chess", desc: "Flip your opponent's discs until the board is full." },
   { app: "checkers", name: "Internet Checkers", icon: "chess", desc: "Jump and crown your way to the far row." },
   { app: "backgammon", name: "Internet Backgammon", icon: "chess", desc: "Roll, hit blots and bear off before the computer." },
   { app: "spades", name: "Internet Spades", icon: "hearts", desc: "Bid your tricks and take them with a partner." },
+  { app: "moregames", name: "More Games…", icon: "moregames", desc: "Find more games online." },
 ];
 
 export function GamesExplorer({ win }: { win: Win }) {

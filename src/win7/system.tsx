@@ -7,7 +7,7 @@ import { bootKernel, BOOT_STAGES, BUGCHECKS, logEvent } from "./kernel";
 import { userPic } from "./data";
 import { WALLPAPERS } from "./data";
 import { playSys, startBlueScreenStutter, stopBlueScreenStutter } from "./sound";
-import { Mystify, Text3D, GradientSS, Lightning } from "./Screensavers";
+import { Mystify, Text3D } from "./Screensavers";
 import { useAutoFocus } from "./softKeyboard";
 
 const LOGIN_BG = WALLPAPERS[0].css;
@@ -386,8 +386,6 @@ export function Screensaver() {
   if (!on) return null;
   if (kind === "mystify") return <Mystify />;
   if (kind === "text3d") return <Text3D />;
-  if (kind === "gradient") return <GradientSS />;
-  if (kind === "lightning") return <Lightning />;
   if (kind === "photos") {
     const pics = children("pics", fs).filter((n) => n.content?.startsWith("data:"));
     const p = pics[pi % Math.max(1, pics.length)];

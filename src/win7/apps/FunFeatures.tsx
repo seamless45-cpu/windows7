@@ -1,11 +1,9 @@
 "use client";
 /**
- * Control Panel → Fun experimental features.
- *
- * A category Windows never had, holding the things you can only do in a
- * simulator: trigger a bug check on demand (with the frozen-audio stutter a
- * real crash makes), break a driver so the *next* boot fails, jump straight to
- * the boot / logon / off screens, and play with the screen savers.
+ * Internal troubleshooting page (hidden from Control Panel in a real Windows 7
+ * install). Accessed via the Action Center "Troubleshoot" option for debugging
+ * simulator state: trigger a bug check, break a driver so the next boot fails,
+ * jump straight to a system screen, and preview screen savers.
  */
 import React, { useState } from "react";
 import { getState, setState, bugCheck, notify, lsGet, lsSet, openCP, setSettings } from "../store";
@@ -38,8 +36,8 @@ export function FunFeatures() {
 
   return (
     <div className="fun">
-      <h1 className="cp-h1">Fun experimental features</h1>
-      <p className="cp-desc">Things this simulated Windows can do that a real installation will not let you: crash the kernel on purpose, freeze the audio, break a driver, or jump straight to a system screen. None of these touch your saved files.</p>
+      <h1 className="cp-h1">Troubleshooting and diagnostics</h1>
+      <p className="cp-desc">Diagnostic tools for the simulated PC: simulate a bug check, test drivers, preview system screens and screen savers. None of these touch your saved files.</p>
 
       <GroupBox title="Simulate a bug check (blue screen)">
         <p>Choosing a stop code and a driver and pressing <b>Crash now</b> shows the real Windows 7 stop screen. The machine stays on the screen, loops the last fragment of audio it was playing as a frozen glitch — the way a real machine does when the audio driver dies mid-buffer — then restarts.</p>
@@ -81,9 +79,9 @@ export function FunFeatures() {
       </GroupBox>
 
       <GroupBox title="Screen savers">
-        <p>Mystify, 3D Text and Gradient are all live in <a onClick={() => openCP("screensaver")}>Screen Saver Settings</a>. Preview one here:</p>
+        <p>Bubbles, Mystify, Ribbons, 3D Text, Photos and Blank are all live in <a onClick={() => openCP("screensaver")}>Screen Saver Settings</a>. Preview one here:</p>
         <div className="fun-tiles">
-          {([["mystify", "Mystify"], ["text3d", "3D Text"], ["lightning", "Lightning"], ["ribbons", "Ribbons"], ["bubbles", "Bubbles"], ["gradient", "Gradient"]] as [string, string][]).map(([kind, label]) => (
+          {([["mystify", "Mystify"], ["text3d", "3D Text"], ["ribbons", "Ribbons"], ["bubbles", "Bubbles"], ["photos", "Photos"], ["blank", "Blank"]] as [string, string][]).map(([kind, label]) => (
             <div key={kind} className="fun-tile" onClick={() => { setSettings({ screensaver: kind as never }); setState({ screensaverOn: true }); }}>
               <Icon name="display" size={30} />
               <span>{label}</span>
