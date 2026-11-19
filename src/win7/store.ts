@@ -59,7 +59,7 @@ export interface Settings {
   transparency: boolean;
   intensity: number;
   soundScheme: string;
-  screensaver: "none" | "bubbles" | "ribbons" | "photos" | "blank" | "mystify" | "text3d" | "gradient" | "lightning";
+  screensaver: "none" | "bubbles" | "ribbons" | "photos" | "blank" | "mystify" | "text3d";
   /** 3D Text screen saver: the words, font size and spin speed */
   ssText: string;
   ssText3D: { text: string; size: number; spin: number; surface: "solid" | "texture" | "reflective"; font: string };
@@ -285,7 +285,7 @@ const strArr = (v: unknown, fb: string[] = []): string[] => (Array.isArray(v) ? 
 export const THEMES = ["aero", "basic", "classic", "hc"] as const;
 export const ICON_SIZES = ["large", "medium", "small"] as const;
 export const WP_POSITIONS = ["fill", "fit", "stretch", "tile", "center"] as const;
-export const SCREENSAVERS = ["none", "bubbles", "ribbons", "photos", "blank", "mystify", "text3d", "gradient", "lightning"] as const;
+export const SCREENSAVERS = ["none", "bubbles", "ribbons", "photos", "blank", "mystify", "text3d"] as const;
 export const POINTERS = ["aero", "large", "black"] as const;
 export const TASKBAR_SIDES = ["bottom", "top", "left", "right"] as const;
 export const COMBINE_MODES = ["always", "never"] as const;

@@ -75,15 +75,13 @@ const css = (
 const MARKERS = {
   "Start menu search box": "Search programs and files",
   "3D Text screen saver": "3D Text",
-  "Lightning screen saver": "Lightning",
-  "Fun experimental features": "Fun experimental",
   "fade-through-black transition": "fade-black",
   "theme cross-dissolve": "theme-mix",
   // added in the PWA / deep-research pass
   "calculator programmer mode": "Qword",
   "indexing options": "Indexing Options",
   "toolbars": "Toolbars",
-  "internet games": "Internet Reversi",
+  "internet games": "Internet Backgammon",
   "ClearType tuner": "ClearType",
 };
 for (const [label, marker] of Object.entries(MARKERS)) {

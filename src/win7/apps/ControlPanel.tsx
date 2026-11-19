@@ -25,8 +25,7 @@ const CATS: { id: string; title: string; icon: string; items: string[]; links: [
   { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games", "migwiz", "mce", "stkmgr"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
   { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users", "credmgr"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
   { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero", "eudc"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
-  { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region", "calendar"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
-  { id: "cat-fun", title: "Fun experimental features", icon: "gamecenter", items: ["fun"], links: [["Trigger a bug check", "fun"], ["Break the next boot", "fun"], ["Preview a screen saver", "screensaver"]] },
+  { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
   { id: "cat-ease", title: "Ease of Access", icon: "ease", items: ["ease", "tabtip"], links: [["Let Windows suggest settings", "ease"], ["Optimize visual display", "ease"]] },
 ];
 const PAGES: Record<string, PageDef> = {
@@ -78,11 +77,11 @@ const PAGES: Record<string, PageDef> = {
   sysrestore: { title: "System Restore", icon: "sysrestore", cat: "cat-system" },
   defender: { title: "Windows Defender", icon: "defender", cat: "cat-system" },
   powershell: { title: "Windows PowerShell", icon: "powershell", cat: "cat-system" },
-  calendar: { title: "Calendar", icon: "calendar", cat: "cat-clock" },
+
   fw: { title: "Windows Firewall with Advanced Security", icon: "shield", cat: "cat-system" },
   secpol: { title: "Local Security Policy", icon: "shield", cat: "cat-system" },
   perfmon: { title: "Performance Monitor", icon: "reliability", cat: "cat-system" },
-  fun: { title: "Fun experimental features", icon: "gamecenter", cat: "cat-fun" },
+
   mdsched: { title: "Windows Memory Diagnostic", icon: "computer", cat: "cat-system" },
   rdp: { title: "Remote Desktop Connection", icon: "network", cat: "cat-network" },
   sync: { title: "Sync Center", icon: "share", cat: "cat-network" },
@@ -100,7 +99,7 @@ const PAGES: Record<string, PageDef> = {
   tabtip: { title: "Tablet PC Input Panel", icon: "osk", cat: "cat-ease" },
   stkmgr: { title: "Sticky Notes", icon: "sticky2", cat: "cat-programs" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "calendar", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "fun", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -530,7 +529,7 @@ function ScreenSaver() {
   return (
     <div className="cp-dialog">
       <div className="cp-tabbody">
-        <p>Screen saver: <Sel value={s.screensaver} onChange={(v) => setSettings({ screensaver: v })} opts={[["none", "(None)"], ["bubbles", "Bubbles"], ["mystify", "Mystify"], ["ribbons", "Ribbons"], ["text3d", "3D Text"], ["photos", "Photos"], ["gradient", "Gradient"], ["lightning", "Lightning"], ["blank", "Blank"]]} /> <Btn disabled={s.screensaver === "none"} onClick={() => setState({ screensaverOn: true })}>Preview</Btn></p>
+        <p>Screen saver: <Sel value={s.screensaver} onChange={(v) => setSettings({ screensaver: v })} opts={[["none", "(None)"], ["bubbles", "Bubbles"], ["mystify", "Mystify"], ["ribbons", "Ribbons"], ["text3d", "3D Text"], ["photos", "Photos"], ["blank", "Blank"]]} /> <Btn disabled={s.screensaver === "none"} onClick={() => setState({ screensaverOn: true })}>Preview</Btn></p>
         <p>Wait: <input className="w7input" type="number" min={1} max={60} value={s.ssWait} onChange={(e) => setSettings({ ssWait: Math.max(1, +e.target.value || 1) })} style={{ width: 60 }} /> minutes</p>
         {s.screensaver === "text3d" && (
           <GroupBox title="3D Text settings">
@@ -542,8 +541,10 @@ function ScreenSaver() {
             <p>Surface: <Sel value={s.ssText3D.surface} onChange={(v) => setSettings({ ssText3D: { ...s.ssText3D, surface: v } })} opts={[["solid", "Solid colour"], ["texture", "Texture"], ["reflective", "Reflective"]]} /></p>
           </GroupBox>
         )}
-        {s.screensaver === "lightning" && <p className="cp-desc">Lightning strikes over a dark storm landscape: each bolt is drawn with forked branches, the sky flashes twice, and the thunder arrives after the flash — further away means later and deeper.</p>}
         {s.screensaver === "mystify" && <p className="cp-desc">Mystify draws a pair of ribbons that fold over themselves, leaving arcs of coloured light behind them.</p>}
+        {s.screensaver === "ribbons" && <p className="cp-desc">Ribbons draws colourful, curling streamers across the screen.</p>}
+        {s.screensaver === "bubbles" && <p className="cp-desc">Bubbles floats translucent bubbles over your desktop.</p>}
+        {s.screensaver === "blank" && <p className="cp-desc">Blank shows a black screen when the computer is idle.</p>}
         <p><Check checked={s.ssPassword} onChange={(v) => setSettings({ ssPassword: v })} label="On resume, display logon screen" /></p>
         <p className="cp-desc">The screen saver starts after the computer has been idle for the selected time.</p>
       </div>
@@ -1098,7 +1099,7 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   support: () => <CPLaunch app="support" text="Windows Support troubleshoots a problem and applies a fix automatically." />,
   tabtip: () => <CPLaunch app="tabtip" text="Tablet PC Input Panel writes, taps or types into any text box on the desktop." />,
   stkmgr: () => <CPLaunch app="stkmgr" text="Sticky Notes keeps quick notes on the desktop in any of six colours." />,
-  calendar: () => <CPLaunch app="calendar" text="Calendar is the month view behind the taskbar clock, with appointments stored on this PC." />,
+
   msconfig: () => <CPLaunch app="msconfig" text="System Configuration (msconfig) controls how Windows starts, which services run and which programs load at startup." />,
   gadgets: () => <GadgetGallery />,
   indexing: () => <IndexingOptions />,
