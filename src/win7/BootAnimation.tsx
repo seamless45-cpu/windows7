@@ -48,23 +48,25 @@ export function BootAnimation() {
   const t = clamp(frame / LOOP_FROM);
   const settle = easeInOut(t);
   const formed = frame >= LOOP_FROM;
-  const phase = formed ? ((frame - LOOP_FROM) / (TOTAL - LOOP_FROM)) * Math.PI : 0;
+  const phase = formed ? ((frame - LOOP_FROM) / (TOTAL - LOOP_FROM)) * Math.PI * 2 : 0;
   const pulse = formed ? 0.5 + 0.5 * Math.sin(phase) : 0;
+  // When formed, the flag pulses brighter and the orbs cast a stronger glow
+  const glow = formed ? 0.6 + 0.4 * pulse : 0.12 + 0.5 * settle;
 
   return (
     <div className={"boot-anim" + (formed ? " formed" : "")} role="img" aria-label="Windows 7 startup animation">
-      <div className="boot-glow" style={{ opacity: 0.12 + 0.5 * settle + 0.3 * pulse }} />
-      <div className="boot-flag" style={{ transform: `scale(${0.8 + 0.2 * settle})` }}>
+      <div className="boot-glow" style={{ opacity: glow }} />
+      <div className="boot-flag" style={{ transform: `scale(${0.75 + 0.25 * settle})` }}>
         {PANES.map((p, i) => {
           const local = clamp((t - i * 0.1) / (1 - i * 0.1));
           const fly = easeOutBack(local);
           // orbs spiral in from off-screen before locking into the flag
           const off = (1 - fly) * 150;
-          const spin = (1 - settle) * (i % 2 ? -1 : 1) * 150;
+          const spin = (1 - settle) * (i % 2 ? -1 : 1) * 140;
           const ang = ((i * 90 + 45 + spin) * Math.PI) / 180;
-          const x = p.x * settle + Math.cos(ang) * off * (1 - settle * 0.35);
-          const y = p.y * settle + Math.sin(ang) * off * (1 - settle * 0.35);
-          const size = 26 - 8 * settle;
+          const x = p.x * settle + Math.cos(ang) * off * (1 - settle * 0.3);
+          const y = p.y * settle + Math.sin(ang) * off * (1 - settle * 0.3);
+          const size = 28 - 10 * settle;
           return (
             <div
               key={p.key}
@@ -72,8 +74,8 @@ export function BootAnimation() {
               style={{
                 width: size,
                 height: size,
-                background: `radial-gradient(circle at 38% 34%, #fff 0%, ${p.glow} 40%, ${p.color} 78%)`,
-                boxShadow: `0 0 ${16 + 20 * settle + 12 * pulse}px ${3 + 7 * settle}px ${p.color}${formed ? "aa" : "55"}`,
+                background: `radial-gradient(circle at 38% 34%, #fff 0%, ${p.glow} 35%, ${p.color} 80%)`,
+                boxShadow: `0 0 ${20 + 24 * settle + 14 * pulse}px ${4 + 8 * settle}px ${p.color}${formed ? "aa" : "55"}`,
                 borderRadius: `${6 + 8 * (1 - settle)}px`,
                 opacity: local <= 0 ? 0 : 1,
                 transform: `translate(-50%,-50%) translate(${x}px,${y}px)`,
