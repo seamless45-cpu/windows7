@@ -166,7 +166,7 @@ export function LoginScreen({ locked }: { locked?: boolean }) {
  */
 export function BlueScreenOfDeath() {
   const crash = useStore((s) => s.crash);
-  // these two options live in Control Panel → Fun experimental features
+  // these two options live in the Troubleshooting diagnostics screen
   const showCount = typeof window === "undefined" ? true : lsGet("win7.bsod.countdown", true);
   const writeDump = typeof window === "undefined" ? true : lsGet("win7.bsod.dump", true);
   useEffect(() => {
