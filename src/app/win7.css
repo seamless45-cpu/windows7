@@ -387,13 +387,21 @@ textarea.w7input { height: auto; padding: 3px; }
 .dlg-main.col { flex-direction: column; align-items: stretch; gap: 10px; }
 .dlg-text { white-space: pre-wrap; line-height: 1.4; }
 .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; background: #f0f0f0; border-top: 1px solid #dfdfdf; flex: none; }
-.uac { display: flex; flex-direction: column; height: 100%; background: #fff; }
-.uac-head { background: linear-gradient(#3b86d8, #1a5aad); color: #fff; padding: 14px 16px; font-size: 14px; }
-.uac-body { display: flex; gap: 14px; padding: 18px; align-items: center; flex: 1; }
-.uac-name { font-size: 15px; margin-bottom: 4px; }
-.uac-more { padding: 8px 18px; background: #f4f4f4; color: #444; }
-.uac-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: linear-gradient(#e8eef6, #d5dfec); border-top: 1px solid #c0cad8; }
-.uac-foot div { display: flex; gap: 8px; }
+.uac { display: flex; flex-direction: column; height: 100%; background: #fff; border: 1px solid #979797; box-shadow: 0 0 20px rgba(0,0,0,.4); }
+.uac-head { background: linear-gradient(#3b86d8, #1a5aad); color: #fff; padding: 14px 16px; font-size: 14px; font-weight: 600; }
+.uac-body { display: flex; gap: 18px; padding: 22px 24px; align-items: flex-start; flex: 1; }
+.uac-shield { flex: none; margin-top: 4px; }
+.uac-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.uac-name { font-size: 15px; font-weight: 600; color: #000; margin: 0; }
+.uac-pub { font-size: 13px; color: #333; margin: 0; }
+.uac-origin { font-size: 13px; color: #555; margin: 0; }
+.uac-more { padding: 8px 24px; background: #f4f4f4; color: #444; font-size: 12px; }
+.uac-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 24px; background: linear-gradient(#f0f0f0, #e5e5e5); border-top: 1px solid #c0cad8; }
+.uac-details { color: #0066cc; text-decoration: none; font-size: 12px; cursor: pointer; }
+.uac-details:hover { text-decoration: underline; }
+.uac-btns { display: flex; gap: 12px; }
+.uac-yes { background: #f0f0f0; border: 1px solid #666; font-weight: 600; }
+.uac-yes:hover { background: #e5e5e5; }
 .prog-anim { display: flex; align-items: center; justify-content: space-between; height: 40px; position: relative; }
 .prog-flyers { display: flex; gap: 18px; animation: fly 1s linear infinite; }
 @keyframes fly { from { transform: translateX(-30px); opacity: 0; } 50% { opacity: 1; } to { transform: translateX(30px); opacity: 0; } }
