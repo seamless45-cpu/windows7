@@ -52,7 +52,7 @@ const CAPABILITIES: { name: string; icon: string; where: string; go?: () => void
   { name: "Windows PowerShell", icon: "powershell", where: "Run → powershell", go: () => openApp("powershell") },
   { name: "System Restore", icon: "sysrestore", where: "Run → rstrui", go: () => openApp("sysrestore") },
   { name: "Windows Defender", icon: "defender", where: "Run → MSASCui / Control Panel → System and Security", go: () => openApp("defender") },
-  { name: "Calendar and Local Users and Groups", icon: "calendar", where: "Run → calendar / lusrmgr.msc", go: () => openApp("calendar") },
+  { name: "Local Users and Groups", icon: "lusrmgr", where: "Run → lusrmgr.msc", go: () => openApp("lusrmgr") },
   { name: "On-Screen Keyboard, Narrator, Steps Recorder, Math Input Panel", icon: "osk", where: "Accessories → Ease of Access / Control Panel → Ease of Access", go: () => openApp("osk") },
   { name: "Kernel boot log, drivers and bug checks", icon: "taskmgr", where: "Run → sysdiag", go: () => openApp("sysdiag") },
   { name: "User Account Control", icon: "shield", where: "Control Panel → User Accounts" },
