@@ -106,7 +106,7 @@ export function SystemDiagnostics({ win }: { win: Win }) {
               <Btn onClick={() => bugCheck(stop)}>Bug check now</Btn>
               <Btn onClick={() => { reboot(); }}>Restart</Btn>
             </div>
-            <p className="cp-desc">Also reachable from Run: <b>sysdiag</b>, and from Control Panel → System and Security → System Diagnostics. Windows' own shortcut is <b>msinfo32</b>.</p>
+            <p className="cp-desc">Also reachable from Run: <b>sysdiag</b>, and from Control Panel → System and Security → System Information. Windows' own shortcut is <b>msinfo32</b>.</p>
           </div>
         )}
       </div>

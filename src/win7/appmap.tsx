@@ -34,7 +34,7 @@ import { PlayTo, CardSpace, OpenWith } from "./apps/ShellExtras";
 import { GettingStarted, ColorCalibration, PowerShellISE, WindowsContacts } from "./apps/Extras7";
 import { FunFeatures } from "./apps/FunFeatures";
 import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex, RemoteAssistance } from "./apps/PanelTools";
-import { Backgammon, CheckersGame, Reversi, Spades } from "./apps/InternetGames";
+import { Backgammon, CheckersGame, Spades } from "./apps/InternetGames";
 import { MoreGames } from "./apps/Games";
 
 export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
@@ -44,7 +44,6 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   notepad: Notepad,
   paint: Paint,
   calc: Calculator,
-  reversi: Reversi,
   checkers: CheckersGame,
   backgammon: Backgammon,
   spades: Spades,

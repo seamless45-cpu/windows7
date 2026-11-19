@@ -1,14 +1,12 @@
 "use client";
 /**
  * The Windows 7 *Internet* games: Internet Backgammon, Internet Checkers,
- * Internet Spades and Internet Reversi.
+ * Internet Spades.
  *
  * On the real OS these were multiplayer games hosted by the Games for Windows
  * LIVE service. There is no server here, so each one is a complete single-player
  * implementation against a computer opponent, using the same rules:
  *
- *  - Reversi: legal-move highlighting, discs flip in every direction, the game
- *    ends when neither side can move and the discs are counted.
  *  - Checkers: forced captures, multi-jumps, men promote on the far row.
  *  - Backgammon: two dice, doubling, the bar, hitting a blot, bearing off.
  *  - Spades: bidding, partnerships, spades broken, nil bids, tricks.
@@ -21,168 +19,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Win } from "../store";
 import { playSys } from "../sound";
 import { Btn } from "../ui";
-
-/* ================================================================ Reversi */
-
-type Cell = 0 | 1 | 2; // 0 empty, 1 black (you), 2 white (cpu)
-const DIRS = [
-  [-1, -1], [-1, 0], [-1, 1],
-  [0, -1], [0, 1],
-  [1, -1], [1, 0], [1, 1],
-];
-
-function reversiFlips(b: Cell[], i: number, p: Cell): number[] {
-  if (b[i] !== 0) return [];
-  const x = i % 8, y = Math.floor(i / 8);
-  const out: number[] = [];
-  for (const [dx, dy] of DIRS) {
-    const run: number[] = [];
-    let cx = x + dx, cy = y + dy;
-    while (cx >= 0 && cx < 8 && cy >= 0 && cy < 8) {
-      const j = cy * 8 + cx;
-      if (b[j] === 0) break;
-      if (b[j] === p) {
-        out.push(...run);
-        break;
-      }
-      run.push(j);
-      cx += dx;
-      cy += dy;
-    }
-  }
-  return out;
-}
-
-const START: Cell[] = (() => {
-  const b: Cell[] = Array(64).fill(0) as Cell[];
-  b[27] = b[36] = 2;
-  b[28] = b[35] = 1;
-  return b;
-})();
-
-function score(b: Cell[]) {
-  return b.reduce((a: number, c) => (c === 1 ? a + 1 : c === 2 ? a - 1 : a), 0);
-}
-
-/** Corner/edge weighting: the classic cheap Reversi heuristic. */
-function reversiScore(b: Cell[], p: Cell) {
-  const W = [40, -6, 3, 2, 2, 3, -6, 40];
-  let s = 0;
-  for (let i = 0; i < 64; i++) {
-    const v = W[i % 8] + W[Math.floor(i / 8)];
-    s += b[i] === p ? v : b[i] === 0 ? 0 : -v;
-  }
-  return s;
-}
-
-function cpuReversi(b: Cell[]): number | null {
-  const moves = [...Array(64).keys()].filter((i) => reversiFlips(b, i, 2).length);
-  if (!moves.length) return null;
-  let best = moves[0], bestV = -1e9;
-  for (const m of moves) {
-    const nb = [...b] as Cell[];
-    nb[m] = 2;
-    for (const f of reversiFlips(b, m, 2)) nb[f] = 2;
-    // one-ply lookahead: minimise the human's reply count
-    const reply = [...Array(64).keys()].filter((i) => reversiFlips(nb, i, 1).length).length;
-    const v = reversiScore(nb, 2) - reply * 1.5;
-    if (v > bestV) { bestV = v; best = m; }
-  }
-  return best;
-}
-
-export function Reversi() {
-  const [b, setB] = useState<Cell[]>(START);
-  const [turn, setTurn] = useState<Cell>(1);
-  const [pass, setPass] = useState(0);
-  const [msg, setMsg] = useState("You are black. Click a highlighted square.");
-
-  const legal = useMemo(() => {
-    const s = new Set<number>();
-    for (let i = 0; i < 64; i++) if (reversiFlips(b, i, turn).length) s.add(i);
-    return s;
-  }, [b, turn]);
-
-  const counts = useMemo(() => ({ black: b.filter((c) => c === 1).length, white: b.filter((c) => c === 2).length }), [b]);
-  const over = legal.size === 0 && pass >= 2;
-
-  const play = (i: number) => {
-    if (turn !== 1 || over || !legal.has(i)) return;
-    const f = reversiFlips(b, i, 1);
-    const nb = [...b] as Cell[];
-    nb[i] = 1;
-    f.forEach((j) => (nb[j] = 1));
-    playSys("menu");
-    setB(nb);
-    setTurn(2);
-    setPass(0);
-  };
-
-  useEffect(() => {
-    if (turn !== 2 || over) return;
-    const t = window.setTimeout(() => {
-      const m = cpuReversi(b);
-      if (m === null) {
-        setPass((p) => p + 1);
-        setTurn(1);
-        setMsg("The computer has no legal move and passes.");
-        return;
-      }
-      const f = reversiFlips(b, m, 2);
-      const nb = [...b] as Cell[];
-      nb[m] = 2;
-      f.forEach((j) => (nb[j] = 2));
-      setB(nb);
-      setTurn(1);
-      setPass(0);
-    }, 520);
-    return () => window.clearTimeout(t);
-  }, [b, turn, over]);
-
-  // Passing and the end-of-game message both wait a beat, so the state change
-  // happens in a callback rather than synchronously inside the effect.
-  useEffect(() => {
-    if (turn !== 1 || legal.size !== 0 || over) return;
-    const t = window.setTimeout(() => {
-      setPass((p) => p + 1);
-      setMsg("You have no legal move — passing.");
-      window.setTimeout(() => setTurn(2), 700);
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, [turn, legal.size, over]);
-
-  const finalMsg = over
-    ? counts.black === counts.white
-      ? `A draw at ${counts.black}–${counts.white}.`
-      : counts.black > counts.white
-        ? `You win ${counts.black}–${counts.white}.`
-        : `The computer wins ${counts.white}–${counts.black}.`
-    : null;
-
-  return (
-    <div className="igame rev">
-      <div className="igame-top">
-        <span className="igame-score"><i className="disc black" /> {counts.black}</span>
-        <span className="igame-score"><i className="disc white" /> {counts.white}</span>
-        <span className="igame-msg">{finalMsg ?? msg}</span>
-        <Btn onClick={() => { setB(START); setTurn(1); setPass(0); setMsg("You are black. Click a highlighted square."); }}>New game</Btn>
-      </div>
-      <div className="rev-board">
-        {b.map((c, i) => (
-          <button
-            key={i}
-            className={"rev-sq" + (legal.has(i) && turn === 1 ? " legal" : "")}
-            onClick={() => play(i)}
-            aria-label={`square ${i}`}
-          >
-            {c !== 0 && <i className={"disc " + (c === 1 ? "black" : "white")} />}
-            {c === 0 && legal.has(i) && turn === 1 && <i className="hint" />}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /* ============================================================== Checkers */
 

@@ -45,7 +45,7 @@ const unregistered = [...mapped].filter((k) => !registered.has(k));
 check("every component belongs to a registered app", unregistered.length === 0, unregistered.join(", "));
 
 // features added in the PWA / research pass must be openable
-const MUST_EXIST = ["reversi", "checkers", "backgammon", "spades", "calc", "fun"];
+const MUST_EXIST = ["checkers", "backgammon", "spades", "calc", "fun"];
 for (const k of MUST_EXIST) check(`registrar knows about "${k}"`, registered.has(k));
 
 // Control Panel pages must be reachable: every page id used by CATS/PAGES
