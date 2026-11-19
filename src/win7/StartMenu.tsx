@@ -145,6 +145,7 @@ const PROGRAMS: PItem[] = [
   ] },
   { label: "Startup", icon: "folder", kids: [] },
   app("ie", "Internet Explorer"),
+  app("chrome", "Google Chrome"),
   app("dvdmaker", "Windows DVD Maker"),
   app("wmp", "Windows Media Player"),
   app("mce", "Windows Media Center"),
@@ -158,6 +159,7 @@ const MORE: PItem[] = [
 
 const PINNED: PItem[] = [
   app("ie"),
+  app("chrome"),
   app("wmp"),
   app("explorer"),
 ];

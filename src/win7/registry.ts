@@ -18,6 +18,7 @@ export const APPS: Record<string, AppMeta> = {
   explorer: { title: "Windows Explorer", icon: "explorer", w: 880, h: 540, group: "explorer", exe: "explorer.exe", desc: "Browse your files and folders" },
   controlpanel: { title: "Control Panel", icon: "controlpanel", w: 880, h: 580, group: "explorer", exe: "control.exe", desc: "Change settings and customize functionality" },
   ie: { title: "Windows Internet Explorer", icon: "ie", w: 980, h: 620, exe: "iexplore.exe", desc: "Browse the web" },
+  chrome: { title: "Google Chrome", icon: "chrome", w: 1020, h: 700, exe: "chrome.exe", desc: "Browse the web" },
   notepad: { title: "Untitled - Notepad", icon: "notepad", w: 640, h: 440, exe: "notepad.exe", desc: "Create and edit text files" },
   paint: { title: "Untitled - Paint", icon: "paint", w: 920, h: 640, exe: "mspaint.exe", desc: "Draw and edit pictures" },
   calc: { title: "Calculator", icon: "calc", w: 262, h: 392, exe: "calc.exe", desc: "Perform basic and scientific calculations" },
