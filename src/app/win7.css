@@ -456,12 +456,12 @@ textarea.w7input { height: auto; padding: 3px; }
 .blackout.off { cursor: pointer; }
 .power-btn { background: none; border: 2px solid #3a5; border-radius: 50%; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
 .power-btn:hover { box-shadow: 0 0 14px #3a5; }
-.alttab { position: absolute; inset: 0; z-index: 30000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.2); }
-.alttab-box { padding: 18px 22px 12px; border-radius: 8px; background: rgba(var(--gc), .55); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.6), 0 12px 30px rgba(0,0,0,.6); backdrop-filter: blur(12px); text-align: center; }
-.alttab-row { display: flex; gap: 10px; }
-.alttab-item { padding: 12px; border-radius: 4px; border: 1px solid transparent; }
-.alttab-item.sel { background: rgba(255,255,255,.4); border-color: rgba(255,255,255,.9); box-shadow: 0 0 10px rgba(255,255,255,.7); }
-.alttab-title { margin-top: 8px; color: #000; text-shadow: 0 0 6px #fff, 0 0 8px #fff; font-size: 14px; }
+.alttab { position: absolute; inset: 0; z-index: 30000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); }
+.alttab-box { padding: 24px 28px 18px; border-radius: 7px; background: rgba(255,255,255,.72); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.9), 0 16px 40px rgba(0,0,0,.55); backdrop-filter: blur(14px); text-align: center; }
+.alttab-row { display: flex; gap: 16px; align-items: center; justify-content: center; }
+.alttab-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border-radius: 5px; border: 1px solid transparent; min-width: 150px; }
+.alttab-item.sel { background: rgba(255,255,255,.6); border-color: #3b83d3; box-shadow: 0 0 14px rgba(59,131,211,.7); }
+.alttab-title { margin-top: 4px; color: #000; text-shadow: 0 0 6px #fff, 0 0 8px #fff; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
 .screensaver { position: absolute; inset: 0; z-index: 90000; background: #000; cursor: none; }
 .screensaver canvas { width: 100%; height: 100%; display: block; }
 
@@ -536,12 +536,20 @@ textarea.w7input { height: auto; padding: 3px; }
 
 /* Aero Peek on Alt+Tab: the switcher fades in over a darkening desktop and
    its tiles slide up from the taskbar. */
-.alttab { background: rgba(0,0,0,0); animation: altab-dim .16s ease-out forwards; }
-@keyframes altab-dim { to { background: rgba(0,0,0,.22); } }
-.alttab-box { animation: altab-in .13s ease-out both; }
+.alttab { animation: altab-dim .16s ease-out forwards; }
+@keyframes altab-dim { to { background: rgba(0,0,0,.35); } }
+.alttab.peek-active { background: rgba(0,0,0,.15) !important; animation: none; }
+.alttab-box { animation: altab-in .14s ease-out both; }
 /* The Alt+Tab switcher is a straight cross-fade over the dimmed desktop. */
-@keyframes altab-in { from { opacity: 0; } to { opacity: 1; } }
-.alttab-item { transition: background-color .12s ease-out, border-color .12s ease-out, box-shadow .12s ease-out; }
+@keyframes altab-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.alttab-item.peek { border-color: #000; opacity: .55; }
+.alttab-item.peek .alttab-thumb { filter: grayscale(.6) brightness(.7); }
+/* Thumbnail previews of each window */
+.alttab-thumb { width: 150px; height: 112px; border-radius: 4px; border: 1px solid rgba(0,0,0,.3); overflow: hidden; background: #000; position: relative; }
+.alttab-thumb-frame { width: 100%; height: 100%; border-radius: 3px; border: 2px solid rgba(255,255,255,.55); box-sizing: border-box; }
+.alttab-thumb-client { width: 100%; height: 100%; border-radius: 2px; overflow: hidden; transform: scale(.85); transform-origin: top left; }
+/* Selected item thumbnail gets a brighter frame */
+.alttab-item.sel .alttab-thumb-frame { border-color: #3b83d3; box-shadow: 0 0 10px rgba(59,131,211,.8); }
 
 /* Taskbar thumbnails fly out of the button: the strip grows from the bottom
    edge and the tiles stagger in. */

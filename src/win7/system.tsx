@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children, bugCheck, reboot, lsGet } from "./store";
+import { useStore, setState, getState, login, restart, shutdown, sleep, wake, lock, children, bugCheck, reboot, lsGet, focusWin, type Win } from "./store";
 import { Icon, appIcon } from "./icons";
 import { BootAnimation } from "./BootAnimation";
+import { COMPONENTS } from "./appmap";
 import { bootKernel, BOOT_STAGES, BUGCHECKS, logEvent } from "./kernel";
 import { userPic } from "./data";
 import { WALLPAPERS } from "./data";
@@ -282,21 +283,88 @@ export function PowerScreens() {
 export { lock };
 
 /* ------------------------------------------------------------- Alt+Tab */
+
+/** A thumbnail preview of a window's content for the Alt+Tab switcher. */
+function WinThumb({ win, selected, onSelect, onPeekStart, onPeekEnd }: { win: Win; selected: boolean; onSelect: () => void; onPeekStart: () => void; onPeekEnd: () => void }) {
+  const [peek, setPeek] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const Comp = COMPONENTS[win.app] as any;
+
+  const startPeek = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setPeek(true);
+      onPeekStart();
+    }, 1000); // Windows 7 default Aero Peek delay on Alt+Tab thumbnail
+  };
+
+  const stopPeek = () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (peek) { setPeek(false); onPeekEnd(); }
+  };
+
+  return (
+    <div
+      className={"alttab-item" + (selected ? " sel" : "") + (peek ? " peek" : "")}
+      onPointerEnter={startPeek}
+      onPointerLeave={stopPeek}
+      onClick={onSelect}
+    >
+      <div className="alttab-thumb">
+        <div className="alttab-thumb-frame">
+          <div className="alttab-thumb-client">
+            {Comp ? <Comp win={win} /> : null}
+          </div>
+        </div>
+      </div>
+      <div className="alttab-title">{win.title}</div>
+    </div>
+  );
+}
+
 export function AltTab() {
   const a = useStore((s) => s.altTab);
   const windows = useStore((s) => s.windows);
   if (!a) return null;
   const list = a.ids.map((id) => windows.find((w) => w.id === id)).filter(Boolean);
   const cur = list[a.idx % Math.max(1, list.length)];
+  const [peekWinId, setPeekWinId] = useState<string | null>(null);
+
+  const select = (id: string) => {
+    setState({ altTab: null, peek: null });
+    focusWin(id);
+  };
+
+  const startPeek = (id: string) => {
+    setPeekWinId(id);
+    setState({ peek: id });
+  };
+
+  const endPeek = () => {
+    setPeekWinId(null);
+    setState({ peek: null });
+  };
+
+  const isPeeking = peekWinId !== null;
+
   return (
-    <div className="alttab">
+    <div className={`alttab${isPeeking ? " peek-active" : ""}`}>
       <div className="alttab-box">
         <div className="alttab-row">
-          {list.map((w, i) => (
-            <div key={w!.id} className={"alttab-item" + (i === a.idx % list.length ? " sel" : "")} onClick={() => { import("./store").then((m) => { m.focusWin(w!.id); setState({ altTab: null }); }); }}>
-              <Icon name={appIcon(w!.app)} size={48} />
-            </div>
-          ))}
+          {list.map((w, i) => {
+            const id = w!.id;
+            const selected = i === a.idx % list.length;
+            return (
+              <WinThumb
+                key={id}
+                win={w!}
+                selected={selected}
+                onSelect={() => select(id)}
+                onPeekStart={() => startPeek(id)}
+                onPeekEnd={endPeek}
+              />
+            );
+          })}
         </div>
         <div className="alttab-title">{cur?.title}</div>
       </div>
