@@ -137,6 +137,12 @@ const PROGRAMS: PItem[] = [
     app("mdsched", "Windows Memory Diagnostic"),
     app("resmon", "Resource Monitor"),
   ] },
+  { label: "Maintenance", icon: "folder", kids: [
+    app("backup", "Backup and Restore"),
+    { label: "Create a System Repair Disc", icon: "cd", run: () => openApp("backup") },
+    app("help", "Help and Support"),
+    app("ra", "Windows Remote Assistance"),
+  ] },
   { label: "Startup", icon: "folder", kids: [] },
   app("ie", "Internet Explorer"),
   app("dvdmaker", "Windows DVD Maker"),
