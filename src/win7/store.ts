@@ -193,7 +193,7 @@ export const DEFAULTS: Settings = {
   ssText3D: { text: "Windows 7", size: 72, spin: 40, surface: "reflective", font: "Segoe UI Light" },
   showIcons: true,
   iconSize: "medium",
-  sysIcons: { computer: true, user: true, network: true, recycle: true, cpanel: true },
+  sysIcons: { computer: true, recycle: true },
   autoArrange: false,
   alignGrid: true,
   resolution: "native",

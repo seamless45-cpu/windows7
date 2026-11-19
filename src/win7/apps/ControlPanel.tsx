@@ -563,7 +563,7 @@ function DeskIcons() {
         </GroupBox>
         <p><Check checked={s.showIcons} onChange={(v) => setSettings({ showIcons: v })} label="Show desktop icons" /></p>
         <p>Icon size: <Sel value={s.iconSize} onChange={(v) => setSettings({ iconSize: v })} opts={[["large", "Large icons"], ["medium", "Medium icons"], ["small", "Small icons"]]} /></p>
-        <p><Btn onClick={() => setSettings({ sysIcons: { computer: true, user: true, network: true, recycle: true, cpanel: true } })}>Restore Default</Btn></p>
+        <p><Btn onClick={() => setSettings({ sysIcons: { computer: true, recycle: true } })}>Restore Default</Btn></p>
       </div>
     </div>
   );
