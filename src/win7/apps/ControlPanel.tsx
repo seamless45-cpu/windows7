@@ -22,7 +22,7 @@ const CATS: { id: string; title: string; icon: string; items: string[]; links: [
   { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "secpol", "perfmon", "mdsched", "support", "backup", "bitlocker", "wei", "ra"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "backup"], ["Find and fix problems", "support"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
   { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts", "rdp", "sync", "homegroup"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "homegroup"]] },
   { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility", "wfs"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
-  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games", "migwiz", "stkmgr"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
+  { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games", "migwiz", "mce", "stkmgr"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
   { id: "cat-users", title: "User Accounts and Family Safety", icon: "users", items: ["users", "credmgr"], links: [["Add or remove user accounts", "users"], ["Set up parental controls for any user", "users"]] },
   { id: "cat-appearance", title: "Appearance and Personalization", icon: "appearance", items: ["personalization", "display", "taskbar", "folderopts", "fonts", "aero", "eudc"], links: [["Change the theme", "personalization"], ["Change desktop background", "wallpaper"], ["Adjust screen resolution", "display"]] },
   { id: "cat-clock", title: "Clock, Language, and Region", icon: "clock", items: ["datetime", "region"], links: [["Change keyboards or other input methods", "region"], ["Change display language", "region"]] },
@@ -86,6 +86,7 @@ const PAGES: Record<string, PageDef> = {
   rdp: { title: "Remote Desktop Connection", icon: "network", cat: "cat-network" },
   sync: { title: "Sync Center", icon: "share", cat: "cat-network" },
   migwiz: { title: "Windows Easy Transfer", icon: "programs", cat: "cat-programs" },
+  mce: { title: "Windows Media Center", icon: "wmp", cat: "cat-programs" },
   backup: { title: "Backup and Restore", icon: "backup", cat: "cat-system" },
   bitlocker: { title: "BitLocker Drive Encryption", icon: "shield", cat: "cat-system" },
   homegroup: { title: "HomeGroup", icon: "homegroup", cat: "cat-network" },
@@ -98,7 +99,7 @@ const PAGES: Record<string, PageDef> = {
   tabtip: { title: "Tablet PC Input Panel", icon: "osk", cat: "cat-ease" },
   stkmgr: { title: "Sticky Notes", icon: "sticky2", cat: "cat-programs" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
+const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -562,7 +563,7 @@ function DeskIcons() {
         </GroupBox>
         <p><Check checked={s.showIcons} onChange={(v) => setSettings({ showIcons: v })} label="Show desktop icons" /></p>
         <p>Icon size: <Sel value={s.iconSize} onChange={(v) => setSettings({ iconSize: v })} opts={[["large", "Large icons"], ["medium", "Medium icons"], ["small", "Small icons"]]} /></p>
-        <p><Btn onClick={() => setSettings({ sysIcons: { computer: true, recycle: true } })}>Restore Default</Btn></p>
+        <p><Btn onClick={() => setSettings({ sysIcons: { computer: true, user: true, network: true, recycle: true, cpanel: true } })}>Restore Default</Btn></p>
       </div>
     </div>
   );
@@ -1092,6 +1093,7 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   credmgr: () => <CredentialManager />,
   wei: () => <ExperienceIndex />,
   ra: () => <RemoteAssistance />,
+  mce: () => <CPLaunch app="mce" text="Windows Media Center turns the PC into a ten-foot media player for your pictures, music, videos and recorded TV." />,
   eudc: () => <CPLaunch app="eudc" text="Private Character Editor draws characters that the Character Map can insert into any document." />,
   wfs: () => <CPLaunch app="wfs" text="Windows Fax and Scan scans documents on a flatbed scanner and sends or receives faxes over a modem." />,
   support: () => <CPLaunch app="support" text="Windows Support troubleshoots a problem and applies a fix automatically." />,

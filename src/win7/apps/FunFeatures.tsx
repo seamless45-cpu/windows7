@@ -58,7 +58,7 @@ export function FunFeatures() {
           <Check checked={countdown} onChange={(v) => { setCountdown(v); lsSet("win7.bsod.countdown", v); }} label="Show the crash-dump progress counter" />
           <Check checked={autoDump} onChange={(v) => { setAutoDump(v); lsSet("win7.bsod.dump", v); }} label="Write a memory dump (simulated)" />
         </p>
-        <p><Btn def onClick={crash}>Crash now</Btn> <Btn onClick={() => { notify({ title: "Troubleshooting", text: "Nothing happened. The kernel is fine.", icon: "info" }); }}>Check the kernel instead</Btn></p>
+        <p><Btn def onClick={crash}>Crash now</Btn> <Btn onClick={() => { notify({ title: "Fun experimental features", text: "Nothing happened. The kernel is fine.", icon: "info" }); }}>Check the kernel instead</Btn></p>
       </GroupBox>
 
       <GroupBox title="Break the next boot">
