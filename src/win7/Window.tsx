@@ -331,7 +331,7 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
       : [{ transform: fromTaskbar, opacity: 0, visibility: "visible" }, { transform: "none", opacity: 1, visibility: "visible" }];
     const animation = el.animate(keyframes, {
       duration: 250,
-      easing: "linear",
+      easing: "cubic-bezier(.2,.7,.3,1)",
       fill: "forwards",
     });
     minMotion.current = animation;
