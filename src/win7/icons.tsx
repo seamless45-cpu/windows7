@@ -292,6 +292,36 @@ const G: Record<string, () => React.ReactNode> = {
       <rect x="14" y="40" width="20" height="4" rx="1" fill="#97a1ad" />
     </>
   ),
+  eventvwr: () => (
+    <Tile a="#e3f2fd" b="#1565c0"><rect x="8" y="10" width="32" height="28" rx="2" fill="#fff" stroke="#1565c0" strokeWidth="2" /><rect x="11" y="13" width="26" height="6" fill="#e8eef6" /><rect x="11" y="21" width="26" height="6" fill="#e8eef6" /><rect x="11" y="29" width="26" height="4" fill="#e8eef6" /><circle cx="14" cy="16" r="2" fill="#1565c0" /><circle cx="22" cy="24" r="2" fill="#1565c0" /><circle cx="30" cy="32" r="2" fill="#1565c0" /></Tile>
+  ),
+  regedit: () => (
+    <Tile a="#fce4ec" b="#c2185b"><rect x="8" y="8" width="32" height="32" rx="3" fill="#fff" stroke="#c2185b" strokeWidth="2" /><path d="M12 14h8M12 18h8M12 22h8M20 14v8M20 22v-4" stroke="#c2185b" strokeWidth="2" fill="none" strokeLinecap="round" /><circle cx="24" cy="28" r="3" fill="#c2185b" /></Tile>
+  ),
+  sysdiag: () => (
+    <Tile a="#e8f5e9" b="#2e7d32"><rect x="8" y="8" width="32" height="32" rx="3" fill="#fff" stroke="#2e7d32" strokeWidth="2" /><path d="M14 14l-2 2M14 18l2 2M14 26l2-2M14 30l-2-2" stroke="#2e7d32" strokeWidth="2" fill="none" strokeLinecap="round" /><rect x="20" y="16" width="10" height="6" rx="1" fill="#2e7d32" /><rect x="20" y="24" width="10" height="4" rx="1" fill="#2e7d32" /></Tile>
+  ),
+  perfmon: () => (
+    <Tile a="#fff3e0" b="#ef6c00"><rect x="8" y="10" width="32" height="28" rx="2" fill="#fff" stroke="#ef6c00" strokeWidth="2" /><path d="M12 16c0-2 2-4 4-4s4 2 4 4M12 22c0-2 2-4 4-4s4 2 4 4M12 28c0-2 2-4 4-4s4 2 4 4" stroke="#ef6c00" strokeWidth="2.5" fill="none" strokeLinecap="round" /><circle cx="16" cy="20" r="2" fill="#ef6c00" /><circle cx="24" cy="26" r="2" fill="#ef6c00" /></Tile>
+  ),
+  uac: () => (
+    <Tile a="#e3f2fd" b="#1565c0"><path d="M24 4L46 42H2z" fill="#fff" stroke="#1565c0" strokeWidth="1.500" strokeLinejoin="round" /><circle cx="24" cy="20" r="6" fill="#1565c0" /><path d="M24 26v-4M20 30h8" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" fill="none" /></Tile>
+  ),
+  credmgr: () => (
+    <Tile a="#f3e5f5" b="#7b1fa2"><rect x="8" y="12" width="32" height="24" rx="2" fill="#fff" stroke="#7b1fa2" strokeWidth="2" /><circle cx="14" cy="16" r="3" fill="#7b1fa2" /><circle cx="24" cy="16" r="3" fill="#7b1fa2" /><circle cx="34" cy="16" r="3" fill="#7b1fa2" /><path d="M14 26l4 4M18 30l-2-2" stroke="#7b1fa2" strokeWidth="2.5" fill="none" strokeLinecap="round" /></Tile>
+  ),
+  bitlocker: () => (
+    <Tile a="#e8f5e9" b="#1b5e20"><rect x="8" y="8" width="32" height="32" rx="3" fill="#fff" stroke="#1b5e20" strokeWidth="2" /><path d="M14 14h4v12h-4zM18 14h4v12h-4zM22 14h4v12h-4z" stroke="#1b5e20" strokeWidth="2" fill="none" /><path d="M16 20l-2 2 4 4 6-6" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" /></Tile>
+  ),
+  dccw: () => (
+    <Tile a="#e3f2fd" b="#1565c0"><rect x="8" y="8" width="32" height="32" rx="3" fill="#fff" stroke="#1565c0" strokeWidth="2" /><circle cx="24" cy="24" r="10" fill="none" stroke="#1565c0" strokeWidth="2.5" /><path d="M14 24a10 10 0 0 1 10-10M24 14a10 10 0 0 1 10 10M34 24a10 10 0 0 1-10 10M24 34a10 10 0 0 1-10-10" stroke="#1565c0" strokeWidth="2" fill="none" opacity=".5" /></Tile>
+  ),
+  personalization: () => (
+    <Tile a="#fff3e0" b="#ef6c00"><circle cx="24" cy="14" r="6" fill="#fff" stroke="#ef6c00" strokeWidth="2" /><path d="M24 20c-4 0-7 2-7 7v2M24 20c4 0 7 2 7 7v2M16 29h8" stroke="#ef6c00" strokeWidth="2.5" fill="none" strokeLinecap="round" /><rect x="12" y="28" width="4" height="4" fill="#ef6c00" /><rect x="28" y="28" width="4" height="4" fill="#ef6c00" /></Tile>
+  ),
+  windowsupdate: () => (
+    <Tile a="#e3f2fd" b="#1565c0"><circle cx="24" cy="24" r="12" fill="none" stroke="#1565c0" strokeWidth="2.5" strokeDasharray="8 4" /><path d="M16 24l4 4 8-8" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" /></Tile>
+  ),
   photos: () => (
     <>
       <rect x="3" y="7" width="42" height="34" rx="2" fill="#fff" stroke="#6b7684" />
@@ -417,6 +447,15 @@ const G: Record<string, () => React.ReactNode> = {
       <path d="M24 17v13" stroke="#333" strokeWidth="4" strokeLinecap="round" /><circle cx="24" cy="36" r="2.500" fill="#333" />
     </>
   ),
+  defender: () => (
+    <Tile a="#e3f2fd" b="#1565c0"><circle cx="24" cy="24" r="14" fill="#fff" stroke="#1565c0" strokeWidth="3" /><path d="M24 12v8M16 20l4 4 8-8" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" /></Tile>
+  ),
+  reliability: () => (
+    <Tile a="#e8f5e9" b="#2e7d32"><path d="M8 24c0-6 4-10 10-10s10 4 10 10M24 34l-4-4M24 34l4-4" stroke="#fff" strokeWidth="3" strokeLinecap="round" fill="none" /><circle cx="16" cy="16" r="2" fill="#fff" /><circle cx="32" cy="16" r="2" fill="#fff" /></Tile>
+  ),
+  share: () => (
+    <Tile a="#e3f2fd" b="#1565c0"><path d="M24 12c-6.6 0-12 5.4-12 12M24 12l5 5M24 12l-5 5M24 24c6.6 0 12-5.4 12-12M24 24l5-5M24 24l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" /></Tile>
+  ),
   info: () => (
     <>
       <circle cx="24" cy="24" r="20" fill="url(#iSphere)" stroke="#0a3a8c" strokeWidth="1.500" />
@@ -481,6 +520,10 @@ const G: Record<string, () => React.ReactNode> = {
   solitaire: () => <Tile a="#0a7a2a" b="#053f16"><rect x="12" y="10" width="18" height="26" rx="2" fill="#fff" stroke="#345" /><rect x="17" y="14" width="18" height="26" rx="2" fill="#fff" stroke="#345" /><path d="M26 22l5 5-5 5-5-5z" fill="#d00" /><path d="M22 22h8l-4 6z" fill="#d00" /></Tile>,
   spider: () => <Tile a="#0a7a2a" b="#053f16"><rect x="8" y="8" width="16" height="22" rx="2" fill="#fff" stroke="#345" /><rect x="20" y="14" width="16" height="22" rx="2" fill="#fff" stroke="#345" /><path d="M24 14l4 5h-8z" fill="#222" /><circle cx="28" cy="26" r="3" fill="#d00" /></Tile>,
   hearts: () => <Tile a="#0a7a2a" b="#053f16"><rect x="10" y="10" width="20" height="24" rx="2" fill="#fff" stroke="#345" /><path d="M25 20c0-4 7-4 7 1 0 4-7 8-7 8s-7-4-7-8c0-5 7-5 7-1z" fill="#d00" /></Tile>,
+  chess: () => <Tile a="#dfeaf7" b="#4d7ac0"><rect x="6" y="6" width="36" height="36" fill="#fff" stroke="#345" strokeWidth="2" /><rect x="8" y="8" width="5" height="5" fill="#345" /><rect x="15" y="8" width="5" height="5" fill="#fff" stroke="#345" strokeWidth="1" /><rect x="22" y="8" width="5" height="5" fill="#345" /><rect x="8" y="15" width="5" height="5" fill="#fff" stroke="#345" strokeWidth="1" /><rect x="15" y="15" width="5" height="5" fill="#345" /><rect x="22" y="15" width="5" height="5" fill="#fff" stroke="#345" strokeWidth="1" /><path d="M11 27l2 6M19 27l-2 6M14 35l3-3M17 35l-3-3" stroke="#d00" strokeWidth="2.5" fill="none" strokeLinecap="round" /></Tile>,
+  freecell: () => <Tile a="#0a7a2a" b="#053f16"><rect x="10" y="8" width="28" height="32" rx="2" fill="#fff" stroke="#345" /><rect x="13" y="12" width="6" height="12" fill="#d00" /><rect x="21" y="12" width="6" height="12" fill="#d00" /><rect x="13" y="26" width="6" height="6" fill="#345" /><rect x="21" y="26" width="6" height="6" fill="#345" /></Tile>,
+  mahjong: () => <Tile a="#2f4f4f" b="#1a252f"><rect x="8" y="8" width="32" height="32" rx="3" fill="#d2b48c" stroke="#8b4513" strokeWidth="2" /><rect x="12" y="12" width="8" height="8" fill="#8b4513" /><rect x="22" y="12" width="8" height="8" fill="#8b4513" /><rect x="12" y="22" width="8" height="8" fill="#8b4513" /><rect x="22" y="22" width="8" height="8" fill="#8b4513" /></Tile>,
+  purble: () => <Tile a="#e3d0f8" b="#8a5cf6"><rect x="10" y="10" width="28" height="28" rx="4" fill="#fff" stroke="#8a5cf6" strokeWidth="2" /><circle cx="14" cy="14" r="4" fill="#ff6b6b" /><circle cx="24" cy="14" r="4" fill="#4ecdc4" /><circle cx="14" cy="24" r="4" fill="#45b7d1" /><circle cx="24" cy="24" r="4" fill="#f9ca24" /></Tile>,
   gamecenter: () => <Tile a="#e8eef8" b="#8ba8d0"><circle cx="24" cy="21" r="11" fill="url(#iDark)" stroke="#345" strokeWidth="2" /><path d="M24 13v6M21 16h6M31 18h.1M31 24h.1" stroke="#fff" strokeWidth="2.500" strokeLinecap="round" /><path d="M14 32l-4 8h28l-4-8" fill="#c8d4e4" stroke="#345" /></Tile>,
   xps: () => <Paper g={<><text x="24" y="34" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#2a6fd6" fontFamily="Segoe UI,Arial">XPS</text></>} />,
   journal: () => <Paper g={<><rect x="14" y="20" width="20" height="14" fill="#fff" stroke="#8aa" /><path d="M17 24h14M17 28h14" stroke="#c9d8e8" strokeWidth="1.500" /></>} />,
