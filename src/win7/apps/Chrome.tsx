@@ -41,6 +41,7 @@ export function Chrome({ win }: { win: Win }) {
   const [addr, setAddr] = useState("");
   const [loading, setLoading] = useState(false);
   const [twidth, setTwidth] = useState(170);
+  const [closing, setClosing] = useState<Set<number>>(new Set());
   const rowRef = useRef<HTMLDivElement>(null);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
 
@@ -68,9 +69,13 @@ export function Chrome({ win }: { win: Win }) {
   const newTab = (url = "about:blank") => { const t = mk(url); setTabs((ts) => [...ts, t]); setActive(t.id); };
   const closeTab = (id: number) => {
     if (tabs.length === 1) return closeWin(win.id);
-    const nt = tabs.filter((t) => t.id !== id);
-    setTabs(nt);
-    if (active === id) setActive(nt[Math.max(0, tabs.findIndex((t) => t.id === id) - 1)].id);
+    setClosing((c) => new Set([...c, id]));
+    setTimeout(() => {
+      const nt = tabs.filter((t) => t.id !== id);
+      setTabs(nt);
+      setClosing((c) => { const n = new Set(c); n.delete(id); return n; });
+      if (active === id) setActive(nt[Math.max(0, tabs.findIndex((t) => t.id === id) - 1)].id);
+    }, 220); // matches the cr-tabclose animation duration
   };
 
   const content = () => {
@@ -125,7 +130,7 @@ export function Chrome({ win }: { win: Win }) {
           {tabs.map((t, i) => (
             <div
               key={t.id}
-              className={"cr-tab" + (t.id === tab.id ? " sel" : "")}
+              className={"cr-tab" + (t.id === tab.id ? " sel" : "") + (closing.has(t.id) ? " x-closing" : "")}
               onPointerDown={() => setActive(t.id)}
               title={t.title}
             >

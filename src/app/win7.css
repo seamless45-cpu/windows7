@@ -1044,6 +1044,11 @@ textarea.w7input { height: auto; padding: 3px; }
 .cr-tabrow { display: flex; gap: 2px; padding: 4px 8px 0; overflow-x: auto; }
 .cr-tab { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid #dadce0; border-bottom: none; border-radius: 4px 4px 0 0; background: #f1f3f4; color: #5f6368; cursor: pointer; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 .cr-tab.sel { background: #fff; color: #202124; border-bottom: 2px solid #1a73e8; position: relative; bottom: -1px; }
+.cr-tab.x-closing { animation: cr-tabclose .22s ease-out both; }
+@keyframes cr-tabclose {
+  from { opacity: 1; transform: translateY(0) scaleX(1); }
+  to { opacity: 0; transform: translateY(8px) scaleX(.85); }
+}
 .cr-tab:hover:not(.sel) { background: #e8eaed; }
 .cr-tabx { margin-left: 6px; font-size: 14px; color: #5f6368; cursor: pointer; }
 .cr-tabx:hover { color: #d93025; }
