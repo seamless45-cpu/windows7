@@ -240,10 +240,19 @@
 .cal-grid span.dim { color: #9aa; }
 .cal-grid span:hover { background: #e6f1fc; border-color: #b8d3f0; }
 .cal-grid span.today { background: linear-gradient(#5d9be3, #2b66bf); color: #fff; border-color: #1a4a99; font-weight: 600; }
-.vol-fly { width: 80px; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; gap: 4px; }
-.vol-label { font-size: 11px; color: #345; }
-.vol-slider { height: 120px; display: flex; justify-content: center; }
-.vol-mute { border: 1px solid #aab; background: linear-gradient(#fff, #dde); border-radius: 3px; padding: 2px 6px; }
+.vol-fly { width: 150px; padding: 10px; gap: 8px; background: linear-gradient(#fbfcfe, #e9eff7); border: 1px solid #979797; box-shadow: 0 0 0 4px rgba(var(--gc), .6), 0 0 0 5px rgba(0,0,0,.45), 0 8px 22px rgba(0,0,0,.5); border-radius: 3px; }
+.vol-header { display: flex; gap: 10px; align-items: center; }
+.vol-icon { flex: none; }
+.vol-info { flex: 1; min-width: 0; }
+.vol-name { font-size: 12px; font-weight: 600; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vol-pct { font-size: 11px; color: #555; }
+.vol-slider-wrap { display: flex; align-items: center; gap: 6px; }
+.vol-slider { height: 80px; display: flex; justify-content: center; flex: 1; min-width: 0; }
+.vol-row { display: flex; gap: 10px; align-items: center; padding-top: 4px; border-top: 1px solid #c9d6ea; }
+.vol-btn { flex: none; border: 1px solid #aab; background: linear-gradient(#fff, #dde); border-radius: 3px; padding: 4px 8px; font-size: 11px; color: #000; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.vol-btn:hover { background: #e8f1fc; border-color: #5a9ce8; }
+.vol-link { font-size: 11px; color: #0066cc; text-decoration: none; }
+.vol-link:hover { text-decoration: underline; }
 .net-fly, .bat-fly, .ac-fly, .ovf-fly { width: 290px; padding-bottom: 4px; }
 .ovf-fly { width: 130px; } .ovf-grid { display: flex; gap: 4px; padding: 8px; flex-wrap: wrap; background: #2a3a55; } .ovf-grid .tray-ico { filter: none; }
 .nf-head { padding: 8px 10px 2px; color: #1e3a8a; }

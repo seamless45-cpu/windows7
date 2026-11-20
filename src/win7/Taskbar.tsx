@@ -542,12 +542,20 @@ function Flyouts() {
   if (flyout === "volume")
     return (
       <div className="flyout vol-fly" style={st} onPointerDown={stop}>
-        <div className="vol-label">Speakers</div>
-        <div className="vol-slider"><Slider value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 110 } as React.CSSProperties} /></div>
-        <div className="vol-val">{s.muted ? "Muted" : s.volume}</div>
-        <button className="vol-mute" onClick={() => { setSettings({ muted: !s.muted }); playSys(s.muted ? "restore" : "minimize"); }} title={s.muted ? "Unmute" : "Mute"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={20} /></button>
-        <a className="cf-link" onClick={() => { close(); playSys("ding"); }}>Test</a>
-        <a className="cf-link" onClick={() => { close(); openCP("sound"); }}>Mixer</a>
+        <div className="vol-header">
+          <div className="vol-icon"><Icon name={s.muted || s.volume === 0 ? "speakerMute" : "speaker"} size={24} /></div>
+          <div className="vol-info">
+            <div className="vol-name">Speakers</div>
+            <div className="vol-pct">{s.muted ? "Muted" : s.volume + "%"}</div>
+          </div>
+        </div>
+        <div className="vol-slider-wrap">
+          <div className="vol-slider"><Slider value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); playSys(v > 0 ? "ding" : "minimize"); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 100 } as React.CSSProperties} /></div>
+        </div>
+        <div className="vol-row">
+          <button className="vol-btn" onClick={() => { setSettings({ muted: !s.muted }); playSys(s.muted ? "restore" : "minimize"); }} title={s.muted ? "Unmute speakers" : "Mute speakers"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={18} /></button>
+          <a className="cf-link vol-link" onClick={() => { close(); playSys("ding"); openCP("sound"); }}>Open Volume Mixer</a>
+        </div>
       </div>
     );
   if (flyout === "network")
