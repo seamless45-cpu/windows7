@@ -166,7 +166,7 @@ sounds are the real Windows 7 ones**:
 | Area | What works |
 | --- | --- |
 | Boot / logon | Boot screen, multi-user logon, Welcome, lock, sleep, restart, shutdown, off |
-| Aero | Glass frames, transparency + colour intensity, Aero Peek (desktop button & thumbnails), Aero Snap (drag to edges / `Win`+arrows), Snap Assist, Aero Shake, Flip 3D (`Win`+`Tab`) |
+| Aero | Glass frames, transparency + colour intensity, Aero Peek (desktop button & thumbnails), Aero Snap (drag to edges / `Win`+arrows, no Windows 10 Snap Assist), Aero Shake, Flip 3D (`Win`+`Tab`) |
 | Taskbar | Pinned & grouped buttons, live thumbnails, jump lists with pinned/recent files and tasks, progress bars, keyboard navigation (`Win`+`T`), notification area, clock/calendar flyout, volume, network, battery, Action Center, taskbar on any edge, auto-hide, small icons |
 | Start menu | Search across programs, files and Control Panel, pinned & recent programs, jump-list arrows, all-programs tree, power menu |
 | Desktop | Icons with drag selection, rename, arrange/sort, system icons, recycle bin, gadgets, per-icon positions |
@@ -187,15 +187,16 @@ Windows Defender, Control Panel (40+ pages incl. Reliability Monitor, Mobility C
 options, Windows Anytime Upgrade), Explorer with Libraries, Search, Recycle Bin, Windows Update,
 Action Center.
 **Ease of Access** — On-Screen Keyboard, Narrator, Problem Steps Recorder, Math Input Panel.
-**Network / Other** — Internet Explorer, Speech Recognition (microphone engine where the
+**Network / Other** — Internet Explorer (real pages in a frame with a relaxed sandbox and Permissions-Policy list; sites that refuse framing get an explanation and an "open in a real tab" link), Speech Recognition (microphone engine where the
 browser supports it, otherwise type-a-command mode), Help and Support.
 
 Everything you create — files, notes, wallpapers, journal pages, settings, icon positions,
 game best scores — is stored in `localStorage`. *Control Panel → Action Center → Reset this
 simulated PC* restores the original system.
 
-The shell, Explorer and Calculator behaviors are cross-checked against Windows 7 references
-in [`docs/windows7-behavior.md`](docs/windows7-behavior.md). Run `npm test`, `npm run
+The shell, Explorer, Calculator and Internet Explorer embedding behaviors are cross-checked
+against Windows 7 references in [`docs/windows7-behavior.md`](docs/windows7-behavior.md);
+`npm run test:accuracy` asserts them. Run `npm test`, `npm run
 typecheck` and `npm run build` after changing them.
 
 ## Layout

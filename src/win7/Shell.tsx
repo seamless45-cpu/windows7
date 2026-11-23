@@ -13,7 +13,7 @@ import { Taskbar } from "./Taskbar";
 import { StartMenu } from "./StartMenu";
 import { ContextMenuHost } from "./ui";
 import { PowerScreens, AltTab, Screensaver } from "./system";
-import { JumpList, Flip3D, SnapAssist, useShake, WallpaperShuffle } from "./aero";
+import { JumpList, Flip3D, useShake, WallpaperShuffle } from "./aero";
 import { COLORS } from "./data";
 import { FadeLayer, ThemeMix } from "./Transitions";
 import { playClick, preload, unlockAudio } from "./sound";
@@ -418,7 +418,6 @@ export default function Shell() {
       </div>
       <ContextMenuHost />
       <JumpList />
-      <SnapAssist />
       <Flip3D />
       <AltTab />
       <div ref={trailRef} className="trails">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>

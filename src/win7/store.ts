@@ -101,7 +101,8 @@ export interface Settings {
   deviceDisabled: string[];
   wpShuffle: boolean;
   wpInterval: number;
-  snapAssist: boolean;
+  /** Aero Snap: dragging a window to an edge tiles it (Win 7, on by default) */
+  aeroSnap: boolean;
   shake: boolean;
   aero: { animations: boolean; shadows: boolean; taskbarAnim: boolean; smoothScroll: boolean };
   recentDocs: { id: string; app: string; at: number }[];
@@ -237,7 +238,7 @@ export const DEFAULTS: Settings = {
   deviceDisabled: [],
   wpShuffle: false,
   wpInterval: 30,
-  snapAssist: true,
+  aeroSnap: true,
   shake: true,
   aero: { animations: true, shadows: true, taskbarAnim: true, smoothScroll: true },
   recentDocs: [],
@@ -434,7 +435,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     deviceDisabled: strArr(saved.deviceDisabled, []),
     wpShuffle: bool(saved.wpShuffle, d.wpShuffle),
     wpInterval: num(saved.wpInterval, d.wpInterval, 1, 1440),
-    snapAssist: bool(saved.snapAssist, d.snapAssist),
+    aeroSnap: bool(saved.aeroSnap, d.aeroSnap),
     shake: bool(saved.shake, d.shake),
     aero: {
       animations: bool(aero.animations, d.aero.animations),

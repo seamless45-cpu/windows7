@@ -65,3 +65,57 @@ Context menus support arrows, Home/End, Enter/Space, letter navigation, and Esca
 keyboard events stop at the menu so they cannot also activate the underlying application.
 Message boxes accept Enter for the default action and Escape for the final cancel-style
 action.
+
+## Window management and embedding (accuracy pass)
+
+- **Aero Snap has no assist.** After a window snaps to an edge, Windows 7 leaves the
+  other half of the screen empty. Snap Assist — the grid of other windows offered to fill
+  the gap — arrived with Windows 10, and quarter-screen corner snapping is also post-7, so
+  neither is present. Dragging to the left/right edge or the top edge, and `Win`+arrows, are
+  the Windows 7 gestures, and the snap outline drawn during the drag is the Windows 7 one.
+  *Automatically arrange windows when dragged to the edge of the screen* (Control Panel →
+  Aero options) is the real preference and switches the gesture off.
+- **Dragging a maximised window restores it proportionally.** The grab point keeps its
+  relative position inside the restored frame, so the caption stays under the pointer
+  instead of the frame jumping.
+- **The Start menu's right column** is, in order: user name, Documents, Pictures, Music,
+  Games, then Computer, Control Panel, Devices and Printers, Default Programs, Help and
+  Support. The Shut down arrow offers Switch user, Log off, Lock, Restart, Sleep —
+  Hibernate replaces Sleep in that slot rather than appearing as a sixth item.
+- **The desktop/shell `New` submenu** lists Folder, Shortcut, then the registered file types
+  alphabetically (Bitmap image, Contact, Journal Document, Microsoft Word Document, Rich
+  Text Document, Text Document), with Compressed (zipped) Folder last.
+
+### Internet Explorer frames
+
+The IE window renders real sites in an `<iframe>`, so two different limits apply:
+
+1. **What the simulator may grant.** Remote pages get `allow-scripts allow-forms
+   allow-popups allow-popups-to-escape-sandbox allow-modals allow-presentation
+   allow-orientation-lock allow-pointer-lock allow-downloads
+   allow-top-navigation-by-user-activation allow-same-origin`, plus a Permissions-Policy
+   `allow` list for clipboard, fullscreen, geolocation, camera, microphone, autoplay,
+   encrypted media, picture-in-picture, web-share and the motion/gamepad sensors. Pages from
+   the virtual file system are injected with `srcdoc`; they are same-origin with the shell,
+   so they deliberately do **not** receive `allow-same-origin` — their scripts run, but the
+   document gets an opaque origin and cannot touch the desktop's storage.
+2. **What the framed site allows.** `X-Frame-Options` and `Content-Security-Policy:
+   frame-ancestors` are evaluated by the browser before the frame is drawn. No attribute,
+   sandbox token or script on the embedding page can override them, so a site that refuses
+   framing is not a bug the simulator can fix. The known-blocker list lives in
+   `src/win7/embed.ts`; those hosts get a page that names the actual cause and offers the two
+   real ways out (open in a real browser tab, or retry the frame). Everything else gets the
+   IE 8-era information bar with the same "open in a new tab" link.
+
+Both sandbox policies and the blocker list are asserted in `tests/accuracy.test.mjs`
+(`npm run test:accuracy`).
+
+References:
+
+- MakeUseOf, [How to Disable Snap Assist in Windows 10](https://www.makeuseof.com/tag/disable-snap-assist-windows-10/)
+  — Aero Snap is the Windows 7 feature; Snap Assist is the Windows 10 addition.
+- [Snap feature](https://baike.baidu.com/en/item/Snap%20feature/2889383) — Windows 10 added
+  Snap Assist and Corner Snap on top of the Windows 7 behaviour.
+- [iframe cheat sheet](https://iframe-detector.com/iframe-cheat-sheet/) — every sandbox token.
+- [How to Bypass X-Frame-Options and CSP frame-ancestors](https://iframetest.com/x-frame-options-bypass/)
+  — framing headers cannot be overridden from the embedding page.

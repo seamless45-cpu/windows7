@@ -430,14 +430,16 @@ export function StartMenu() {
           <button className={"sm-arrow" + (pwr ? " on" : "")} onClick={() => setPwr(!pwr)}>▶</button>
           {pwr && (
             <div className="ctx sm-pmenu" onPointerDown={(e) => e.stopPropagation()}>
-              {[
+              {/* Windows 7 order: Switch user, Log off, Lock, Restart, Sleep.
+                  Hibernate is not a separate item — it replaces Sleep in the
+                  same slot when hibernation is enabled. */}
+              {([
                 ["Switch user", () => lock()],
                 ["Log off", () => logoff()],
                 ["Lock", () => lock()],
                 ["Restart", () => restart()],
                 ["Sleep", () => sleep()],
-                ["Hibernate", () => sleep()],
-              ].map(([l, f]) => (
+              ] as [string, () => void][]).map(([l, f]) => (
                 <div key={l as string} className="ctx-item" onClick={() => run(f as () => void)}><span className="ctx-check" /><span className="ctx-label">{l as string}</span></div>
               ))}
             </div>

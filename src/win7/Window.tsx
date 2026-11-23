@@ -81,6 +81,7 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
   const fixed = !!meta.fixed;
   const frameless = meta.chrome === "none";
   const animationsEnabled = useStore((s) => s.settings.aero.animations);
+  const aeroSnap = useStore((s) => s.settings.aeroSnap);
 
   const geom = win.max ? { left: wx, top: wy, width: ww, height: wh } : { left: win.x, top: win.y, width: win.w, height: win.h };
 
@@ -119,11 +120,17 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
     if (win.max || win.snap) {
       if (fixed) return;
       const p = win.prev || { x: 60, y: 40, w: Math.min(meta.w, sw - 80), h: Math.min(meta.h, sh - 80) };
-      const rel = (e.clientX / sc - (win.max ? wx : win.x)) / (win.max ? ww : win.w);
+      // Windows 7 restores the frame around the pointer *proportionally*: the
+      // grab point keeps the same relative position inside the restored frame,
+      // so pulling a maximised window down leaves the caption under the cursor
+      // instead of jumping it to the far edge.
+      const cur = { x: win.max ? wx : win.x, y: win.max ? wy : win.y, w: win.max ? ww : win.w, h: win.max ? wh : win.h };
+      const relX = (e.clientX / sc - cur.x) / Math.max(1, cur.w);
+      const relY = (e.clientY / sc - cur.y) / Math.max(1, cur.h);
       w = p.w;
       h = p.h;
-      x = e.clientX / sc - w * rel;
-      y = win.max ? wy : win.y;
+      x = e.clientX / sc - w * relX;
+      y = e.clientY / sc - h * relY;
       el.style.left = x + "px";
       el.style.top = y + "px";
       el.style.width = w + "px";
@@ -167,7 +174,8 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
         y = ny;
         const px = ev2.clientX / sc;
         const py = ev2.clientY / sc;
-        const s2 = fixed ? null : px <= 2 ? "l" : px >= sw - 3 ? "r" : py <= 1 ? "m" : null;
+        // Aero Snap can be switched off; Aero Shake then has the gesture to itself.
+        const s2 = fixed || !aeroSnap ? null : px <= 2 ? "l" : px >= sw - 3 ? "r" : py <= 1 ? "m" : null;
         if (s2 !== snap) {
           snap = s2;
           prev(s2 as "l" | "r" | "m" | null);

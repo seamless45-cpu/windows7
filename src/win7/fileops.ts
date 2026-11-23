@@ -162,11 +162,15 @@ export function newItems(dir: string, onCreated?: (id: string) => void): MenuIte
       onCreated?.(id);
     },
   });
+  // The order Windows 7 uses in the New submenu: the shell items first, then
+  // the registered file types alphabetically, with the archive folder last.
   return [
     mk("Folder", "folder", () => mkdir(dir, "New folder")),
     { label: "Shortcut", icon: "file@lnk", onClick: () => newShortcutWizard(dir, onCreated) },
     { sep: true },
     mk("Bitmap image", "image", () => mkfile(dir, "New Bitmap Image.bmp", "", 0)),
+    mk("Contact", "user", () => mkfile(dir, "New Contact.contact", "", 0)),
+    mk("Journal Document", "journal", () => mkfile(dir, "New Journal Document.jnt", "", 0)),
     mk("Microsoft Word Document", "rtf", () => mkfile(dir, "New Microsoft Word Document.doc", "", 0)),
     mk("Rich Text Document", "rtf", () => mkfile(dir, "New Rich Text Document.rtf", "", 0)),
     mk("Text Document", "txt", () => mkfile(dir, "New Text Document.txt", "", 0)),

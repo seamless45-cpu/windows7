@@ -165,32 +165,6 @@ export function Flip3D() {
   );
 }
 
-/* =========================== Snap Assist: show desktop frame + snap preview */
-export function SnapAssist() {
-  const focus = useStore((s) => s.focus);
-  const windows = useStore((s) => s.windows);
-  const settings = useStore((s) => s.settings);
-  const w = windows.find((q) => q.id === focus);
-  const visible = !!w && !w.max && !w.min && !!w.snap && settings.snapAssist;
-  const others = windows.filter((q) => !q.min && !q.closing && q.id !== focus && !APPS[q.app].noTask);
-  if (!visible) return null;
-  const wa = workArea(getState());
-  const left = w!.snap === "l";
-  const style: React.CSSProperties = left
-    ? { left: wa.x + wa.w / 2, top: wa.y, width: wa.w / 2, height: wa.h }
-    : { left: wa.x, top: wa.y, width: wa.w / 2, height: wa.h };
-  void others;
-  return (
-    <div className="snap-assist" style={style} onClick={() => setState({ peek: null })}>
-      <div className="sa-inner">
-        <Icon name="appearance" size={28} />
-        <b>Choose a window to snap here</b>
-        <span>Click a taskbar button to fill the other half of the screen.</span>
-      </div>
-    </div>
-  );
-}
-
 /* ======================================================= Aero Shake hook */
 export function useShake() {
   const enabled = useStore((s) => s.settings.shake);
