@@ -1029,7 +1029,7 @@ function AeroPage() {
         <div><Check checked={a.taskbarAnim} onChange={(v) => set({ taskbarAnim: v })} label="Animate controls and elements inside windows" /></div>
         <div><Check checked={a.smoothScroll} onChange={(v) => set({ smoothScroll: v })} label="Use smooth scrolling for lists" /></div>
         <div><Check checked={s.shake} onChange={(v) => setSettings({ shake: v })} label="Enable Aero Shake (shake a window to minimize the others)" /></div>
-        <div><Check checked={s.snapAssist} onChange={(v) => setSettings({ snapAssist: v })} label="Enable Snap Assist after snapping a window" /></div>
+        <div><Check checked={s.aeroSnap} onChange={(v) => setSettings({ aeroSnap: v })} label="Automatically arrange windows when dragged to the edge of the screen" /></div>
       </GroupBox>
       <GroupBox title="Desktop background slideshow">
         <div><Check checked={s.wpShuffle} onChange={(v) => setSettings({ wpShuffle: v })} label="Rotate the desktop background automatically" /></div>

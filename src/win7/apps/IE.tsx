@@ -5,6 +5,7 @@ import { playSys } from "../sound";
 import { Icon } from "../icons";
 import { GlassBar } from "../ui";
 import { Btn } from "../ui";
+import { embedMode, sandboxForLocal, sandboxForRemote, EMBED_ALLOW, EMBED_REFERRER, blockedReason } from "../embed";
 
 interface Tab { id: number; url: string; title: string; hist: string[]; hi: number; nonce: number }
 /** A tab while it is being dragged inside (or out of) the tab strip. */
@@ -67,6 +68,41 @@ function BingPage({ q, go }: { q: string; go: (u: string) => void }) {
     </div>
   );
 }
+/**
+ * IE 8 cannot render a page that sent X-Frame-Options / frame-ancestors, and
+ * the browser does not surface the reason either. Rather than pretend the site
+ * is down, this says what actually happened and offers the two real ways out.
+ */
+function BlockedPage({ url, reason, onRetry, onOpenExternally }: { url: string; reason: "framing" | "mixed" | "unknown"; onRetry: () => void; onOpenExternally: () => void }) {
+  const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+  const title =
+    reason === "mixed"
+      ? "Only the secure parts of this page are shown"
+      : reason === "framing"
+        ? "This website does not allow itself to be shown inside another page"
+        : "Internet Explorer cannot display this webpage";
+  const detail =
+    reason === "mixed"
+      ? `${host} was requested over plain HTTP while this page is HTTPS, so the browser blocked the insecure frame.`
+      : reason === "framing"
+        ? `${host} sends an X-Frame-Options or Content-Security-Policy frame-ancestors header. The browser checks that header before the page is drawn, so no setting inside this simulator can override it.`
+        : `${host} did not render a document. The site may be blocking frames, or the address may not resolve.`;
+  return (
+    <div className="iepg err ie-blocked">
+      <h2>{title}</h2>
+      <hr />
+      <p>{detail}</p>
+      <p><b>What you can try:</b></p>
+      <ul>
+        <li><a onClick={onOpenExternally}>Open {host} in a real browser tab</a></li>
+        <li><a onClick={onRetry}>Try the frame again</a></li>
+        <li><a onClick={() => openCP("network")}>Diagnose connection problems</a></li>
+      </ul>
+      <p className="ie-blocked-url">{url}</p>
+    </div>
+  );
+}
+
 function ErrorPage({ offline, url }: { offline: boolean; url: string }) {
   return (
     <div className="iepg err">
@@ -86,7 +122,8 @@ export function IE({ win }: { win: Win }) {
   const online = s.defaults.net !== "off";
   const [tabs, setTabs] = useState<Tab[]>(() => [mk(normalize(win.props.url || (win.props.newtab ? "about:blank" : s.ie.home)))]);
   const [active, setActive] = useState(() => tabs[0]?.id);
-  const [addr, setAddr] = useState("");
+  /** the address bar text while the user is typing; otherwise it mirrors the tab */
+  const [addrDraft, setAddrDraft] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
   const [panel, setPanel] = useState<null | "fav" | "hist">(null);
   const [info, setInfo] = useState(true);
@@ -94,6 +131,9 @@ export function IE({ win }: { win: Win }) {
   const [loading, setLoading] = useState(false);
   const [twidth, setTwidth] = useState(170);
   const [drag, setDrag] = useState<TabDrag | null>(null);
+  /** tabs whose frame the user reported as blank */
+  const [blocked, setBlocked] = useState<Set<number>>(() => new Set());
+  const [frameLoaded, setFrameLoaded] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
   const addrRef = useRef<HTMLInputElement>(null);
@@ -107,10 +147,9 @@ export function IE({ win }: { win: Win }) {
     setInfo(true);
   };
   useEffect(() => {
-    setAddr(tab.url.startsWith("file:") ? "file:///" + (fs[tab.url.slice(5)]?.name || "") : tab.url === "about:blank" ? "about:blank" : tab.url);
-    setLoading(true);
     const t = setTimeout(() => {
       setLoading(false);
+      setFrameLoaded(false);
       const t2 = getState();
       upd(tab.id, { title: titleFor(tab.url, fs[tab.url.slice(5)]?.name) });
       if (!priv && tab.url !== "about:blank" && !tab.url.startsWith("file:")) setSettings({ ie: { ...t2.settings.ie, history: [tab.url, ...t2.settings.ie.history.filter((h) => h !== tab.url)].slice(0, 60) } });
@@ -119,6 +158,9 @@ export function IE({ win }: { win: Win }) {
   }, [tab.id, tab.url, tab.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => setWin(win.id, { title: `${tab.title}${priv ? " [InPrivate]" : ""} - Windows Internet Explorer` }), [tab.title, win.id, priv]);
 
+  const addr = addrDraft ?? (tab.url.startsWith("file:")
+    ? "file:///" + (fs[tab.url.slice(5)]?.name || "")
+    : tab.url === "about:blank" ? "about:blank" : tab.url);
   const back = () => tab.hi > 0 && upd(tab.id, { hi: tab.hi - 1, url: tab.hist[tab.hi - 1] });
   const fwd = () => tab.hi < tab.hist.length - 1 && upd(tab.id, { hi: tab.hi + 1, url: tab.hist[tab.hi + 1] });
   const refresh = () => upd(tab.id, { nonce: tab.nonce + 1 });
@@ -219,13 +261,32 @@ export function IE({ win }: { win: Win }) {
     if (u === "about:gadgets") return <div className="iepg"><h1>Windows Desktop Gadgets</h1><p>Gadgets are available from the Desktop Gadget Gallery included with Windows 7.</p><Btn def onClick={() => openApp("gadgets")}>Open Gadget Gallery</Btn></div>;
     if (u.startsWith("file:")) {
       const n = fs[u.slice(5)];
-      return n ? <iframe className="ie-frame" title="local" sandbox="allow-same-origin" srcDoc={n.content || ""} /> : <ErrorPage offline={false} url={u} />;
+      return n ? <iframe className="ie-frame" title="local" sandbox={sandboxForLocal()} srcDoc={n.content || ""} /> : <ErrorPage offline={false} url={u} />;
     }
     if (!online) return <ErrorPage offline url={u} />;
+    const mode = embedMode(u);
+    if (mode === "blocked" || blocked.has(tab.id)) return <BlockedPage url={u} reason={blockedReason(u)} onRetry={() => { setBlocked((b) => { const n = new Set(b); n.delete(tab.id); return n; }); refresh(); }} onOpenExternally={() => window.open(u, "_blank", "noopener,noreferrer")} />;
     return (
       <>
-        {info && <div className="ie-info"><Icon name="shield" size={16} /> If the page doesn&apos;t appear, the website may not allow display inside another page. <a onClick={() => window.open(u, "_blank")}>Open in a new browser tab</a><span onClick={() => setInfo(false)}>✕</span></div>}
-        <iframe key={tab.nonce + u} className="ie-frame" title={u} src={u} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" referrerPolicy="no-referrer" />
+        {info && mode === "standard" && (
+          <div className="ie-info">
+            <Icon name="shield" size={16} /> Some websites refuse to open inside another page. If this one stays blank,{" "}
+            <a onClick={() => window.open(u, "_blank", "noopener,noreferrer")}>open it in a new browser tab</a>.
+            <span onClick={() => setInfo(false)}>✕</span>
+          </div>
+        )}
+        <iframe
+          key={tab.nonce + u}
+          className="ie-frame"
+          title={u}
+          src={u}
+          sandbox={sandboxForRemote()}
+          allow={EMBED_ALLOW}
+          referrerPolicy={EMBED_REFERRER as React.HTMLAttributeReferrerPolicy}
+          // The frame is the page; a notice is shown instead of waiting forever.
+          onLoad={() => setFrameLoaded(true)}
+        />
+        {!frameLoaded && <div className="ie-loading">Waiting for {new URL(u).hostname}…</div>}
       </>
     );
   };
@@ -251,7 +312,19 @@ export function IE({ win }: { win: Win }) {
           </div>
           <div className="ex-addr">
             <Icon name="ie" size={16} />
-            <input ref={addrRef} className="ex-addr-in" value={addr} onChange={(e) => setAddr(e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") nav(addr); }} />
+            <input
+              ref={addrRef}
+              className="ex-addr-in"
+              value={addr}
+              onChange={(e) => setAddrDraft(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              onBlur={() => setAddrDraft(null)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") { nav(addr); setAddrDraft(null); }
+                if (e.key === "Escape") { setAddrDraft(null); }
+              }}
+            />
             <button className="ex-refresh" onClick={loading ? () => setLoading(false) : refresh} title={loading ? "Stop" : "Refresh (F5)"}>{loading ? "✕" : "⟳"}</button>
           </div>
           <div className="ex-search"><input placeholder="Bing" onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") { nav("about:bing?q=" + encodeURIComponent((e.target as HTMLInputElement).value)); (e.target as HTMLInputElement).value = ""; } }} /><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="5.500" cy="5.500" r="4" fill="none" stroke="#5a7aa8" strokeWidth="1.600" /><path d="M8.500 8.500L13 13" stroke="#5a7aa8" strokeWidth="2" /></svg></div>

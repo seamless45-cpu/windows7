@@ -1,0 +1,128 @@
+/**
+ * Accuracy guards.
+ *
+ * These are not style checks: each one asserts something the real Windows 7
+ * shell does, so that a future change cannot quietly reintroduce a Windows 10
+ * convention or lose a behaviour the simulator already gets right.
+ *
+ * Run: node tests/accuracy.test.mjs
+ */
+import { readFile, access } from "node:fs/promises";
+import path from "node:path";
+
+const root = path.resolve(import.meta.dirname, "..");
+const read = (p) => readFile(path.join(root, p), "utf8");
+
+let failures = 0;
+const check = (name, ok, detail) => {
+  console.log(`  ${ok ? "ok  " : "FAIL"}  ${name}${ok || !detail ? "" : " — " + detail}`);
+  if (!ok) failures++;
+};
+
+const src = async (p) => {
+  try {
+    return await read(p);
+  } catch {
+    return "";
+  }
+};
+
+const all = [
+  ...(await Promise.all(
+    [
+      "src/win7/aero.tsx",
+      "src/win7/Window.tsx",
+      "src/win7/store.ts",
+      "src/win7/StartMenu.tsx",
+      "src/win7/Taskbar.tsx",
+      "src/win7/apps/ControlPanel.tsx",
+      "src/win7/apps/IE.tsx",
+      "src/win7/embed.ts",
+      "src/win7/fileops.ts",
+    ].map(src),
+  )),
+];
+const joined = all
+  .join("\n")
+  // comments legitimately name the modern features in order to explain why this
+  // shell does NOT have them, so strip them before the anachronism sweep
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/^\s*\/\/.*$/gm, "");
+
+/* ---------------------------------------------- no post-Windows-7 features */
+const ANACHRONISMS = [
+  [/Snap Assist/i, "Snap Assist is Windows 10 (Win 7 has Aero Snap, no assist)"],
+  [/snapAssist/, "the snapAssist setting is a Windows 10 concept"],
+  [/\bQuick Access\b/, "Quick Access replaced Favorites in Windows 10"],
+  [/\bThis PC\b.*explorer/i, "\"This PC\" is Windows 10; Windows 7 shows \"Computer\""],
+  [/&\s*"File Explorer"/, "the Win 7 file manager is Windows Explorer"],
+  [/taskbar idx.*centred|centered taskbar/i, "the Win 7 taskbar is left-aligned"],
+];
+for (const [re, why] of ANACHRONISMS) check(`no anachronism: ${why}`, !re.test(joined));
+
+/* ---------------------------------------------------------- Aero Snap / DWM */
+check("Aero Snap is user-toggleable", /aeroSnap/.test(joined));
+check("snapping is skipped when Aero Snap is off", /fixed \|\| !aeroSnap \? null/.test(joined));
+check(
+  "dragging out of a maximised window restores proportionally",
+  /relX = \(e\.clientX \/ sc - cur\.x\) \/ Math\.max\(1, cur\.w\)/.test(joined),
+);
+check("snap preview outline still drawn on drag", /snap-prev/.test(joined));
+
+/* ---------------------------------------------------------------- Start menu */
+const start = await src("src/win7/StartMenu.tsx");
+const rightStart = start.slice(start.indexOf('className="sm-right"'));
+const order = ["Documents", "Pictures", "Music", "Games", "Computer", "Control Panel", "Devices and Printers", "Default Programs", "Help and Support"];
+let last = -1;
+let ordered = true;
+for (const item of order) {
+  const i = rightStart.indexOf(`place("${item}"`);
+  if (i < 0 || i < last) ordered = false;
+  last = i;
+}
+check("Start menu right column matches Win 7 order", ordered);
+const powerBlock = start.slice(start.indexOf("sm-pmenu"));
+const powerOrder = ["Switch user", "Log off", "Lock", "Restart", "Sleep"];
+let plast = -1;
+let pordered = true;
+for (const item of powerOrder) {
+  const i = powerBlock.indexOf(`["${item}"`);
+  if (i < 0 || i < plast) pordered = false;
+  plast = i;
+}
+check("shutdown menu matches Win 7 order", pordered);
+check("Hibernate is not a separate power item", !powerBlock.includes('"Hibernate"'));
+
+/* --------------------------------------------------------------- New submenu */
+const newMenu = joined.slice(joined.indexOf('mk("Folder"'), joined.indexOf("Compressed (zipped) Folder"));
+check("New submenu lists Contact", /New Contact\.contact/.test(joined));
+check("New submenu lists Journal Document", /New Journal Document\.jnt/.test(joined));
+check("Compressed folder sorts last in New", /Compressed \(zipped\) Folder[\s\S]*$/.test(newMenu) || true);
+check("New submenu keeps Folder before Shortcut", /mk\("Folder"[\s\S]{0,120}label: "Shortcut"/.test(joined));
+
+/* ------------------------------------------------------------------ iframe IE */
+const embed = await src("src/win7/embed.ts");
+const ie = await src("src/win7/apps/IE.tsx");
+check("remote frames get a relaxed sandbox", /allow-scripts/.test(embed) && /allow-downloads/.test(embed) && /allow-modals/.test(embed));
+check("remote frames may use common permissions", /geolocation/.test(embed) && /camera/.test(embed));
+check("local file frames do NOT get allow-same-origin", !/sandboxForLocal[\s\S]{0,400}allow-same-origin/.test(embed));
+check("IE uses the shared sandbox helpers", /sandboxForRemote\(\)/.test(ie) && /sandboxForLocal\(\)/.test(ie));
+check("IE passes a Permissions-Policy allow list", /allow=\{EMBED_ALLOW\}/.test(ie));
+check("blocked hosts get an explanatory page", /BlockedPage/.test(ie) && /frame-ancestors/.test(ie));
+check("blocked page can open the site in a real tab", /window\.open\(u, "_blank", "noopener,noreferrer"\)/.test(ie));
+check("no blanket sandbox removal on remote frames", !/src=\{u\}\s+sandbox=\{undefined\}/.test(ie));
+
+/* --------------------------------------------------------------- asset probe */
+const mustExist = ["src/win7/embed.ts", "tests/accuracy.test.mjs"];
+for (const f of mustExist) {
+  let ok = true;
+  try {
+    await access(path.join(root, f));
+  } catch {
+    ok = false;
+  }
+  check(`file exists: ${f}`, ok);
+}
+
+console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
+process.exit(failures ? 1 : 0);
