@@ -196,7 +196,7 @@ simulated PC* restores the original system.
 
 The shell, Explorer, Calculator and Internet Explorer embedding behaviors are cross-checked
 against Windows 7 references in [`docs/windows7-behavior.md`](docs/windows7-behavior.md);
-`npm run test:accuracy` asserts them. Run `npm test`, `npm run
+`npm run test:accuracy` and `npm run test:sounds` assert them. Run `npm test`, `npm run
 typecheck` and `npm run build` after changing them.
 
 ## Layout

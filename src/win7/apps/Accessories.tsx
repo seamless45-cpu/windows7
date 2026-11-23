@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Win, useStore, getState, setWin, setGuard, closeWin, msgBox, mkfile, writeFile, lsGet, lsSet, openApp, MenuItem, setState, uid, notify, extOf, jumpTouch,
+  Win, useStore, getState, setWin, setGuard, closeWin, msgBox, printDocument, mkfile, writeFile, lsGet, lsSet, openApp, MenuItem, setState, uid, notify, extOf, jumpTouch,
 } from "../store";
 import { MenuBar, Btn, Check } from "../ui";
 import { openFileDialog } from "../dialogs";
@@ -142,7 +142,7 @@ export function Notepad({ win }: { win: Win }) {
       { label: "Save As...", onClick: () => saveAs() },
       { sep: true },
       { label: "Page Setup...", onClick: () => msgBox({ title: "Page Setup", text: "Paper: Letter\nOrientation: Portrait\nMargins (inches): 0.75", icon: "info" }) },
-      { label: "Print...", shortcut: "Ctrl+P", onClick: () => msgBox({ title: "Print", text: "No printer is installed. Install a printer using Devices and Printers in Control Panel.", icon: "warn" }) },
+      { label: "Print...", shortcut: "Ctrl+P", onClick: () => printDocument({ name: "Untitled" }) },
       { sep: true },
       { label: "Exit", onClick: () => closeWin(win.id) },
     ] },
@@ -312,7 +312,7 @@ export function WordPad({ win }: { win: Win }) {
       { label: "Save", onClick: () => save() },
       { label: "Save as", onClick: () => saveAs() },
       { sep: true },
-      { label: "Print", onClick: () => msgBox({ title: "Print", text: "No printer is installed.", icon: "warn" }) },
+      { label: "Print", onClick: () => printDocument({ name: "Document" }) },
       { label: "Page setup", onClick: () => msgBox({ title: "Page Setup", text: "Paper: Letter, Portrait", icon: "info" }) },
       { sep: true },
       { label: "About WordPad", onClick: () => msgBox({ title: "About WordPad", text: "Windows 7 WordPad\nVersion 6.1 (Build 7601)", icon: "info" }) },

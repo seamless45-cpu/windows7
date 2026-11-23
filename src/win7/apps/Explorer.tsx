@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Win, useStore, getState, setWin, showMenu, openApp, openCP, openNode, mkdir, searchFs, children, trashed, restoreNodes, kindOf, fmtDate, fmtSize, fmtBig, extOf, pathOf, msgBox,
   FsNode, MenuItem, setSettings, moveNodes, copyNodes, setState, view, resolvePath, openPath, closeWin,
+  userLibs, addFolderToLibrary, setLibraryDefault, libraryFolders, isCustomLibrary, removeLibrary, newLibrary, isLibraryFolderId,
 } from "../store";
 import { Icon, nodeIcon } from "../icons";
 import { GlassBar, cmpLocale } from "../ui";
@@ -11,10 +12,11 @@ import { emptyRecycle } from "../dialogs";
 import { InlineEdit } from "../ui";
 
 type ViewMode = "xl" | "large" | "medium" | "small" | "list" | "details" | "tiles";
-interface Row { id: string; name: string; icon: string; kind: string; size?: number; modified?: number; node?: FsNode; virt?: boolean; folder: boolean; loc?: string; sub?: string }
+interface Row { id: string; name: string; icon: string; kind: string; size?: number; modified?: number; node?: FsNode; virt?: boolean; folder: boolean; loc?: string; sub?: string; lib?: string }
 
 const LIBS: [string, string][] = [["docs", "Documents"], ["music", "Music"], ["pics", "Pictures"], ["vids", "Videos"]];
 const NETPCS = ["PC", "MEDIA-SERVER", "LAPTOP"];
+
 
 function rowOf(n: FsNode, showExt: boolean, loc?: string): Row {
   const e = extOf(n.name);
@@ -111,7 +113,8 @@ export function Explorer({ win }: { win: Win }) {
     } else if (path === "network") {
       out = NETPCS.map((n) => ({ id: "net:" + n, name: n, icon: "computer", kind: "Computer", folder: true, virt: true }));
     } else if (path === "libraries") {
-      out = LIBS.map(([id, n]) => ({ ...rowOf(fs[id], true), name: n, kind: "Library", icon: nodeIcon(fs[id]) }));
+      // User libraries: the four Windows ships with, plus any the user makes.
+      out = userLibs().map((l) => ({ ...rowOf(fs[l.folder], true), name: l.name, kind: "Library", icon: nodeIcon(fs[l.folder]), lib: l.id }));
     } else if (path === "favorites") {
       out = [["desk", "Desktop"], ["dl", "Downloads"], ["docs", "Recent Places"]].map(([id, n]) => ({ ...rowOf(fs[id], true), name: n, kind: "Shortcut" }));
     } else if (path === "recycle") {
@@ -121,6 +124,12 @@ export function Explorer({ win }: { win: Win }) {
       out = q ? searchFs(null, q).filter((n) => !n.id.startsWith("exe_")).map((n) => rowOf(n, showExt, n.parent ? pathOf(n.parent, fs) : "")) : [];
     } else if (q) {
       out = searchFs(path, q).map((n) => rowOf(n, showExt, n.parent ? pathOf(n.parent, fs) : ""));
+    } else if (isLibraryFolderId(path)) {
+      // A library shows its own folder *plus* every folder included in it,
+      // which is what makes it a view across several locations.
+      const extra = libraryFolders(path);
+      const all = [path, ...extra];
+      out = all.flatMap((p) => children(p, fs)).filter((n) => sh || !n.hidden).map((n) => rowOf(n, showExt));
     } else {
       out = children(path, fs).filter((n) => sh || !n.hidden).map((n) => rowOf(n, showExt));
     }
@@ -188,6 +197,22 @@ export function Explorer({ win }: { win: Win }) {
     e.stopPropagation();
     const ids = sel.includes(r.id) ? sel : [r.id];
     if (!sel.includes(r.id)) setSel([r.id]);
+    if (r.kind === "Library") {
+      // A Windows 7 library is a virtual folder that gathers other folders;
+      // its menu manages that membership, it does not delete the folder.
+      showMenu(e, [
+        { label: "Open", bold: true, onClick: () => openRow(r) },
+        { label: "Open in new window", onClick: () => openApp("explorer", { path: r.node!.id }) },
+        { sep: true },
+        { label: "Include a folder...", icon: "folder", onClick: () => addFolderToLibrary(r.node!.id) },
+        { label: "Set as default save location", onClick: () => setLibraryDefault(r.node!.id) },
+        { label: "Manage library", onClick: () => msgBox({ title: r.name + " Library", icon: "info", text: `Library locations:\n${libraryFolders(r.node!.id).map((f) => "  " + pathOf(f, fs)).join("\n") || "  (none)"}\n\nFiles saved to this library go to the default save location.` }) },
+        { sep: true },
+        { label: "Restore default libraries", disabled: !isCustomLibrary(r.node!.id), onClick: () => removeLibrary(r.node!.id) },
+        { label: "Properties", onClick: () => showProps({ kind: "fs", id: r.node!.id }) },
+      ]);
+      return;
+    }
     if (r.virt || !r.node) {
       showMenu(e, [{ label: "Open", bold: true, onClick: () => openRow(r) }, { sep: true }, { label: "Properties", onClick: () => openCP("system") }]);
       return;
@@ -233,7 +258,14 @@ export function Explorer({ win }: { win: Win }) {
       { label: "Paste shortcut", disabled: !st.clipboard, onClick: () => st.clipboard?.ids.forEach((i) => createShortcutFor(i, path)) },
       { label: canUndo() ? `Undo ${undoName()}` : "Undo", shortcut: "Ctrl+Z", disabled: !canUndo(), onClick: undoLast },
       { sep: true },
-      { label: "New", sub: newItems(path, (id) => { setSel([id]); setRename(id); }) },
+      // In the Libraries folder Windows 7 offers New ▸ Library instead of the
+      // file types, because a library is a virtual folder, not a real one.
+      {
+        label: "New",
+        sub: path === "libraries"
+          ? [{ label: "Library", icon: "docs", onClick: () => { const n = newLibrary("New library"); setSel([n]); setRename(n); } }]
+          : newItems(path, (id) => { setSel([id]); setRename(id); }),
+      },
       { sep: true },
       { label: "Properties", onClick: () => showProps({ kind: "fs", id: path }) },
     ]);
@@ -364,7 +396,7 @@ export function Explorer({ win }: { win: Win }) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     let items: MenuItem[] = [];
     if (target === "computer") items = [...["c", "d"].map((id) => ({ label: fs[id].name, icon: "drive", onClick: () => go(id) }))];
-    else if (target === "libraries") items = LIBS.map(([id, n]) => ({ label: n, icon: nodeIcon(fs[id]), onClick: () => go(id) }));
+    else if (target === "libraries") items = userLibs().map((l) => ({ label: l.name, icon: nodeIcon(fs[l.folder]), onClick: () => go(l.folder) }));
     else items = children(target, fs).filter((n) => n.type === "folder").map((n) => ({ label: n.name, icon: "folder", onClick: () => go(n.id) }));
     if (!items.length) items = [{ label: "(Empty)", disabled: true }];
     showMenu({ x: r.left / view.scale, y: r.bottom / view.scale }, items);
@@ -585,7 +617,7 @@ export function Explorer({ win }: { win: Win }) {
             <TreeItem id="frecent" label="Recent Places" icon="folder" depth={1} target="favorites" />
             <div style={{ height: 6 }} />
             <TreeItem id="lib" label="Libraries" icon="docs" depth={0} target="libraries" />
-            {LIBS.map(([id, n]) => <TreeItem key={id} id={"l" + id} label={n} icon={nodeIcon(fs[id])} depth={1} target={id} expandId={id} />)}
+            {userLibs().map((l) => <TreeItem key={l.folder} id={"l" + l.folder} label={l.name} icon={nodeIcon(fs[l.folder])} depth={1} target={l.folder} expandId={l.folder} />)}
             <div style={{ height: 6 }} />
             <TreeItem id="comp" label="Computer" icon="computer" depth={0} target="computer" />
             <TreeItem id="c" label={fs.c.name} icon="drive" depth={1} target="c" expandId="c" />

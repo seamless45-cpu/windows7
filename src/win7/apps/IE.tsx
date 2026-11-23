@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { Win, useStore, getState, setWin, setSettings, openApp, openCP, msgBox, showMenu, view, notify, closeWin, MenuItem, setState } from "../store";
+import { Win, useStore, getState, setWin, setSettings, openApp, openCP, msgBox, printDocument, showMenu, view, notify, closeWin, MenuItem, setState } from "../store";
 import { playSys } from "../sound";
 import { Icon } from "../icons";
 import { GlassBar } from "../ui";
@@ -134,6 +134,10 @@ export function IE({ win }: { win: Win }) {
   /** tabs whose frame the user reported as blank */
   const [blocked, setBlocked] = useState<Set<number>>(() => new Set());
   const [frameLoaded, setFrameLoaded] = useState(false);
+  /** IE's "pop-up blocked" Information Bar, raised when a page tries to open one */
+  const [popupShown, setPopupShown] = useState(false);
+  /** a page that advertises an RSS feed, as IE 8 detects */
+  const [feedFound, setFeedFound] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
   const addrRef = useRef<HTMLInputElement>(null);
@@ -157,6 +161,28 @@ export function IE({ win }: { win: Win }) {
     return () => clearTimeout(t);
   }, [tab.id, tab.url, tab.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => setWin(win.id, { title: `${tab.title}${priv ? " [InPrivate]" : ""} - Windows Internet Explorer` }), [tab.title, win.id, priv]);
+
+  /* IE 8 chrome sounds: the Information Bar appearing and a blocked pop-up both
+     have their own program events, and both are raised once per occurrence. */
+  useEffect(() => {
+    if (!info) return;
+    const t = setTimeout(() => playSys("infobar"), 420);
+    return () => clearTimeout(t);
+  }, [info, tab.url, tab.nonce]);
+
+  useEffect(() => {
+    if (!popupShown) return;
+    playSys("popup");
+  }, [popupShown]);
+
+  /* IE 8 lights the Feeds button orange when the open page advertises a feed
+     and plays the "Feed Discovered" program event — once per page. */
+  useEffect(() => {
+    const feeds = tab.url.startsWith("http") || tab.url.startsWith("about:news");
+    if (!feeds) return;
+    const t = setTimeout(() => { setFeedFound(true); playSys("feed"); }, 700);
+    return () => clearTimeout(t);
+  }, [tab.url, tab.nonce]);
 
   const addr = addrDraft ?? (tab.url.startsWith("file:")
     ? "file:///" + (fs[tab.url.slice(5)]?.name || "")
@@ -269,7 +295,7 @@ export function IE({ win }: { win: Win }) {
     return (
       <>
         {info && mode === "standard" && (
-          <div className="ie-info">
+          <div className="ie-info" data-infobar="1">
             <Icon name="shield" size={16} /> Some websites refuse to open inside another page. If this one stays blank,{" "}
             <a onClick={() => window.open(u, "_blank", "noopener,noreferrer")}>open it in a new browser tab</a>.
             <span onClick={() => setInfo(false)}>✕</span>
@@ -363,11 +389,11 @@ export function IE({ win }: { win: Win }) {
         </div>
         <div className="ie-cmds">
           <span title="Home" onClick={() => nav(s.ie.home)}>⌂ Home</span>
-          <span title="Feeds" onClick={() => nav("about:news")}>◔ Feeds</span>
+          <span className={"ie-feedbtn" + (feedFound ? " found" : "")} title={feedFound ? "Feeds available on this page" : "Feeds"} onClick={() => nav("about:news")}>◔ Feeds</span>
           <span title="History" onClick={() => setPanel(panel === "hist" ? null : "hist")}>⏲ History</span>
-          <span title="Print" onClick={() => msgBox({ title: "Print", text: "No printer is installed.", icon: "warn" })}>⎙ Print ▾</span>
+          <span title="Print" onClick={() => printDocument({ name: tab.title.slice(0, 40) })}>⎙ Print ▾</span>
           <span onClick={(e) => menuAt(e, [{ label: "New window", onClick: () => openApp("ie") }, { label: "New tab", shortcut: "Ctrl+T", onClick: () => newTab() }, { label: "Duplicate tab", onClick: () => newTab(tab.url) }, { sep: true }, { label: "Zoom", sub: [200, 150, 125, 100, 75, 50].map((z) => ({ label: z + "%", checked: zoom === z, radio: true, onClick: () => setZoom(z) })) }, { label: "View source", onClick: () => openApp("notepad", { file: tab.url.startsWith("file:") ? tab.url.slice(5) : undefined }) }, { sep: true }, { label: "Close tab", shortcut: "Ctrl+W", onClick: () => closeTab(tab.id) }])}>Page ▾</span>
-          <span onClick={(e) => menuAt(e, [{ label: "Delete browsing history...", onClick: clearHist }, { label: "InPrivate Browsing", onClick: () => openApp("ie", { private: true }) }, { label: "Pop-up Blocker", checked: true }, { label: "SmartScreen Filter", checked: true }])}>Safety ▾</span>
+          <span onClick={(e) => menuAt(e, [{ label: "Delete browsing history...", onClick: clearHist }, { label: "InPrivate Browsing", onClick: () => openApp("ie", { private: true }) }, { label: "Pop-up Blocker", checked: true, onClick: () => setPopupShown(true) }, { label: "SmartScreen Filter", checked: true }])}>Safety ▾</span>
           <span onClick={(e) => menuAt(e, [{ label: "Delete browsing history...", onClick: clearHist }, { label: "InPrivate Browsing", onClick: () => openApp("ie", { private: true }) }, { label: "Compatibility View", onClick: () => msgBox({ title: "Compatibility View", text: "This website is displayed in Compatibility View.", icon: "info" }) }, { sep: true }, { label: "Full screen", shortcut: "F11", onClick: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()) }, { label: "Internet options", onClick: () => openCP("inetopts") }, { sep: true }, { label: "Set this page as home page", onClick: () => { setSettings({ ie: { ...s.ie, home: tab.url } }); notify({ title: "Internet Explorer", text: "Home page set.", icon: "info" }); } }])}>Tools ▾</span>
           <span onClick={(e) => menuAt(e, [{ label: "Help and Support", onClick: () => openApp("help") }, { label: "About Internet Explorer", onClick: () => msgBox({ title: "About Internet Explorer", text: "Windows® Internet Explorer 8\nVersion: 8.0.7601.17514\nCipher Strength: 128-bit\nCopyright © 2009 Microsoft Corporation", icon: "info" }) }])}>❓ Help ▾</span>
         </div>
@@ -382,6 +408,13 @@ export function IE({ win }: { win: Win }) {
         )}
         <div className="ie-content" style={{ zoom: zoom / 100 }}>{content()}</div>
       </div>
+      {popupShown && (
+        <div className="ie-infobar">
+          <span className="ie-infobar-msg">A pop-up window was blocked. To see this pop-up or additional options, click here.</span>
+          <button className="ie-infobar-btn" onClick={() => { setPopupShown(false); window.open(tab.url, "_blank", "noopener,noreferrer"); }}>Allow pop-ups</button>
+          <button className="ie-infobar-x" onClick={() => setPopupShown(false)} title="Close">✕</button>
+        </div>
+      )}
       <div className="ie-status"><span>{loading ? "Opening page " + tab.url : "Done"}</span><span style={{ flex: 1 }} />{priv && <span>InPrivate</span>}<span>{online ? "Internet | Protected Mode: On" : "Offline"}</span><span onClick={(e) => menuAt(e, [200, 150, 125, 100, 75, 50].map((z) => ({ label: z + "%", checked: zoom === z, radio: true, onClick: () => setZoom(z) })))}>🔍 {zoom}% ▾</span></div>
       {void setState}
     </div>

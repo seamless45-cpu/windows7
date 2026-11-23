@@ -1739,3 +1739,22 @@ body.col-resize { cursor: col-resize; }
   padding: 10px 18px; border-radius: 3px; background: rgba(20,45,80,.82); color: #fff;
   font: 12px "Segoe UI", Tahoma, sans-serif; box-shadow: 0 2px 10px rgba(0,0,0,.4); pointer-events: none;
 }
+
+/* ---- IE Information Bar (pop-up blocked) ---- */
+.ie-infobar {
+  flex: none; display: flex; align-items: center; gap: 8px; padding: 4px 8px;
+  background: linear-gradient(#ffffe1, #f5f5c8); border-bottom: 1px solid #c8c88a;
+  color: #000; font: 12px "Segoe UI", Tahoma, sans-serif;
+}
+.ie-infobar-msg { flex: 1; min-width: 0; }
+.ie-infobar-btn {
+  height: 20px; padding: 0 8px; font: 11px "Segoe UI", Tahoma, sans-serif; color: #000;
+  background: linear-gradient(#fdfdfd, #e3e3e3); border: 1px solid #9a9a9a; border-radius: 2px;
+}
+.ie-infobar-btn:hover { background: linear-gradient(#fff, #cfe6fb); border-color: #6fa8dc; }
+.ie-infobar-x { width: 18px; height: 18px; padding: 0; border: none; background: transparent; color: #444; }
+.ie-infobar-x:hover { background: rgba(0,0,0,.12); }
+
+/* IE 8 lights the Feeds button when the page advertises a feed */
+.ie-cmds .ie-feedbtn.found { color: #e07b00; font-weight: 600; }
+.ie-cmds .ie-feedbtn.found::after { content: "•"; margin-left: 2px; color: #e07b00; }

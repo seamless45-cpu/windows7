@@ -59,6 +59,8 @@ export interface Settings {
   transparency: boolean;
   intensity: number;
   soundScheme: string;
+  /** the Sounds tab's "Play Windows Startup sound" checkbox */
+  playStartupSound: boolean;
   screensaver: "none" | "bubbles" | "ribbons" | "photos" | "blank" | "mystify" | "text3d";
   /** 3D Text screen saver: the words, font size and spin speed */
   ssText: string;
@@ -86,7 +88,8 @@ export interface Settings {
   clock24: boolean;
   tz: number | null;
   region: string;
-  power: { plan: string; display: number; sleep: number };
+  /** batteryLevel is the simulated charge, charging whether it is on AC */
+  power: { plan: string; display: number; sleep: number; batteryLevel?: number; charging?: boolean };
   firewall: boolean;
   autoUpdate: string;
   uac: "always" | "default" | "never";
@@ -187,6 +190,7 @@ export const DEFAULTS: Settings = {
   transparency: true,
   intensity: 50,
   soundScheme: "Windows Default",
+  playStartupSound: true,
   screensaver: "none",
   ssWait: 10,
   ssPassword: true,
@@ -219,7 +223,7 @@ export const DEFAULTS: Settings = {
   clock24: false,
   tz: null,
   region: "en-US",
-  power: { plan: "balanced", display: 10, sleep: 30 },
+  power: { plan: "balanced", display: 10, sleep: 30, batteryLevel: 100, charging: true },
   firewall: true,
   autoUpdate: "auto",
   uac: "default",
@@ -362,6 +366,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     transparency: bool(saved.transparency, d.transparency),
     intensity: num(saved.intensity, d.intensity, 0, 100),
     // legacy saves stored "default"/"none"; the scheme names are Windows' own
+    playStartupSound: bool(saved.playStartupSound, d.playStartupSound),
     soundScheme: saved.soundScheme === "none" ? "No Sounds"
       : SCHEMES.includes(saved.soundScheme as (typeof SCHEMES)[number]) ? (saved.soundScheme as string)
       : "Windows Default",
@@ -409,6 +414,8 @@ function sanitizeSettings(savedRaw: unknown): Settings {
       plan: str(power.plan, d.power.plan),
       display: num(power.display, d.power.display, 1, 240),
       sleep: num(power.sleep, d.power.sleep, 0, 600),
+      batteryLevel: num(power.batteryLevel, d.power.batteryLevel ?? 100, 0, 100),
+      charging: bool(power.charging, d.power.charging ?? true),
     },
     firewall: bool(saved.firewall, d.firewall),
     autoUpdate: str(saved.autoUpdate, d.autoUpdate),
@@ -653,6 +660,94 @@ export function pathOf(id: string, fs: Fs = state.fs): string {
     n = n.parent ? fs[n.parent] : undefined;
   }
   return parts.join("\\") + (parts.length === 1 ? "\\" : "");
+}
+
+/* ------------------------------------------------------------------ libraries
+ * A Windows 7 library is a virtual folder that gathers real folders from
+ * anywhere on the disk. The four the OS ships with are always there; the user
+ * can add folders to one, pick its default save location, or make a new
+ * library of their own.
+ */
+export interface LibraryDef { id: string; name: string; folder: string }
+
+const DEFAULT_LIBRARIES: LibraryDef[] = [
+  { id: "lib-docs", name: "Documents", folder: "docs" },
+  { id: "lib-music", name: "Music", folder: "music" },
+  { id: "lib-pics", name: "Pictures", folder: "pics" },
+  { id: "lib-vids", name: "Videos", folder: "vids" },
+];
+
+/**
+ * The Libraries root. Windows 7 keeps user libraries in
+ * `%USERPROFILE%\Libraries`, so the shell creates that folder lazily the first
+ * time a custom library is made.
+ */
+function ensureLibrariesRoot(): string {
+  if (state.fs["libraries"]) return "libraries";
+  const id = "libraries";
+  setState({ fs: { ...state.fs, [id]: { id, name: "Libraries", type: "folder", parent: "home", size: 0, created: Date.now(), modified: Date.now() } } });
+  return id;
+}
+
+/** The four libraries Windows ships with, then any the user created. */
+export function userLibs(): LibraryDef[] {
+  const custom = (lsGet<LibraryDef[]>("win7.libs", []) || []).filter((l) => l && l.folder && state.fs[l.folder]);
+  return [...DEFAULT_LIBRARIES, ...custom];
+}
+
+/** True when the folder id is a library rather than a plain folder. */
+export function isLibraryFolderId(id: string): boolean {
+  return userLibs().some((l) => l.folder === id);
+}
+
+/** Extra folders gathered by a library, on top of its own folder. */
+export function libraryFolders(libFolderId: string): string[] {
+  const m = lsGet<Record<string, string[]>>("win7.libinc", {}) || {};
+  return (m[libFolderId] || []).filter((id) => state.fs[id]);
+}
+
+/** "Include a folder..." — adds a real folder to the library's view. */
+export function addFolderToLibrary(libFolderId: string, folderId?: string) {
+  const pick = (id: string) => {
+    const m = lsGet<Record<string, string[]>>("win7.libinc", {}) || {};
+    const cur = m[libFolderId] || [];
+    if (cur.includes(id)) return;
+    lsSet("win7.libinc", { ...m, [libFolderId]: [...cur, id] });
+    notify({ title: "Library", text: `${state.fs[id]?.name || id} was added to the library.`, icon: "info" });
+    setState({ fs: { ...state.fs } });
+  };
+  if (folderId) return pick(folderId);
+  openApp("filedlg", {
+    mode: "open",
+    title: "Include Folder",
+    start: "c",
+    onDone: (id: string | null) => { if (id && state.fs[id]?.type === "folder") pick(id); },
+  }, { title: "Include Folder", w: 640, h: 440 });
+}
+
+/** "Set as default save location". */
+export function setLibraryDefault(libFolderId: string) {
+  lsSet("win7.libdefault." + libFolderId, true);
+  notify({ title: "Library", text: "The default save location was updated.", icon: "info" });
+}
+
+export function isCustomLibrary(folderId: string): boolean {
+  return !DEFAULT_LIBRARIES.some((l) => l.folder === folderId);
+}
+
+/** "Restore default libraries" — only custom libraries can be removed. */
+export function removeLibrary(folderId: string) {
+  const custom = (lsGet<LibraryDef[]>("win7.libs", []) || []).filter((l) => l.folder !== folderId);
+  lsSet("win7.libs", custom);
+  setState({ fs: { ...state.fs } });
+}
+
+export function newLibrary(name: string): string {
+  const root = ensureLibrariesRoot();
+  const folder = mkdir(root, name);
+  const custom = lsGet<LibraryDef[]>("win7.libs", []) || [];
+  lsSet("win7.libs", [...custom, { id: "lib-" + folder, name, folder }]);
+  return folder;
 }
 
 export function children(id: string, fs: Fs = state.fs): FsNode[] {
@@ -983,21 +1078,23 @@ export function maxWin(id: string) {
   if (!w || APPS[w.app].fixed) return;
   if (w.max || w.snap) {
     const p = w.prev;
-    // Aero glides a restored frame into place in roughly 175 ms. The minimize
-    // sound is the "restore" clip; maximizing itself is silent.
+    // Aero glides the frame into place in roughly 175 ms. Coming down from
+    // maximised is "Restore Down", going up is "Maximize" — two separate
+    // program events in Windows 7, both assigned Windows Restore.wav.
     animateChange(id, 175);
     patchWin(id, { max: false, snap: null, ...(p ? { x: p.x, y: p.y, w: p.w, h: p.h } : {}), prev: null });
-    playSys("restore");
+    playSys(w.snap ? "restore-up" : "restore-down");
   } else {
     animateChange(id, 175);
     patchWin(id, { max: true, prev: { x: w.x, y: w.y, w: w.w, h: w.h } });
+    playSys("maximize");
   }
   focusWin(id);
 }
 export function snapWin(id: string, side: "l" | "r") {
   const w = state.windows.find((q) => q.id === id);
   if (!w || APPS[w.app].fixed) return;
-  playSys("restore");
+  playSys("restore-up");
   const wa = workArea(state);
   const hw = Math.floor(wa.w / 2);
   animateChange(id, 175);
@@ -1063,6 +1160,9 @@ export function toggleFlyout(f: State["flyout"]) {
 export function showMenu(e: { clientX: number; clientY: number } | { x: number; y: number }, items: MenuItem[]) {
   const x = "clientX" in e ? e.clientX / view.scale : e.x;
   const y = "clientY" in e ? e.clientY / view.scale : e.y;
+  // A menu appearing is the "Menu Pop-up" program event; picking an item is
+  // "Menu Command". Windows 7 defaults both to Windows Menu Command.wav.
+  playSys("menupopup");
   setState({ menu: { x, y, items }, startOpen: false, flyout: null });
 }
 export function hideMenu() {
@@ -1195,6 +1295,64 @@ export function deviceConnected(name: string) {
   notify({ title: "Device connected", text: `${name} was connected. Click to see what happens with this device.`, icon: "info" });
 }
 
+/**
+ * A device that enumerated but whose driver failed. Windows plays the
+ * "Device Connect Failed" program event (Windows Hardware Fail.wav) and puts a
+ * warning balloon in the notification area.
+ */
+export function deviceFailed(name: string, code = "Code 43") {
+  playSys("hardware-fail");
+  logEvent("Error", "Microsoft-Windows-User-PnP", 442, `Device ${name} could not be started (${code}).`, "System");
+  notify({ title: "Device driver software was not successfully installed", text: `${name}: ${code}. Click here for details.`, icon: "warn" });
+}
+
+/** A device that disappeared; plays the "Device Disconnect" event. */
+export function deviceRemoved(name: string) {
+  playSys("hardware-remove");
+  notify({ title: "Device removed", text: `${name} was removed from this PC.`, icon: "info" });
+}
+
+/**
+ * Battery alarms. Windows 7 fires "Battery Low" at the low level and
+ * "Battery Critical" at the reserve level, each exactly once until the state
+ * changes back, which is what the `batteryWarned` guard reproduces.
+ */
+let batteryWarned: "low" | "critical" | null = null;
+export function checkBattery(level: number, charging: boolean) {
+  if (charging) {
+    batteryWarned = null;
+    return;
+  }
+  // Windows 7's defaults: Low = 10%, Reserve (critical) = 5%.
+  const low = 10;
+  const crit = 5;
+  if (level <= crit && batteryWarned !== "critical") {
+    batteryWarned = "critical";
+    playSys("battery-critical");
+    notify({ title: "Consider changing your battery now", text: `Your battery is at ${level}%. Save your work and connect the PC to a power outlet.`, icon: "warn" });
+  } else if (level <= low && batteryWarned === null) {
+    batteryWarned = "low";
+    playSys("battery-low");
+    notify({ title: "Low battery", text: `Your battery is at ${level}%. Connect the PC to a power outlet soon.`, icon: "warn" });
+  }
+}
+
+/**
+ * The "Complete" program event (Windows Ding / tada), raised when a long job
+ * finishes successfully — Windows uses it for a finished backup, scan or
+ * download in the notification area.
+ */
+export function jobComplete(title: string, text: string) {
+  playSys("tada");
+  notify({ title, text, icon: "info" });
+}
+
+/** The "New Mail Notification" event, raised when a message arrives. */
+export function newMail(from: string, subject: string) {
+  playSys("mailbeep");
+  notify({ title: `New message from ${from}`, text: subject, icon: "info" });
+}
+
 export function notify(o: { title: string; text: string; icon?: string }) {
   const n: Notif = { id: notifSeq++, title: o.title, text: o.text, icon: o.icon || "info", time: Date.now() };
   setState({ notifications: [n, ...state.notifications].slice(0, 30), balloon: n });
@@ -1212,9 +1370,38 @@ export function msgBox(o: { title?: string; text: string; icon?: "error" | "warn
 
 export function uac(o: { name: string; publisher?: string; path?: string; onAllow: () => void }) {
   if (state.settings.uac === "never") return o.onAllow();
-  playSys("exclaim");
+  // The UAC prompt has its own program event and its own clip; it borrowed the
+  // "exclamation" sound before, so "Windows User Account Control" never played.
+  playSys("uac");
   logEvent("Information", EVENT_IDS.uac.source, EVENT_IDS.uac.id, EVENT_IDS.uac.text.replace("%s", o.name), "Security");
   openApp("uac", o);
+}
+
+/**
+ * Print, the way this PC can actually print.
+ *
+ * Windows 7 ships the **Microsoft XPS Document Writer**, so "no printer is
+ * installed" was simply wrong. Printing really does something: the job runs
+ * through a printer queue and drops a .xps file in Documents, which the XPS
+ * Viewer opens, and the Print Complete program event fires when it lands —
+ * exactly the sequence the real shell goes through.
+ */
+export function printDocument(o: { name?: string; body?: string }) {
+  const name = (o.name || "Document").replace(/\.[^.]+$/, "");
+  const body = o.body ?? "";
+  progressDialog({
+    title: "Microsoft XPS Document Writer",
+    text: `Printing ${name}.xps…`,
+    ms: 1400,
+    icon: "printer",
+    onDone: () => {
+      const id = mkfile("docs", name + ".xps", body, Math.max(1024, body.length));
+      logEvent("Information", "Microsoft-Windows-PrintService", 307, `Document 1, ${name}.xps owned by ${state.settings.currentUser} was printed on Microsoft XPS Document Writer through port XPSPort:.`, "Application");
+      setTimeout(() => playSys("print"), 240);
+      notify({ title: "Print complete", text: `${name}.xps was saved to Documents.`, icon: "info" });
+      void id;
+    },
+  });
 }
 
 export function promptBox(o: { title: string; text: string; value?: string; onOk: (v: string) => void }) {
@@ -1499,7 +1686,8 @@ export function login(name: string) {
   // or a second account). They were swapped here before.
   const firstSession = !state.everLoggedIn;
   if (firstSession) setState({ everLoggedIn: true });
-  setTimeout(() => playSys(firstSession ? "startup" : "logon"), 260);
+  const wantsStartup = firstSession ? state.settings.playStartupSound : false;
+  setTimeout(() => playSys(wantsStartup ? "startup" : "logon"), 260);
   setTimeout(() => {
     fadeThrough(() => setState({ power: "desktop" }), 200);
     if (!lsGet("win7.welcomed", false)) {

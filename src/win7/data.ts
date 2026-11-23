@@ -152,6 +152,8 @@ export function seedFs(): Record<string, FsNode> {
   d("vids", "Videos", "home");
   d("dl", "Downloads", "home");
   d("fav", "Favorites", "home");
+  // Windows 7 libraries are virtual folders that gather other folders. The
+  // shell keeps its own node so the Libraries root can hold user-made ones.
   d("c_pf_ie", "Internet Explorer", "c_pf");
   d("c_pf_wmp", "Windows Media Player", "c_pf");
   d("c_pf_nt", "Windows NT", "c_pf");

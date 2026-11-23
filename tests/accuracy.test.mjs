@@ -112,6 +112,18 @@ check("blocked hosts get an explanatory page", /BlockedPage/.test(ie) && /frame-
 check("blocked page can open the site in a real tab", /window\.open\(u, "_blank", "noopener,noreferrer"\)/.test(ie));
 check("no blanket sandbox removal on remote frames", !/src=\{u\}\s+sandbox=\{undefined\}/.test(ie));
 
+/* ------------------------------------------------------- Start menu details */
+const css = await src("src/app/win7.css");
+check("Start menu right pane items carry icons", /<div className="sm-r" onClick=\{\(\) => run\(fn\)\}>\s*<Icon name=\{icon\}/.test(start));
+// Windows 7 splits the menu roughly 60/40; the right pane must fit
+// "Devices and Printers" without clipping.
+const menuW = Number((css.match(/\.start-menu \{[^}]*width: (\d+)px/) || [])[1]);
+const leftW = Number((css.match(/\.sm-left \{[^}]*width: (\d+)px/) || [])[1]);
+check("Start menu is wide enough for the right pane", menuW >= 420, `${menuW}px`);
+check("Start menu panes are split about 60/40", menuW - leftW - 12 >= 148, `right pane ${menuW - leftW - 12}px`);
+check("shutdown button shows the power glyph", /sm-shut[\s\S]{0,300}<svg/.test(start));
+check("search results list Control Panel before Files", start.indexOf("results.cp.map") < start.indexOf("results.files.map"));
+
 /* --------------------------------------------------------------- asset probe */
 const mustExist = ["src/win7/embed.ts", "tests/accuracy.test.mjs"];
 for (const f of mustExist) {

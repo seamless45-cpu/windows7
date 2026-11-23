@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Win, useStore, getState, setWin, setState, setSettings, closeWin, openApp, openCP, msgBox, notify, promptBox, mkfile, writeFile, lsGet, lsSet,
+  Win, useStore, getState, setWin, setState, setSettings, closeWin, openApp, openCP, msgBox, printDocument, notify, promptBox, mkfile, writeFile, lsGet, lsSet,
   MenuItem, children, uid, fmtDate, pathOf,
 } from "../store";
 import { MenuBar, Btn, GroupBox, Check, Slider, useNow, GlassBar } from "../ui";
@@ -77,7 +77,7 @@ export function Journal({ win }: { win: Win }) {
         { label: "New note", shortcut: "Ctrl+N", onClick: () => { setPages([{ strokes: [] }]); setPi(0); setDirty(false); } },
         { label: "Save", shortcut: "Ctrl+S", onClick: save },
         { label: "Save As…", onClick: saveToFile },
-        { label: "Print", onClick: () => msgBox({ title: "Print", text: "No printer is installed. Install a printer using Devices and Printers in Control Panel.", icon: "warn" }) },
+        { label: "Print", onClick: () => printDocument({ name: "Document" }) },
         { sep: true },
         { label: "Exit", onClick: () => closeWin(win.id) },
       ],
@@ -153,7 +153,7 @@ export function XpsViewer({ win }: { win: Win }) {
       items: (): MenuItem[] => [
         { label: "Open…", onClick: () => openApp("explorer", { path: "docs" }) },
         { label: "Save a Copy…", onClick: () => msgBox({ title: "Save a Copy", text: "A copy of the document was saved in your Documents folder.", icon: "info" }) },
-        { label: "Print", onClick: () => msgBox({ title: "Print", text: "No printer is installed.", icon: "warn" }) },
+        { label: "Print", onClick: () => printDocument({ name: "Document" }) },
         { sep: true },
         { label: "Exit", onClick: () => closeWin(win.id) },
       ],
@@ -294,7 +294,7 @@ const SPEECH_CMDS: [string, string][] = [
 ];
 
 export function SpeechRecognition(_: { win: Win }) {
-  const [state, setState] = useState<"off" | "ready" | "listen">("off");
+  const [state, setState] = useState<"off" | "ready" | "listen" | "sleep">("off");
   const [heard, setHeard] = useState<{ text: string; ok: boolean; at: number }[]>([]);
   const [typed, setTyped] = useState("");
   const [lang, setLang] = useState(() => lsGet("win7.speech.lang", "en-US"));
@@ -327,6 +327,12 @@ export function SpeechRecognition(_: { win: Win }) {
     } else if (t.includes("close")) {
       const id = getState().focus;
       if (id) import("../store").then((m) => m.closeWin(id));
+    } else if (t.includes("open") && !/\b(notepad|calculator|paint|wordpad|documents|pictures)\b/.test(t)) {
+      // "Open ..." with no target is ambiguous: Windows plays the
+      // Disambiguation event and asks which command was meant.
+      playSys("speech-disambiguation");
+      say("Which item did you want to open? Try open notepad, open calculator or open pictures.");
+      ok = false;
     } else ok = false;
     setHeard((h) => [{ text: raw, ok, at: Date.now() }, ...h].slice(0, 20));
     if (ok) playSys("ding");
@@ -344,6 +350,8 @@ export function SpeechRecognition(_: { win: Win }) {
   };
 
   const start = () => {
+    // "Speech Recognition — Listening" / "Not listening" are program events.
+    playSys("speech-on");
     setState2Listen();
     if (!supported) return;
     try {
@@ -357,7 +365,9 @@ export function SpeechRecognition(_: { win: Win }) {
         setConfidence(Math.round((res[0].confidence || 0.9) * 100));
         if (res.isFinal) runCommand(res[0].transcript);
       };
-      r.onerror = () => setState2Ready();
+      // A recogniser that could not make out the words raises the
+      // "Misrecognition" event; an ambiguous utterance raises "Disambiguation".
+      r.onerror = () => { playSys("speech-misrecognition"); setState2Ready(); };
       r.onend = () => setState2Ready();
       r.start();
       rec.current = r;
@@ -372,6 +382,7 @@ export function SpeechRecognition(_: { win: Win }) {
       rec.current?.stop();
     } catch {}
     rec.current = null;
+    playSys("speech-off");
     setState2Ready();
   };
   useEffect(() => () => { try { rec.current?.stop(); } catch {} }, []);
@@ -388,9 +399,18 @@ export function SpeechRecognition(_: { win: Win }) {
       <GroupBox title="Microphone">
         <div className="sp-row">
           <span className={"sp-led " + state} />
-          <b>{state === "listen" ? "Listening…" : state === "ready" ? "Ready" : "Off"}</b>
+          <b>{state === "listen" ? "Listening…" : state === "sleep" ? "Sleeping (say \"start listening\")" : state === "ready" ? "Ready" : "Off"}</b>
           <div style={{ flex: 1 }} />
-          {state === "listen" ? <Btn onClick={stop}>Stop listening</Btn> : <Btn def onClick={start}>Start listening</Btn>}
+          {state === "listen" ? (
+            <>
+              <Btn onClick={() => { playSys("speech-sleep"); setState("sleep"); }}>Sleep</Btn>
+              <Btn onClick={stop}>Stop listening</Btn>
+            </>
+          ) : state === "sleep" ? (
+            <Btn def onClick={() => { playSys("speech-on"); setState("listen"); }}>Wake up</Btn>
+          ) : (
+            <Btn def onClick={start}>Start listening</Btn>
+          )}
         </div>
         <p>Language: <select className="w7input" value={lang} onChange={(e) => { setLang(e.target.value); lsSet("win7.speech.lang", e.target.value); }}><option value="en-US">English (United States)</option><option value="en-GB">English (United Kingdom)</option><option value="es-ES">Spanish (Spain)</option><option value="fr-FR">French (France)</option></select></p>
         {confidence > 0 && <p className="g-note">Recognition confidence: {confidence}%</p>}

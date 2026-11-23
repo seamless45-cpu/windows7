@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  Win, useStore, getState, setWin, openApp, closeWin, focusWin, msgBox, children, resolvePath, pathOf, mkdir, mkfile, deleteForever, renameNode, moveNodes, copyNodes, shutdown, restart, logoff,
+  Win, useStore, getState, setWin, openApp, closeWin, focusWin, msgBox, printDocument, children, resolvePath, pathOf, mkdir, mkfile, deleteForever, renameNode, moveNodes, copyNodes, shutdown, restart, logoff,
   runCommand, MenuItem, FsNode, lock, workArea, mkfile as mkf, notify, view, openCP, setState, extOf, lsGet, lsSet,
 } from "../store";
 import { APPS } from "../registry";
@@ -367,7 +367,7 @@ export function HelpApp({ win }: { win: Win }) {
         <button className="navbtn" disabled={hi === 0} onClick={() => setHi(hi - 1)}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 2L4 8l6 6" stroke="#fff" strokeWidth="3" fill="none" /></svg></button>
         <button className="navbtn fwd" disabled={hi >= hist.length - 1} onClick={() => setHi(hi + 1)}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 2l6 6-6 6" stroke="#fff" strokeWidth="3" fill="none" /></svg></button>
         <button className="rb-btn" onClick={() => { setQ(""); nav("home"); }}>⌂ Help home</button>
-        <button className="rb-btn" onClick={() => msgBox({ title: "Print", text: "No printer is installed.", icon: "warn" })}>⎙ Print</button>
+        <button className="rb-btn" onClick={() => printDocument({ name: "Document" })}>⎙ Print</button>
         <button className="rb-btn" onClick={() => nav("all")}>☰ Browse Help</button>
         <div className="ex-search" style={{ marginLeft: "auto", width: 220 }}><input placeholder="Search Help" value={q} onChange={(e) => setQ(e.target.value)} />{q ? <span className="ex-clear" onClick={() => setQ("")}>✕</span> : null}</div>
       </div>

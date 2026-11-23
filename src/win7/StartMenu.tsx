@@ -248,9 +248,10 @@ export function StartMenu() {
 
   const flatResults: { run: () => void }[] = results
     ? [
+        // the same order the groups are rendered in
         ...results.progs.map((p) => ({ run: () => run(p.run) })),
-        ...results.files.map((n) => ({ run: () => run(() => openNode(n.id)) })),
         ...results.cp.map((c) => ({ run: () => run(() => openCP(c[1])) })),
+        ...results.files.map((n) => ({ run: () => run(() => openNode(n.id)) })),
       ]
     : [];
 
@@ -327,11 +328,16 @@ export function StartMenu() {
     </div>
   );
 
+  // Windows 7's right pane is a list of small (16 px) icons with labels, not
+  // bare text: the user name gets the account picture, and every folder gets
+  // its shell icon.
   const place = (label: string, icon: string, fn: () => void, sep = false) => (
     <React.Fragment key={label}>
       {sep && <div className="sm-rsep" />}
-      <div className="sm-r" onClick={() => run(fn)}><span>{label}</span></div>
-      {void icon}
+      <div className="sm-r" onClick={() => run(fn)}>
+        <Icon name={icon} size={16} />
+        <span>{label}</span>
+      </div>
     </React.Fragment>
   );
 
@@ -353,16 +359,19 @@ export function StartMenu() {
               ))}
               {results.files.length > 0 && <div className="sm-rh">Files ({results.files.length})</div>}
               {results.files.map((n, i) => {
-                const idx = results.progs.length + i;
+                const idx = results.progs.length + results.cp.length + i;
                 return <div key={n.id} className={"sm-item tree" + (cur === idx ? " cur" : "")} onClick={() => run(() => openNode(n.id))} onMouseEnter={() => setCur(idx)}><Icon name={nodeIcon(n)} size={16} /><span>{n.name}</span></div>;
               })}
+              {/* Windows 7 orders the groups Programs, Control Panel, then the
+                  document categories, then Files. Control Panel comes second,
+                  not after the files. */}
               {results.cp.length > 0 && <div className="sm-rh">Control Panel ({results.cp.length})</div>}
               {results.cp.map((c, i) => {
-                const idx = results.progs.length + results.files.length + i;
+                const idx = results.progs.length + i;
                 return <div key={c[1]} className={"sm-item tree" + (cur === idx ? " cur" : "")} onClick={() => run(() => openCP(c[1]))} onMouseEnter={() => setCur(idx)}><Icon name={c[2]} size={16} /><span>{c[0]}</span></div>;
               })}
               {!results.progs.length && !results.files.length && !results.cp.length && <div className="sm-none">No matches found.</div>}
-              {(results.progs.length > 0 || results.files.length > 0) && (
+              {(results.progs.length > 0 || results.files.length > 0 || results.cp.length > 0) && (
                 <div className="sm-rh link" onClick={() => run(() => openApp("explorer", { path: "search", query: q }))}>See more results</div>
               )}
             </div>
@@ -426,7 +435,13 @@ export function StartMenu() {
         {canInstall && place("Install this PC", "setup", () => { void promptInstall().then((r) => { if (r === "accepted") markInstallFlag(); }); })}
         <div className="sm-rspace" />
         <div className="sm-power">
-          <button className="sm-shut" onClick={() => run(shutdown)}>Shut down</button>
+          <button className="sm-shut" onClick={() => run(shutdown)}>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M6 1.2v4.1" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+              <path d="M3.1 2.9a4.1 4.1 0 1 0 5.8 0" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            Shut down
+          </button>
           <button className={"sm-arrow" + (pwr ? " on" : "")} onClick={() => setPwr(!pwr)}>▶</button>
           {pwr && (
             <div className="ctx sm-pmenu" onPointerDown={(e) => e.stopPropagation()}>

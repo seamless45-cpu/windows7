@@ -119,3 +119,62 @@ References:
 - [iframe cheat sheet](https://iframe-detector.com/iframe-cheat-sheet/) — every sandbox token.
 - [How to Bypass X-Frame-Options and CSP frame-ancestors](https://iframetest.com/x-frame-options-bypass/)
   — framing headers cannot be overridden from the embedding page.
+
+## Sound coverage (accuracy pass)
+
+The simulator had **every** Windows 7 clip on disk and an event list in Control Panel —
+but eleven of those events were never triggered anywhere, so they were silent no matter
+what the user did. The events are now wired to the actions that raise them in Windows 7:
+
+| Event | Raised by |
+| --- | --- |
+| Windows User Account Control | the consent prompt (it borrowed the *exclamation* sound before) |
+| Print Complete | a finished print job |
+| Device Connect / Disconnect / Connect Failed | plugging in, safely removing, and a driver that fails to restart |
+| Battery Low / Critical | the charge dropping past the alarm levels (10% / 5%) |
+| Feed Discovered | a page that advertises an RSS feed (the IE 8 Feeds button lights up) |
+| Windows Pop-up Blocked | IE's pop-up bar |
+| Windows Information Bar | the information bar appearing over a page |
+| Menu Pop-up | any context menu opening |
+| Complete | a finished Windows Defender scan or backup |
+| New Mail Notification | a message arriving |
+
+**Window events were also renamed to the real ones.** Windows 7's Program Events list has
+no "Minimize" and no "Restore" event; it has **Maximize**, **Minimize**, **Restore Down**
+(maximised → normal) and **Restore Up** (minimised → normal). The old code played a made-up
+"Windows Restore" event. Both pairs now share the clips Windows assigns them
+(Windows Restore.wav for Maximize and Restore Up, Windows Minimize.wav for Minimize and
+Restore Down), which is what the Windows Default scheme actually does.
+
+**Speech Recognition's five events** (Listening, Not listening, Sleeping, Misrecognition,
+Disambiguation) are wired to the app, which gained the *Sleep / Wake up* state that Windows 7
+has. The five `.mp3`s were shipped but unreachable before.
+
+**The Sounds tab can now reassign an event.** Windows stores a scheme as event → .wav
+assignments, so the tab has the real Sounds drop-down — every clip in the scheme's Media
+folder plus **(None)** — and a *Restore this scheme's defaults* button. Assignments persist
+in `win7.soundmap` and a silenced event is neither played nor downloaded.
+
+**Printing is real.** Windows 7 ships the *Microsoft XPS Document Writer*, so "No printer is
+installed" — which seven programs used to say — was simply wrong. Print now runs a job
+through the queue and writes a `.xps` file into Documents, then fires Print Complete.
+
+`tests/sounds.test.mjs` (`npm run test:sounds`) asserts that every event maps to a clip that
+exists in all fourteen schemes, that every event is triggered from somewhere, and that no
+sound helper is defined-but-uncalled (which is how the eleven silent events survived).
+
+## Start menu (accuracy pass)
+
+- The right pane is a **list of 16 px icons with labels**, not bare text; each item uses its
+  shell icon (Documents, Pictures, Music, Games, Computer, Control Panel, Devices and
+  Printers, Default Programs, Help and Support).
+- The menu is **424 × 540** with a **252 px** left pane. The old 270 px left pane left too
+  little room on the right for "Devices and Printers", which is the longest label Windows 7
+  puts there; the real menu splits roughly 60/40.
+- The Shut down button carries the **power glyph** and shares its row with the arrow at full
+  width, as on the real taskbar.
+- Search results are grouped **Programs → Control Panel → Files**. Control Panel used to be
+  listed after the files, and keyboard navigation followed the same wrong order.
+- *See more results* appears for Control Panel matches too.
+- The power menu is **Switch user, Log off, Lock, Restart, Sleep** — Hibernate replaces Sleep
+  in the same slot rather than being a sixth item (it is a separate entry in the real menu).

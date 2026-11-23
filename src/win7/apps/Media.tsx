@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { Win, useStore, getState, setWin, openApp, msgBox, children, extOf, FsNode, mkfile, trashNodes, notify, progressDialog, closeWin, showMenu, view } from "../store";
+import { Win, useStore, getState, setWin, openApp, msgBox, printDocument, children, extOf, FsNode, mkfile, trashNodes, notify, progressDialog, closeWin, showMenu, view } from "../store";
 import { Icon } from "../icons";
 import { Btn, Check, Slider } from "../ui";
 import { tone, snd, ac } from "../sound";
@@ -312,7 +312,7 @@ export function PhotoViewer({ win }: { win: Win }) {
   if (!cur) return <div className="pv"><div className="pv-empty">There are no pictures to display.<br /><Btn onClick={() => openApp("explorer", { path: "pics" })}>Open Pictures</Btn></div></div>;
   return (
     <div className="pv" tabIndex={0} onKeyDown={(e) => { if (e.key === "ArrowRight") go(1); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "+" ) setZoom(Math.min(5, zoom + 0.25)); else if (e.key === "-") setZoom(Math.max(0.25, zoom - 0.25)); else if (e.key === "Delete") del(); }}>
-      <div className="pv-top"><button className="rb-btn" onClick={() => openApp("paint", { file: cur.id })}>Open ▾</button><button className="rb-btn" onClick={() => msgBox({ title: "Print", text: "No printer is installed.", icon: "warn" })}>Print ▾</button><button className="rb-btn" onClick={() => openApp("explorer", { path: folder })}>Folder</button></div>
+      <div className="pv-top"><button className="rb-btn" onClick={() => openApp("paint", { file: cur.id })}>Open ▾</button><button className="rb-btn" onClick={() => printDocument({ name: cur.name })}>Print ▾</button><button className="rb-btn" onClick={() => openApp("explorer", { path: folder })}>Folder</button></div>
       <div className={"pv-stage" + (slide ? " slide" : "")} onPointerDown={down} onWheel={(e) => setZoom(Math.min(5, Math.max(0.25, zoom + (e.deltaY < 0 ? 0.2 : -0.2))))} onDoubleClick={() => { setZoom(zoom === 1 ? 2 : 1); setPan({ x: 0, y: 0 }); }}>
         <img key={cur.id} src={cur.content} alt={cur.name} draggable={false} style={{ transform: `translate(${pan.x}px,${pan.y}px) rotate(${rot}deg) scale(${zoom})` }} />
       </div>
