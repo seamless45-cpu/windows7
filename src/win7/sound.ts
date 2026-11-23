@@ -15,11 +15,20 @@ export const snd = { vol: 0.5, muted: false, scheme: "Windows Default" as string
 
 /** Every program event the simulator can play. */
 export type SysSound =
-  | "default" | "logon" | "logoff" | "startup" | "shutdown" | "minimize" | "restore"
-  | "ding" | "error" | "exclaim" | "critical" | "balloon" | "notify" | "recycle" | "menu" | "uac"
+  | "default" | "logon" | "logoff" | "startup" | "shutdown"
+  // Windows 7 has no "Minimize"/"Restore" *event*: the Program Events list holds
+  // Maximize, Minimize, Restore Down (maximised -> normal) and Restore Up
+  // (minimised -> normal). The Windows Minimize.wav / Windows Restore.wav clips
+  // are what you assign to them.
+  | "maximize" | "minimize" | "restore-down" | "restore-up"
+  | "ding" | "error" | "exclaim" | "critical" | "balloon" | "notify" | "recycle"
+  | "menu" | "menupopup" | "uac"
   | "print" | "hardware-insert" | "hardware-remove" | "hardware-fail"
   | "battery-low" | "battery-critical" | "feed" | "infobar" | "popup" | "navigation"
-  | "ringin" | "ringout";
+  | "ringin" | "ringout" | "mailbeep" | "tada"
+  // Speech Recognition has its own program events; Windows 7 lists them in a
+  // second group of the Program Events box.
+  | "speech-on" | "speech-off" | "speech-sleep" | "speech-misrecognition" | "speech-disambiguation";
 
 /** Events shown in Control Panel → Sound → Program Events, in Windows' order. */
 export const SOUND_EVENTS: { key: SysSound; label: string }[] = [
@@ -28,8 +37,10 @@ export const SOUND_EVENTS: { key: SysSound; label: string }[] = [
   { key: "logoff", label: "Windows Logoff" },
   { key: "startup", label: "Windows Startup" },
   { key: "shutdown", label: "Windows Shutdown" },
-  { key: "minimize", label: "Windows Minimize" },
-  { key: "restore", label: "Windows Restore" },
+  { key: "maximize", label: "Maximize" },
+  { key: "minimize", label: "Minimize" },
+  { key: "restore-down", label: "Restore Down" },
+  { key: "restore-up", label: "Restore Up" },
   { key: "ding", label: "Windows Ding" },
   { key: "error", label: "Windows Error" },
   { key: "exclaim", label: "Windows Exclamation" },
@@ -38,6 +49,7 @@ export const SOUND_EVENTS: { key: SysSound; label: string }[] = [
   { key: "notify", label: "Windows Notify" },
   { key: "recycle", label: "Windows Recycle" },
   { key: "menu", label: "Windows Menu Command" },
+  { key: "menupopup", label: "Menu Pop-up" },
   { key: "uac", label: "Windows User Account Control" },
   { key: "print", label: "Windows Print Complete" },
   { key: "hardware-insert", label: "Device Connect" },
@@ -49,6 +61,13 @@ export const SOUND_EVENTS: { key: SysSound; label: string }[] = [
   { key: "infobar", label: "Windows Information Bar" },
   { key: "popup", label: "Windows Pop-up Blocked" },
   { key: "navigation", label: "Windows Navigation Start" },
+  { key: "mailbeep", label: "New Mail Notification" },
+  { key: "tada", label: "Complete" },
+  { key: "speech-on", label: "Speech Recognition — Listening" },
+  { key: "speech-off", label: "Speech Recognition — Not listening" },
+  { key: "speech-sleep", label: "Speech Recognition — Sleeping" },
+  { key: "speech-misrecognition", label: "Speech Recognition — Misrecognition" },
+  { key: "speech-disambiguation", label: "Speech Recognition — Disambiguation" },
 ];
 
 /** The sound schemes shipped in Windows 7 (the folder names on disk). */
@@ -138,12 +157,152 @@ export function ac(): AudioContext | null {
   return ctx;
 }
 
-const url = (scheme: string, kind: SysSound) => `${BASE}/sounds/${folder(scheme)}/${kind}.mp3`;
+/**
+ * Event -> the clip Windows plays for it. Several events share a .wav (the
+ * Windows Default scheme assigns Windows Restore.wav to Maximize and Restore
+ * Up, and Windows Minimize.wav to Minimize and Restore Down).
+ */
+const CLIP: Record<SysSound, string> = {
+  default: "default",
+  logon: "logon",
+  logoff: "logoff",
+  startup: "startup",
+  shutdown: "shutdown",
+  maximize: "restore",
+  "restore-up": "restore",
+  minimize: "minimize",
+  "restore-down": "minimize",
+  ding: "ding",
+  error: "error",
+  exclaim: "exclaim",
+  critical: "critical",
+  balloon: "balloon",
+  notify: "notify",
+  recycle: "recycle",
+  menu: "menu",
+  menupopup: "menu",
+  uac: "uac",
+  print: "print",
+  "hardware-insert": "hardware-insert",
+  "hardware-remove": "hardware-remove",
+  "hardware-fail": "hardware-fail",
+  "battery-low": "battery-low",
+  "battery-critical": "battery-critical",
+  feed: "feed",
+  infobar: "infobar",
+  popup: "popup",
+  navigation: "navigation",
+  ringin: "ringin",
+  ringout: "ringout",
+  mailbeep: "notify",
+  tada: "tada",
+  "speech-on": "speech-on",
+  "speech-off": "speech-off",
+  "speech-sleep": "speech-sleep",
+  "speech-misrecognition": "speech-misrecognition",
+  "speech-disambiguation": "speech-disambiguation",
+};
+
+/**
+ * Per-scheme sound assignments.
+ *
+ * Windows stores a scheme as event -> .wav assignments, so an event can be
+ * silenced or pointed at a different clip without touching the others. The
+ * overrides live in localStorage and are keyed by scheme + event.
+ */
+export const SOUND_CLIPS = [
+  "default", "logon", "logoff", "startup", "shutdown", "minimize", "restore",
+  "ding", "error", "exclaim", "critical", "balloon", "notify", "recycle",
+  "menu", "uac", "print", "hardware-insert", "hardware-remove", "hardware-fail",
+  "battery-low", "battery-critical", "feed", "infobar", "popup", "navigation",
+  "ringin", "ringout", "tada", "chimes", "chord",
+] as const;
+
+const CLIP_LABEL: Record<string, string> = {
+  default: "Windows Default",
+  logon: "Windows Logon Sound",
+  logoff: "Windows Logoff Sound",
+  startup: "Windows Startup",
+  shutdown: "Windows Shutdown",
+  minimize: "Windows Minimize",
+  restore: "Windows Restore",
+  ding: "Windows Ding",
+  error: "Windows Error",
+  exclaim: "Windows Exclamation",
+  critical: "Windows Critical Stop",
+  balloon: "Windows Balloon",
+  notify: "Windows Notify",
+  recycle: "Windows Recycle",
+  menu: "Windows Menu Command",
+  uac: "Windows User Account Control",
+  print: "Windows Print complete",
+  "hardware-insert": "Windows Hardware Insert",
+  "hardware-remove": "Windows Hardware Remove",
+  "hardware-fail": "Windows Hardware Fail",
+  "battery-low": "Windows Battery Low",
+  "battery-critical": "Windows Battery Critical",
+  feed: "Windows Feed Discovered",
+  infobar: "Windows Information Bar",
+  popup: "Windows Pop-up Blocked",
+  navigation: "Windows Navigation Start",
+  ringin: "Windows Ringin",
+  ringout: "Windows Ringout",
+  tada: "Windows Tada",
+  chimes: "chimes",
+  chord: "chord",
+};
+export const clipLabel = (clip: string) => CLIP_LABEL[clip] || clip;
+
+type Overrides = Record<string, string | null>;
+
+function readOverrides(): Overrides {
+  try {
+    return JSON.parse(localStorage.getItem("win7.soundmap") || "{}") as Overrides;
+  } catch {
+    return {};
+  }
+}
+function writeOverrides(o: Overrides) {
+  try {
+    localStorage.setItem("win7.soundmap", JSON.stringify(o));
+  } catch {
+    /* storage disabled */
+  }
+}
+
+/**
+ * The clip an event plays in a scheme: the override if the user assigned one,
+ * `null` when they chose (None), otherwise the scheme default.
+ */
+export function soundFor(scheme: string, kind: SysSound): string | null | undefined {
+  const o = readOverrides();
+  const key = scheme + "/" + kind;
+  if (key in o) return o[key];
+  return undefined;
+}
+
+/** Assign a clip to an event, or `null` for (None); `undefined` restores. */
+export function setSoundFor(scheme: string, kind: SysSound, clip: string | null | undefined) {
+  const o = readOverrides();
+  const key = scheme + "/" + kind;
+  if (clip === undefined) delete o[key];
+  else o[key] = clip;
+  writeOverrides(o);
+  clearCache();
+}
+
+const clipOf = (kind: SysSound) => CLIP[kind] ?? kind;
+const url = (scheme: string, kind: SysSound) => {
+  const over = soundFor(scheme, kind);
+  const clip = over === undefined ? clipOf(kind) : over;
+  return `${BASE}/sounds/${folder(scheme)}/${clip}.mp3`;
+};
 
 /** Fetch and decode a clip; safe to call repeatedly. */
 function load(scheme: string, kind: SysSound) {
   const c = ac();
   if (!c || isNoSounds(scheme)) return;
+  if (soundFor(scheme, kind) === null) return; // the user chose (None)
   const key = scheme + "/" + kind;
   if (cache.has(key)) return;
   cache.set(key, "loading");
@@ -213,6 +372,7 @@ function playBuffer(buf: AudioBuffer) {
 export function playSys(kind: SysSound | "key") {
   if (snd.muted || snd.vol <= 0 || isNoSounds(snd.scheme)) return;
   if (kind === "key") return; // keyboard clicks are generated by playClick
+  if (soundFor(snd.scheme, kind) === null) return; // silenced by (None)
   const buf = cache.get(snd.scheme + "/" + kind);
   if (buf && typeof buf === "object") {
     playBuffer(buf);
@@ -224,6 +384,7 @@ export function playSys(kind: SysSound | "key") {
 /** Play a specific clip regardless of the selected scheme (used by the Sound dialog previews). */
 export function playPreview(scheme: string, kind: SysSound) {
   if (isNoSounds(scheme)) return;
+  if (soundFor(scheme, kind) === null) return; // (None): nothing to test
   const key = scheme + "/" + kind;
   const buf = cache.get(key);
   if (buf && typeof buf === "object") {

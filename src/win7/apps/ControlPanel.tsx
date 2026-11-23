@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Win, useStore, getState, setState, setSettings, openApp, openCP, msgBox, uac, notify, restart, lsGet, lsSet, children, setWin, promptBox, progressDialog, fmtBig, Settings, resetAll,
-  runCommand, view, TaskbarBar,
+  runCommand, view, TaskbarBar, checkBattery,
 } from "../store";
 import { Icon, nodeIcon } from "../icons";
 import { FunFeatures } from "./FunFeatures";
@@ -12,7 +12,7 @@ import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
 import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
-import { playSys, playPreview, SCHEMES, SOUND_EVENTS, isNoSounds, type SysSound } from "../sound";
+import { playSys, playPreview, SCHEMES, SOUND_EVENTS, isNoSounds, SOUND_CLIPS, clipLabel, soundFor, setSoundFor, type SysSound } from "../sound";
 import { wpStyle } from "../fileops";
 import { listMedia, addMedia, removeMedia, mediaUrl, prettySize, prettyDur, WP_FITS, type MediaMeta } from "../media";
 import { DeviceManager } from "./ComputerManagement";
@@ -235,6 +235,15 @@ function Power() {
         </tbody></table>
         <p className="cp-desc">The computer goes to sleep after the selected idle time. Click or press a key to wake it.</p>
       </GroupBox>
+      {/* Windows 7 → Power Options → Change plan settings → Change advanced
+          power settings → Battery. The alarm levels are real settings, and
+          dropping the charge below them raises the matching program event. */}
+      <GroupBox title="Battery">
+        <p>Battery charge: <b>{p.batteryLevel ?? 100}%</b>{p.charging ? " (plugged in)" : " (on battery)"}</p>
+        <p><Slider value={p.batteryLevel ?? 100} min={0} max={100} onChange={(v) => { setSettings({ power: { ...p, batteryLevel: v } }); checkBattery(v, p.charging ?? true); }} /></p>
+        <p><Check checked={p.charging ?? true} onChange={(v) => setSettings({ power: { ...p, charging: v } })} label="Plugged in (charging)" /></p>
+        <p className="cp-desc">Low battery alarm at 10%, critical battery alarm at 5% — the Windows 7 defaults. Each plays its program event once until the charge recovers.</p>
+      </GroupBox>
     </div>
   );
 }
@@ -244,6 +253,9 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
   const s = useStore((st) => st.settings);
   const [tab, setTab] = useState("Sounds");
   const [ev, setEv] = useState<SysSound>("logon");
+  /** bumped when an assignment changes so the selects re-read localStorage */
+  const [tick, setTick] = useState(0);
+  void tick;
   return (
     <div className="cp-dialog">
       <Tabs tabs={["Playback", "Recording", "Sounds", "Communications"]} value={tab} onChange={setTab} />
@@ -276,14 +288,22 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
                 ))}
               </div>
               <div className="ev-side">
+                {/* Windows 7 lets you change the sound for an event, not just
+                    test it: the Sounds drop-down lists every clip in the
+                    scheme's Media folder and (None) silences the event. */}
                 <p className="dim">Sounds:</p>
-                <div className="ev-sound">{SOUND_EVENTS.find((e) => e.key === ev)?.label}</div>
-                <p><Btn onClick={() => playPreview(s.soundScheme, ev)} disabled={isNoSounds(s.soundScheme)}>Test</Btn></p>
-                <p className="dim">Click an event to select it, then press Test to hear it in the current scheme.</p>
+                <Sel
+                  value={soundFor(s.soundScheme, ev) ?? "(None)"}
+                  onChange={(v) => { setSoundFor(s.soundScheme, ev, v === "(None)" ? null : v); setTick((t) => t + 1); }}
+                  opts={[["(None)", "(None)"], ...SOUND_CLIPS.map((c) => [c, clipLabel(c)] as [string, string])]}
+                />
+                <p><Btn onClick={() => playPreview(s.soundScheme, ev)} disabled={isNoSounds(s.soundScheme) || soundFor(s.soundScheme, ev) === null}>Test</Btn></p>
+                <p className="dim">Click an event to select it, choose a sound, then press Test to hear it in the current scheme.</p>
                 <p className="dim">Schemes: {SCHEMES.length - 1} sound schemes plus No Sounds.</p>
+                <p><Btn onClick={() => { SOUND_EVENTS.forEach((e) => setSoundFor(s.soundScheme, e.key, undefined)); setTick((t) => t + 1); }}>Restore this scheme&apos;s defaults</Btn></p>
               </div>
             </div>
-            <p><Check checked={!s.muted} onChange={(v) => setSettings({ muted: !v })} label="Play Windows Startup sound" /></p>
+            <p><Check checked={s.playStartupSound} onChange={(v) => setSettings({ playStartupSound: v })} label="Play Windows Startup sound" /></p>
           </div>
         )}
         {tab === "Communications" && <div><p>When Windows detects communications activity:</p><Radio checked label="Do nothing" onChange={() => {}} /><br /><Radio checked={false} label="Reduce the volume of other sounds by 80%" onChange={() => {}} /></div>}

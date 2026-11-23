@@ -8,7 +8,7 @@
  *  - Windows Contacts (the address book that writes .contact files)
  */
 import { useMemo, useState } from "react";
-import { getState, mkfile, notify, msgBox, openApp, lsGet, lsSet } from "../store";
+import { getState, mkfile, notify, msgBox, openApp, lsGet, lsSet, newMail } from "../store";
 import { Icon } from "../icons";
 import { Btn } from "../ui";
 
@@ -257,6 +257,9 @@ export function WindowsContacts() {
     <div className="wc">
       <div className="wc-bar">
         <Btn onClick={add}>New contact</Btn>
+        {/* Windows Contacts raises the "New Mail Notification" program event
+            when a message arrives; the mailbox here is simulated. */}
+        <Btn onClick={() => cur && newMail(`${cur.first} ${cur.last}`, "Re: your last message")} disabled={!cur}>Check mail</Btn>
         <Btn onClick={() => cur && msgBox({ title: "Windows Contacts", text: `Delete ${cur.first} ${cur.last}?`, icon: "warn", buttons: ["Delete", "Cancel"], onResult: (b) => { if (b !== "Delete") return; const next = list.filter((c) => c.id !== cur.id); save(next); setSel(next[0]?.id || null); } })} disabled={!cur}>Delete</Btn>
         <Btn onClick={exportToDocs} disabled={!cur}>Export</Btn>
         <input className="w7input wc-search" placeholder="Search contacts" value={q} onChange={(e) => setQ(e.target.value)} />

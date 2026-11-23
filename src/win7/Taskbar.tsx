@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useStore, getState, setState, setSettings, openApp, focusWin, minWin, closeWin, toggleStart, toggleFlyout, showMenu, showDesktop, tbThick, workArea, view, setWin, openCP, openPath,
-  notify, lsGet, Win, MenuItem, lock, openJumpList, taskbarActivate, TASKBAR_BAR_IDS, TaskbarBar, openNode,
+  notify, lsGet, Win, MenuItem, lock, openJumpList, taskbarActivate, TASKBAR_BAR_IDS, TaskbarBar, openNode, deviceRemoved,
 } from "./store";
 import { APPS } from "./registry";
 import { Icon, appIcon, nodeIcon } from "./icons";
@@ -143,6 +143,8 @@ export function Taskbar() {
   const menu = useStore((s) => s.menu);
   const notifs = useStore((s) => s.notifications);
   const tb = settings.taskbar;
+  const batteryLevel = settings.power.batteryLevel ?? 100;
+  const batteryCharging = settings.power.charging ?? true;
   const taskbarIdx = useStore((s) => s.taskbarIdx);
   const barRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (taskbarIdx !== null) barRef.current?.focus(); }, [taskbarIdx]);
@@ -399,7 +401,9 @@ export function Taskbar() {
           </div>
           <div className="tray-ico" title={online ? "Network 2\nInternet access" : "Not connected — no connections available"} onClick={() => toggleFlyout("network")}><Icon name={online ? "netOn" : "netOff"} size={16} /></div>
           <div className="tray-ico" title={settings.muted ? "Speakers: Muted" : `Speakers: ${settings.volume}%`} onClick={() => toggleFlyout("volume")}><Icon name={settings.muted || settings.volume === 0 ? "speakerMute" : "speaker"} size={16} /></div>
-          <div className="tray-ico" title="100% available (plugged in, charging)" onClick={() => toggleFlyout("battery")}><Icon name="battery" size={16} /></div>
+          <div className="tray-ico" title={`${batteryLevel}% ${batteryCharging ? "available (plugged in, charging)" : "remaining"}`} onClick={() => toggleFlyout("battery")}>
+            <Icon name={batteryCharging ? "battery" : batteryLevel <= 10 ? "batteryLow" : "battery"} size={16} />
+          </div>
           <div className="tray-clock" onClick={() => toggleFlyout("clock")} title={fmtLongDate(now, settings)}>
             <div>{fmtTime(now, settings)}</div>
             {!vertical && <div>{fmtShortDate(now, settings)}</div>}
@@ -522,6 +526,8 @@ function Flyouts() {
   const now = useNow(1000);
   const th = tbThick(s);
   const online = s.defaults.net !== "off";
+  const batteryLevel = s.power.batteryLevel ?? 100;
+  const batteryCharging = s.power.charging ?? true;
   if (!flyout) return null;
   const st = flyStyle(s.taskbar.pos, th);
   const close = () => setState({ flyout: null });
@@ -550,10 +556,10 @@ function Flyouts() {
           </div>
         </div>
         <div className="vol-slider-wrap">
-          <div className="vol-slider"><Slider value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); playSys(v > 0 ? "ding" : "minimize"); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 100 } as React.CSSProperties} /></div>
+          <div className="vol-slider"><Slider value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); playSys("ding"); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 100 } as React.CSSProperties} /></div>
         </div>
         <div className="vol-row">
-          <button className="vol-btn" onClick={() => { setSettings({ muted: !s.muted }); playSys(s.muted ? "restore" : "minimize"); }} title={s.muted ? "Unmute speakers" : "Mute speakers"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={18} /></button>
+          <button className="vol-btn" onClick={() => { setSettings({ muted: !s.muted }); playSys("ding"); }} title={s.muted ? "Unmute speakers" : "Mute speakers"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={18} /></button>
           <a className="cf-link vol-link" onClick={() => { close(); playSys("ding"); openCP("sound"); }}>Open Volume Mixer</a>
         </div>
       </div>
@@ -580,7 +586,7 @@ function Flyouts() {
   if (flyout === "battery")
     return (
       <div className="flyout bat-fly" style={st} onPointerDown={stop}>
-        <div style={{ padding: "6px 10px" }}><b>100% available (plugged in, charging)</b></div>
+        <div style={{ padding: "6px 10px" }}><b>{batteryLevel}% {batteryCharging ? "available (plugged in, charging)" : "remaining"}</b></div>
         <div className="nf-sec">Select a power plan</div>
         {[["balanced", "Balanced"], ["saver", "Power saver"], ["high", "High performance"]].map(([k, l]) => (
           <div key={k} className="nf-row" onClick={() => setSettings({ power: { ...s.power, plan: k } })}><span style={{ width: 14 }}>{s.power.plan === k ? "●" : ""}</span>{l}</div>
@@ -592,7 +598,7 @@ function Flyouts() {
     return (
       <div className="flyout ovf-fly" style={{ ...st, right: 130 }} onPointerDown={stop}>
         <div className="ovf-grid">
-          <div className="tray-ico" title="Safely Remove Hardware and Eject Media" onClick={() => { close(); playSys("hardware-remove"); notify({ title: "Safe to Remove Hardware", text: "The device 'Generic USB Drive' can now be safely removed.", icon: "info" }); }}><Icon name="usb" size={18} /></div>
+          <div className="tray-ico" title="Safely Remove Hardware and Eject Media" onClick={() => { close(); deviceRemoved("Generic USB Drive"); }}><Icon name="usb" size={18} /></div>
           <div className="tray-ico" title="Windows Update" onClick={() => { close(); openCP("wupdate"); }}><Icon name="update" size={18} /></div>
           <div className="tray-ico" title="Windows Defender" onClick={() => { close(); openCP("actioncenter"); }}><Icon name="security" size={18} /></div>
         </div>

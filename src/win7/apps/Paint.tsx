@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Win, useStore, getState, setWin, setGuard, closeWin, msgBox, mkfile, writeFile, lsGet, lsSet, openApp, extOf, MenuItem, showMenu, view, jumpTouch } from "../store";
+import { Win, useStore, getState, setWin, setGuard, closeWin, msgBox, printDocument, mkfile, writeFile, lsGet, lsSet, openApp, extOf, MenuItem, showMenu, view, jumpTouch } from "../store";
 import { Btn } from "../ui";
 import { openFileDialog } from "../dialogs";
 
@@ -472,7 +472,7 @@ export function Paint({ win }: { win: Win }) {
       { label: "Save as", onClick: () => saveAs() },
       { sep: true },
       { label: "Set as desktop background (fill)", onClick: () => { import("../store").then((m) => { const id = mkfile("pics", "Paint wallpaper.png", cv.current!.toDataURL()); m.setSettings({ wallpaper: "fs:" + id, wpPos: "fill" }); }); } },
-      { label: "Print", onClick: () => msgBox({ title: "Print", text: "No printer is installed.", icon: "warn" }) },
+      { label: "Print", onClick: () => printDocument({ name: "Untitled" }) },
       { sep: true },
       { label: "About Paint", onClick: () => msgBox({ title: "About Paint", text: "Windows 7 Paint\nVersion 6.1 (Build 7601)", icon: "info" }) },
       { label: "Exit", onClick: () => closeWin(win.id) },

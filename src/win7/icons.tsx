@@ -557,6 +557,8 @@ const G: Record<string, () => React.ReactNode> = {
   netOn: () => <><rect x="6" y="8" width="26" height="19" rx="2" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><rect x="9" y="11" width="20" height="13" fill="#4a9aef" /><rect x="22" y="22" width="20" height="15" rx="2" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><rect x="25" y="25" width="14" height="9" fill="#4a9aef" /></>,
   netOff: () => <><rect x="6" y="8" width="26" height="19" rx="2" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><rect x="9" y="11" width="20" height="13" fill="#4a9aef" /><circle cx="35" cy="34" r="10" fill="#e23a2a" stroke="#fff" strokeWidth="2" /><path d="M31 30l8 8M39 30l-8 8" stroke="#fff" strokeWidth="3" /></>,
   battery: () => <><rect x="4" y="14" width="34" height="20" rx="3" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><rect x="38" y="20" width="5" height="8" fill="#2c3a4c" /><rect x="8" y="18" width="22" height="12" fill="#4cd04c" /></>,
+  // the low-battery tray icon Windows swaps in at the Low alarm level
+  batteryLow: () => <><rect x="4" y="14" width="34" height="20" rx="3" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="2" /><rect x="38" y="20" width="5" height="8" fill="#2c3a4c" /><rect x="8" y="18" width="5" height="12" fill="#e8b400" /></>,
   flagAC: () => <><path d="M10 42V8" stroke="#e8eef6" strokeWidth="4" /><path d="M12 9c8-4 14 4 24 0v18c-10 4-16-4-24 0z" fill="#e8eef6" stroke="#2c3a4c" strokeWidth="1.500" /></>,
   chevron: () => <path d="M10 32l14-14 14 14" stroke="#e8eef6" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" />,
   usb: () => <><path d="M24 4v36M24 40a4 4 0 1 0 0 .1M24 20l-10-6v8M24 28l10-6v-6" stroke="#e8eef6" strokeWidth="3" fill="none" /><circle cx="24" cy="42" r="4" fill="#e8eef6" /></>,

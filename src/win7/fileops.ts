@@ -1,7 +1,7 @@
 import type React from "react";
 import {
   state, setState, MenuItem, FsNode, extOf, baseOf, kindOf, children, trashNodes, restoreNodes, deleteForever, copyNodes, moveNodes, mkdir, mkfile,
-  renameNode, msgBox, progressDialog, openNode, openApp, setSettings, resolvePath, pathOf, notify, promptBox, uid,
+  renameNode, msgBox, progressDialog, openNode, openApp, setSettings, resolvePath, pathOf, notify, promptBox, uid, printDocument,
 } from "./store";
 import { WALLPAPERS } from "./data";
 import { APPS } from "./registry";
@@ -221,7 +221,7 @@ export function nodeMenuItems(ids: string[], opts: { dir?: string; inTrash?: boo
       items.push({ label: "Play to", sub: [{ label: "Living room TV", icon: "network", onClick: () => openApp("playto", { file: one.id }) }, { label: "Media PC", icon: "computer", onClick: () => openApp("playto", { file: one.id }) }] });
     }
     if (["jpg", "jpeg", "png", "bmp", "gif"].includes(e)) items.push({ label: "Play to", onClick: () => openApp("playto", { file: one.id }) });
-    if (e === "txt" || e === "rtf" || e === "doc") items.push({ label: "Print", onClick: () => msgBox({ title: "Print", text: "No printer is installed. Install a printer using Devices and Printers in Control Panel.", icon: "warn" }) });
+    if (e === "txt" || e === "rtf" || e === "doc") items.push({ label: "Print", onClick: () => printDocument({ name: one.name, body: one.content }) });
     if (one.type === "file")
       items.push({
         label: "Open with",

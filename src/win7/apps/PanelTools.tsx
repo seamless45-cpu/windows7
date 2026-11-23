@@ -11,7 +11,7 @@
  * Experience Index is computed from the same numbers the System page reports.
  */
 import React, { useEffect, useMemo, useState } from "react";
-import { useStore, children, mkfile, notify, msgBox, lsGet, lsSet, openPath } from "../store";
+import { useStore, children, mkfile, notify, msgBox, lsGet, lsSet, openPath, jobComplete } from "../store";
 import { Icon } from "../icons";
 import { Btn, Check, Radio } from "../ui";
 import { playSys } from "../sound";
@@ -58,7 +58,8 @@ export function BackupRestore() {
       setJobs((j) => [job, ...j].slice(0, 12));
       lsSet("win7.backup.last", at);
       playSys("notify");
-      notify({ title: "Backup and Restore", text: `The backup was completed successfully. ${name}`, icon: "info" });
+      // a finished backup is the "Complete" program event
+      jobComplete("Backup and Restore", `The backup was completed successfully. ${name}`);
       setRunning(0);
     }, 700);
     return () => clearTimeout(done);

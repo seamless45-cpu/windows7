@@ -71,7 +71,8 @@ export function Defender({ win }: { win: Win }) {
           const found: Threat[] = kind === "Quick scan" && !set.archive ? [] : [];
           const finalFound = found.length;
           setTimeout(() => {
-            playSys("notify");
+            // A finished scan is the "Complete" program event, not "Notify".
+            playSys("tada");
             setHistory((h) => [{ at: Date.now(), kind, found: finalFound || 0 }, ...h].slice(0, 12));
             notify({ title: "Windows Defender", text: finalFound ? `Windows Defender found ${finalFound} threat(s).` : `No unwanted software or malware was detected. (${kind})`, icon: "info" });
             logEvent("Information", "Windows Defender", 1001, `Windows Defender ${kind.toLowerCase()} completed. ${finalFound ? finalFound + " threat(s) found." : "No threats found."}`, "Application");

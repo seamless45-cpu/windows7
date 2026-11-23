@@ -9,8 +9,8 @@
  * Applications. Opening a node really opens the matching program, and Disk
  * Management draws the volumes from the simulated drives.
  */
-import React, { useState } from "react";
-import { Win, useStore, getState, setSettings, openApp, openCP, msgBox, notify, MenuItem, lsGet, fmtBig } from "../store";
+import React, { useRef, useState } from "react";
+import { Win, useStore, getState, setSettings, openApp, openCP, msgBox, notify, MenuItem, lsGet, fmtBig, deviceFailed, deviceConnected } from "../store";
 import { MenuBar, Btn } from "../ui";
 import { Icon } from "../icons";
 
@@ -38,10 +38,12 @@ export function DeviceManager({ win }: { win: Win }) {
   const [sel, setSel] = useState<string | null>("Standard VGA Graphics Adapter");
   const [scan, setScan] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
+  /** a device whose driver failed to reinstall on the next scan */
+  const pendingFail = useRef<string | null>(null);
 
   const elevate = (fn: () => void) => import("../store").then((m) => m.uac({ name: "Device Manager", publisher: "Microsoft Windows", onAllow: fn }));
   const toggle = (d: string) => elevate(() => setSettings({ deviceDisabled: dis.includes(d) ? dis.filter((x) => x !== d) : [...dis, d] }));
-  const uninstall = (d: string) => msgBox({ title: "Confirm Device Uninstall", icon: "warn", text: `Warning: You are about to uninstall ${d} from your computer.\n\nThis will remove the driver. Are you sure?`, buttons: ["OK", "Cancel"], onResult: (b) => { if (b === "OK") notify({ title: "Device Manager", text: `${d} was removed. Scan for hardware changes to reinstall it.`, icon: "info" }); } });
+  const uninstall = (d: string) => msgBox({ title: "Confirm Device Uninstall", icon: "warn", text: `Warning: You are about to uninstall ${d} from your computer.\n\nThis will remove the driver. Are you sure?`, buttons: ["OK", "Cancel"], onResult: (b) => { if (b === "OK") { pendingFail.current = d; notify({ title: "Device Manager", text: `${d} was removed. Scan for hardware changes to reinstall it.`, icon: "info" }); } } });
   const props = (d?: string) => {
     const dev = d || sel;
     if (!dev) return;
@@ -54,7 +56,7 @@ export function DeviceManager({ win }: { win: Win }) {
   const menus: { label: string; items: () => MenuItem[] }[] = [
     { label: "File", items: () => [{ label: "Exit", onClick: () => import("../store").then((m) => m.closeWin(win.id)) }] },
     { label: "Action", items: () => [
-      { label: "Scan for hardware changes", onClick: () => { setScan(true); setTimeout(() => { setScan(false); notify({ title: "Device Manager", text: "Scan complete. No new hardware found.", icon: "info" }); }, 1400); } },
+      { label: "Scan for hardware changes", onClick: () => { setScan(true); setTimeout(() => { setScan(false); if (pendingFail.current) { const d = pendingFail.current; pendingFail.current = null; deviceFailed(d); } else notify({ title: "Device Manager", text: "Scan complete. No new hardware found.", icon: "info" }); }, 1400); } },
       { sep: true },
       { label: "Properties", disabled: !sel, onClick: () => props() },
       { label: dis.includes(sel || "") ? "Enable" : "Disable", disabled: !sel, onClick: () => sel && toggle(sel) },
@@ -70,7 +72,8 @@ export function DeviceManager({ win }: { win: Win }) {
     <div className="devmgr">
       <MenuBar menus={menus} />
       <div className="cp-toolbar">
-        <Btn onClick={() => { setScan(true); setTimeout(() => { setScan(false); notify({ title: "Device Manager", text: "Scan complete. No new hardware found.", icon: "info" }); }, 1400); }}>Scan for hardware changes</Btn>
+        <Btn onClick={() => { setScan(true); setTimeout(() => { setScan(false); if (pendingFail.current) { const d = pendingFail.current; pendingFail.current = null; deviceFailed(d); } else notify({ title: "Device Manager", text: "Scan complete. No new hardware found.", icon: "info" }); }, 1400); }}>Scan for hardware changes</Btn>
+        <Btn onClick={() => deviceConnected("Generic USB Flash Disk")}>Plug in a USB device</Btn>
         <Btn disabled={!sel} onClick={() => sel && toggle(sel)}>{sel && dis.includes(sel) ? "Enable device" : "Disable device"}</Btn>
         <Btn disabled={!sel} onClick={() => props()}>Properties</Btn>
         <Btn disabled={!sel} onClick={() => sel && uninstall(sel)}>Uninstall</Btn>
