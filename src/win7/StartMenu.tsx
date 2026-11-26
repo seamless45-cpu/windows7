@@ -190,6 +190,27 @@ export function StartMenu() {
   const th = tbThick(settings);
   const pos = settings.taskbar.pos;
   const user = settings.users.find((u) => u.name === settings.currentUser);
+  const screen = useStore((s) => s.screen);
+
+  /**
+   * The Start menu is 424 x 540 px in Windows 7 at 100% scale, but it is not a
+   * fixed rectangle: Windows shrinks it to the available work area and lets the
+   * left pane scroll, and it scales the whole panel down when the work area is
+   * narrower than the panel. Sizing it from `screen` (which already has the
+   * DPI zoom, the resolution zoom and the sub-900 px auto-zoom divided out)
+   * keeps it correct at every display scale instead of letting a 540 px box
+   * hang off a 472 px work area.
+   */
+  const vertical = pos === "left" || pos === "right";
+  const bar = settings.taskbar.autohide ? 0 : th;
+  const availW = Math.max(200, screen.w - (vertical ? bar : 0));
+  const availH = Math.max(200, screen.h - (vertical ? 0 : bar));
+  const MENU_W = 424;
+  const MENU_H = 540;
+  // Short work areas get a shorter panel (the left pane scrolls) down to the
+  // 300 px below which Windows starts scaling the panel instead.
+  const menuH = Math.min(MENU_H, Math.max(300, availH - 8));
+  const menuScale = Math.min(1, (availW - 4) / MENU_W, (availH - 8) / menuH);
 
   useEffect(() => {
     if (open) {
@@ -341,11 +362,15 @@ export function StartMenu() {
     </React.Fragment>
   );
 
-  const style: React.CSSProperties =
-    pos === "bottom" ? { left: 0, bottom: th } : pos === "top" ? { left: 0, top: th } : pos === "left" ? { left: th, top: 0 } : { right: th, top: 0 };
+  const style: React.CSSProperties & Record<"--sm-scale", number> = {
+    ...(pos === "bottom" ? { left: 0, bottom: th } : pos === "top" ? { left: 0, top: th } : pos === "left" ? { left: th, top: 0 } : { right: th, top: 0 }),
+    height: menuH,
+    width: MENU_W,
+    "--sm-scale": menuScale,
+  };
 
   return (
-    <div className={"start-menu" + (open ? " open" : "") + " tb-" + pos} style={{ ...style, maxHeight: "100%" }} onPointerDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+    <div className={"start-menu" + (open ? " open" : "") + " tb-" + pos} style={style} onPointerDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
       <div className="sm-user-pic" onClick={() => run(() => openCP("users"))} title="Change your account picture">
         <img src={userPic(user?.pic || "flower")} alt="" draggable={false} />
       </div>

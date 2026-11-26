@@ -85,6 +85,60 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
 
   const geom = win.max ? { left: wx, top: wy, width: ww, height: wh } : { left: win.x, top: win.y, width: win.w, height: win.h };
 
+  /**
+   * Aero's maximize / snap / restore flight, done the way DWM does it: on the
+   * compositor. Transitioning left/top/width/height (the old approach) forces a
+   * style recalc, a layout pass, a paint and a re-raster of every child of the
+   * window on every frame — with backdrop-filter glass on top of that, it is
+   * easily 20+ ms per frame, which is exactly the stutter being reported.
+   *
+   * Instead the frame jumps straight to its new bounds in layout, and a Web
+   * Animation plays the *inverse* of the change (the FLIP technique): the frame
+   * is drawn where it was and scales/translates to where it now is. Only
+   * `transform` changes, so the browser can hand the whole 250 ms to the
+   * compositor and the main thread stays free.
+   *
+   * DWM uses no easing curve for maximize/restore — the flight is linear.
+   */
+  const lastGeom = useRef(geom);
+  const lastMin = useRef(win.min);
+  const maxFlight = useRef<Animation | null>(null);
+  useLayoutEffect(() => {
+    const prevG = lastGeom.current;
+    lastGeom.current = geom;
+    const minToggled = lastMin.current !== win.min;
+    lastMin.current = win.min;
+    const el = ref.current;
+    if (!el) return;
+    // A minimize/restore from the taskbar is a separate flight (below) and owns
+    // the transform for the duration; never run both at once.
+    if (minToggled) { maxFlight.current?.cancel(); maxFlight.current = null; return; }
+    const same = prevG.left === geom.left && prevG.top === geom.top && prevG.width === geom.width && prevG.height === geom.height;
+    if (same || !win.changing || fixed || !animationsEnabled) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    maxFlight.current?.cancel();
+    const dx = prevG.left - geom.left;
+    const dy = prevG.top - geom.top;
+    const sx = prevG.width / Math.max(1, geom.width);
+    const sy = prevG.height / Math.max(1, geom.height);
+    // transform-origin rides inside the keyframes rather than on the element,
+    // so the open animation keeps Aero's centre origin and nothing is left
+    // behind on the frame when the flight ends.
+    const animation = el.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, transformOrigin: "0 0" },
+        { transform: "none", transformOrigin: "0 0" },
+      ],
+      { duration: 250, easing: "linear" }
+    );
+    maxFlight.current = animation;
+    const done = () => {
+      if (maxFlight.current === animation) maxFlight.current = null;
+    };
+    animation.onfinish = done;
+    animation.oncancel = done;
+  }, [geom.left, geom.top, geom.width, geom.height, win.changing, win.min, fixed, animationsEnabled]);
+
   // The snap overlay fades in and out (Windows 7 does not pop it).
   const prev = (side: "l" | "r" | "m" | null) => {
     const el = document.getElementById("snap-prev");
@@ -339,7 +393,9 @@ const WindowFrame = memo(function WindowFrame({ win, active, peek, wx, wy, ww, w
       : [{ transform: fromTaskbar, opacity: 0, visibility: "visible" }, { transform: "none", opacity: 1, visibility: "visible" }];
     const animation = el.animate(keyframes, {
       duration: 250,
-      easing: "cubic-bezier(.2,.7,.3,1)",
+      // DWM's minimize/restore flight is linear; an easing curve here reads as
+      // a soft modern fade rather than the Aero "swoosh".
+      easing: "linear",
       fill: "forwards",
     });
     minMotion.current = animation;

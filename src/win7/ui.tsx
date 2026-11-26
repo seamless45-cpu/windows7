@@ -284,8 +284,25 @@ export function InlineEdit({ value, onDone, folder, multiline }: { value: string
   );
 }
 
-export function Slider({ value, min = 0, max = 100, onChange, style }: { value: number; min?: number; max?: number; onChange: (v: number) => void; style?: React.CSSProperties }) {
-  return <input type="range" className="w7range" min={min} max={max} value={value} onChange={(e) => onChange(+e.target.value)} style={style} />;
+/**
+ * Windows 7 slider. The art lives in win7.css on `.w7 input[type="range"]`, so
+ * every slider in the shell gets it; `vertical` is the volume flyout's trough.
+ * Windows shows the current value in a tooltip while you drag, not inline.
+ */
+export function Slider({ value, min = 0, max = 100, onChange, style, step, vertical, title }: { value: number; min?: number; max?: number; onChange: (v: number) => void; style?: React.CSSProperties; step?: number; vertical?: boolean; title?: string }) {
+  return (
+    <input
+      type="range"
+      className={"w7range" + (vertical ? " vert" : "")}
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      title={title ?? String(value)}
+      onChange={(e) => onChange(+e.target.value)}
+      style={style}
+    />
+  );
 }
 
 export function Spinner({ text }: { text: string }) {

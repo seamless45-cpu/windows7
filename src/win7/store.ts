@@ -1078,14 +1078,15 @@ export function maxWin(id: string) {
   if (!w || APPS[w.app].fixed) return;
   if (w.max || w.snap) {
     const p = w.prev;
-    // Aero glides the frame into place in roughly 175 ms. Coming down from
-    // maximised is "Restore Down", going up is "Maximize" — two separate
-    // program events in Windows 7, both assigned Windows Restore.wav.
-    animateChange(id, 175);
+    // DWM's maximize/restore flight is 250 ms long (RESTORE_DURATION_MS), and
+    // it is linear — no easing curve. Coming down from maximised is "Restore
+    // Down", going up is "Maximize" — two separate program events in Windows 7,
+    // both assigned Windows Restore.wav.
+    animateChange(id, 250);
     patchWin(id, { max: false, snap: null, ...(p ? { x: p.x, y: p.y, w: p.w, h: p.h } : {}), prev: null });
     playSys(w.snap ? "restore-up" : "restore-down");
   } else {
-    animateChange(id, 175);
+    animateChange(id, 250);
     patchWin(id, { max: true, prev: { x: w.x, y: w.y, w: w.w, h: w.h } });
     playSys("maximize");
   }
@@ -1097,7 +1098,7 @@ export function snapWin(id: string, side: "l" | "r") {
   playSys("restore-up");
   const wa = workArea(state);
   const hw = Math.floor(wa.w / 2);
-  animateChange(id, 175);
+  animateChange(id, 250);
   patchWin(id, { max: false, snap: side, prev: w.prev || { x: w.x, y: w.y, w: w.w, h: w.h }, x: side === "l" ? wa.x : wa.x + hw, y: wa.y, w: hw, h: wa.h });
 }
 /**
@@ -1357,9 +1358,11 @@ export function notify(o: { title: string; text: string; icon?: string }) {
   const n: Notif = { id: notifSeq++, title: o.title, text: o.text, icon: o.icon || "info", time: Date.now() };
   setState({ notifications: [n, ...state.notifications].slice(0, 30), balloon: n });
   playSys("balloon");
+  // Windows 7 keeps a balloon tip up for 9 s (the notification-area default),
+  // then fades it out over 280 ms — see the .balloon animation delays.
   setTimeout(() => {
     if (state.balloon?.id === n.id) setState({ balloon: null });
-  }, 6000);
+  }, 9280);
 }
 
 export function msgBox(o: { title?: string; text: string; icon?: "error" | "warn" | "info" | "question" | "shield"; buttons?: string[]; onResult?: (b: string) => void }): string {

@@ -276,6 +276,8 @@ td.ok { color: #1a7a1a; } td.bad { color: #b00; font-weight: 600; }
 .wc { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: radial-gradient(circle at 50% 20%, rgba(255,255,255,.35), rgba(255,255,255,.05) 70%); color: #fff; font-size: 13px; } .wc:hover { background: radial-gradient(circle at 50% 20%, rgba(190,230,255,.7), rgba(90,170,255,.2) 70%); box-shadow: 0 0 8px rgba(120,200,255,.8); } .wc.on { border-color: #7fe0ff; color: #7fe0ff; }
 .wc.play { width: 44px; height: 44px; font-size: 18px; background: radial-gradient(circle at 50% 22%, #bfe9ff, #3d9be8 55%, #14509e); border-color: #fff; box-shadow: 0 0 10px rgba(80,170,255,.7); }
 .wmp .w7range::-webkit-slider-runnable-track { background: linear-gradient(#0a1830, #2a4a80); border-color: #5a7fb8; }
+/* WMP's seek bar has the same 21 px thumb as every other slider, on its dark trough */
+.wmp .w7range::-webkit-slider-thumb { background: linear-gradient(#fbfdff 0%, #e8f1fb 45%, #cfdff1 46%, #b6cbe6 100%); border-color: #6a86ab; }
 
 /* ===== Photo viewer ===== */
 .pv { background: #f0f4fa; } .pv-top { flex: none; display: flex; gap: 4px; padding: 4px 6px; background: linear-gradient(#fafcfe, #e3ebf6); border-bottom: 1px solid #c5d0e0; }

@@ -178,3 +178,108 @@ sound helper is defined-but-uncalled (which is how the eleven silent events surv
 - *See more results* appears for Control Panel matches too.
 - The power menu is **Switch user, Log off, Lock, Restart, Sleep** — Hibernate replaces Sleep
   in the same slot rather than being a sixth item (it is a separate entry in the real menu).
+
+## Start menu scaling (fixed)
+
+The panel used to be a hard `424 × 540` box with `maxHeight: 100%` forced on it. That is
+right at 100% DPI on a 1080p screen, but Windows does not treat the Start menu as a fixed
+rectangle: **the menu is as tall as the available work area** (it hangs off the taskbar and
+never off the screen), and the left pane scrolls when it has to. On a short work area the
+old box either clipped its bottom row or, with `max-height`, squeezed the flex children
+without giving the list a chance to scroll.
+
+`StartMenu.tsx` now measures the emulated screen (`state.screen`, which already has the DPI
+zoom, the resolution zoom and the sub-900 px auto-zoom divided out) and:
+
+- caps the height at the work area minus a 4 px margin, never below 300 px;
+- scales the **whole panel** through a `--sm-scale` custom property when even that does not
+  fit horizontally or vertically, so the art stays proportional instead of being squeezed;
+- gives `.sm-left` and `.sm-list` `min-height: 0` so the frequent-programs list scrolls
+  inside a shortened panel, as in Windows.
+
+Verified against every display scale the shell can produce (100/125/150% DPI, the
+1280-based resolution zoom, the sub-900 px auto-zoom, small taskbar icons, taskbar on each
+edge): the panel fits inside the work area in all of them.
+
+## Toggles and sliders (Win 7 art)
+
+Windows 7 has **no pill-shaped toggle switches** — not in the Control Panel, not in
+Personalization, nowhere. Every boolean is a 13 × 13 Aero check box and every exclusive
+choice a 13 × 13 radio button: a 1 px `#8e8f93` rim, a `#fff → #f4f4f4 → #e4e4e4` vertical
+gradient, a 3 px radius, a light inner bevel on the top-left and a dark one on the
+bottom-right. Hover turns rim and fill sky-blue with a soft `rgba(110,190,240,.85)` glow;
+pressed inverts the gradient into the blue glass state; the checked glyph is a **navy
+(#12456e)** tick (a rotated 2 px corner) or a navy dot, not a coloured background image.
+The rules are scoped to `.w7 input[type=checkbox|radio]`, so every app got them at once.
+
+The slider is the Aero trackbar: a 4 px trough with a `#8a8f94` rim and a
+`#a9a9a9 → #f2f2f2 → #fbfbfb` fill, and a **21 × 21** rounded-square thumb with a
+`#fdfdfd → #d2d2d2` gradient, a 1 px `#7d7d7d` rim and a bright inner bevel. Hover and
+drag turn it Aero blue (`#3c7fb1` rim, `rgba(120,200,255,.9)` glow). The volume flyout's
+vertical trough uses the same art rotated (`writing-mode: vertical-lr; direction: rtl`).
+`Slider` now also takes `step`, `vertical` and a value tooltip, which is how Windows shows
+the current value while dragging.
+
+## Full Win 7 animation timings
+
+| Motion | Windows 7 / DWM | This shell before | Now |
+| --- | --- | --- | --- |
+| Window open | 225 ms | 225 ms | 225 ms |
+| Window close | 155 ms | 155 ms | 155 ms |
+| Minimize | 250 ms, linear, to the taskbar button | 250 ms, eased | 250 ms, **linear** |
+| Restore / maximize | 250 ms (`RESTORE_DURATION_MS`), linear | 175 ms, eased | 250 ms, **linear** |
+| Start menu open | ~200 ms fade + slide | 180 ms | 200 ms |
+| Tray flyout | 200 ms grow + fade | 140 ms | 200 ms |
+| Context menu | 200 ms fade | 120 ms | 200 ms |
+| Jump list | 200 ms | 120 ms | 200 ms |
+| Thumbnail strip | 150 ms | 130 ms | 150 ms |
+| Alt+Tab | 200 ms | 140–160 ms | 200 ms |
+| Balloon tip | 200 ms in, 9 s on screen, 280 ms out | 200 ms in, 6 s, 280 ms out | as Windows |
+| Snap preview | 200 ms | 120–130 ms | 200 ms |
+| Taskbar auto-hide | 200 ms | 200 ms | 200 ms |
+
+DWM's minimize and maximize flights are **linear** — there is no easing curve, which is why
+Aero motion looks mechanical rather than "designed". The previous cubic-bezier easings are
+gone from those two paths.
+
+## Minimize / maximize lag (fixed)
+
+`.win` used to transition `left`, `top`, `width`, `height`, `border-radius` and `box-shadow`
+over 250 ms. Animating geometry forces the browser to recalculate style, lay out the whole
+window (and every descendant), repaint it and re-rasterise the client area **every frame**;
+on top of that the frame carries `backdrop-filter: blur()` glass, so each of those frames
+also re-blurred the desktop behind it. That is the stutter.
+
+The frame now jumps straight to its new layout bounds and the motion is played as a
+**FLIP transform** (`Window.tsx`): a Web Animation animates `translate + scale` from the old
+rectangle to the new one, so only `transform` changes and the compositor owns the whole
+250 ms while the main thread stays free. `will-change: transform` is only present while an
+animation is running (a permanent hint would cost a compositor layer per window), and the
+`backdrop-filter` is dropped for the duration of the flight. The same treatment applies to
+minimize/restore, which already used the Web Animation API but now gets its endpoints from
+the taskbar button's live rectangle with linear timing.
+
+## Taskbar (Win 7 metrics)
+
+- **Height 40 px** with large icons, **30 px** with small icons. Unknown DPI scales it,
+  since the bar lives inside the emulated screen.
+- **Button `MinWidth` 56 px** (40 px with small icons) — `HKCU\Control Panel\Desktop\
+  WindowMetrics` — and the button fills the bar's inner height rather than being a 52 × 36
+  tile. Only a never-combined labelled button stretches (160–200 px).
+- **24 × 24 button glyphs** on the 40 px bar, **16 × 16** on the 30 px bar; the icon is
+  never stretched to the button.
+- The Aero button art is three layers: a 1 px rim, an inner top light line, and a vertical
+  white-to-transparent sheen over the blue glass. Running buttons are the resting glass,
+  the focused window is the brighter "pressed" glass with an inner glow, hover lights the
+  button **from the pointer** (`radial-gradient` centred on `--mx`), and a press is a
+  visibly darker glass rather than a flat modern fill. A grouped button keeps the two
+  offset "cards" behind it.
+- The notification area is a raised well separated from the buttons by a 1 px dark line and
+  a 1 px inner highlight; its icons are **16 px in a 24 × 22 hit box** (20 × 18 with small
+  icons) with the same glass hover. The overflow chevron is a small raised button, and the
+  clock is Segoe UI 12 px, two centred lines, 68 px wide.
+- Show Desktop is the narrow 12 px ridge with the Aero highlight, not a translucent slab.
+
+`tests/accuracy.test.mjs` now pins all of these numbers (13 px check box, 21 px thumb, 56 /
+24 / 40 / 16 taskbar metrics, 225 / 155 / 250 ms timings, linear flights) and asserts that
+`.win` never transitions layout properties again.
