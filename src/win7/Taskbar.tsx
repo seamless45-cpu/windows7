@@ -386,7 +386,10 @@ export function Taskbar() {
                   clearHover();
                 }}
               >
-                <Icon name={appIcon(g.app)} size={tb.small ? 20 : 32} />
+                {/* Windows 7 uses 24 x 24 button glyphs on the 40 px bar and
+                    16 x 16 on the 30 px bar; the icon is never stretched to the
+                    button. */}
+                <Icon name={appIcon(g.app)} size={tb.small ? 16 : 24} />
                 {sep && <span className="tb-label">{g.wins[0].title}</span>}
                 {typeof prog === "number" && <div className="tb-prog"><div style={{ width: prog * 100 + "%" }} /></div>}
               </div>
@@ -394,7 +397,7 @@ export function Taskbar() {
           })}
         </div>
         <div className="tb-tray" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="tray-ico" title="Show hidden icons" onClick={() => toggleFlyout("overflow")}><Icon name="chevron" size={14} /></div>
+          <div className="tray-ico tray-over" title="Show hidden icons" onClick={() => toggleFlyout("overflow")}><Icon name="chevron" size={12} /></div>
           <div className="tray-ico" title={`Action Center${unread ? " — " + unread + " message(s)" : ""}`} onClick={() => toggleFlyout("action")}>
             <Icon name="flagAC" size={16} />
             {unread > 0 && <i className="tray-badge" />}
@@ -556,7 +559,7 @@ function Flyouts() {
           </div>
         </div>
         <div className="vol-slider-wrap">
-          <div className="vol-slider"><Slider value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); playSys("ding"); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 100 } as React.CSSProperties} /></div>
+          <div className="vol-slider"><Slider vertical value={s.muted ? 0 : s.volume} onChange={(v) => { setSettings({ volume: v, muted: false }); playSys("ding"); }} style={{ writingMode: "vertical-lr", direction: "rtl", height: 100 } as React.CSSProperties} /></div>
         </div>
         <div className="vol-row">
           <button className="vol-btn" onClick={() => { setSettings({ muted: !s.muted }); playSys("ding"); }} title={s.muted ? "Unmute speakers" : "Mute speakers"}><Icon name={s.muted ? "speakerMute" : "speaker"} size={18} /></button>

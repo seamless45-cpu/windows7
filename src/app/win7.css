@@ -40,15 +40,25 @@
   /* Aero rounds the two top corners only (~6 px at 100%) and squares the bottom
      edge where the frame meets the desktop; maximised and snapped windows lose
      the rounding entirely. */
-  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1) both; transition: opacity .25s linear, transform .25s linear, visibility 0s, left .25s linear, top .25s linear, width .25s linear, height .25s linear, border-radius .25s linear, box-shadow .25s linear; min-width: 0; min-height: 0; }
+  border-radius: 6px 6px 0 0; background: rgba(var(--gc), var(--ga)); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.62), 0 12px 32px rgba(0,0,0,.5); animation: winopen .225s cubic-bezier(.2,.7,.3,1);
+  /* Only the compositor's properties are transitioned. Maximise, snap and
+     restore run as a transform flight (Window.tsx builds the inverse
+     translate+scale from the old rect) because transitioning left/top/width/
+     height forces a layout, a full repaint and a re-raster of the client area
+     every single frame — that is what made minimizing and maximizing stutter.
+     Box-shadow and border-radius are dropped from the list for the same
+     reason: a 40 px blur re-rastered at 60 fps is pure paint cost. */
+  transition: opacity .25s linear, transform .25s linear, visibility 0s;
+  min-width: 0; min-height: 0; }
 /* maximising/snapping/restoring glides the frame; dragging or resizing never does */
 .win.dragging, .win.resizing, .win.min, .win.closing { transition-property: opacity, transform, visibility; }
 .win.dragging, .win.resizing { transition-duration: 0s; }
-.win.changing { will-change: left, top, width, height; }
-.glass .win { backdrop-filter: blur(9px) saturate(1.4); -webkit-backdrop-filter: blur(9px) saturate(1.4); will-change: transform; }
+/* Aero's DWM animations are linear (no easing curve) and 250 ms long. */
+.win.changing { will-change: transform; }
+.glass .win { backdrop-filter: blur(9px) saturate(1.4); -webkit-backdrop-filter: blur(9px) saturate(1.4); }
 /* During open/close/minimize animations, drop the expensive backdrop-filter blur so
    the compositor doesn't have to re-blur the background every frame. */
-.win.closing, .win.min { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.win.closing, .win.min, .win.changing { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* Aero glass: a vertical sheen on the top half of the frame, the diagonal
    reflection band across the caption, and a bright 1 px rim — three layers, the
    same structure DWM draws. The client area sits above all of it. */
@@ -153,7 +163,7 @@
 .theme-hc .taskbar { background: #000 !important; border: 1px solid #fff; }
 
 /* ---------- taskbar ---------- */
-.taskbar { position: absolute; z-index: 10000; display: flex; align-items: stretch; color: #fff; transition: transform .2s; background: linear-gradient(rgba(var(--gc), calc(var(--ga) * .3)), rgba(var(--gc), calc(var(--ga) * .3))), linear-gradient(180deg, rgba(200,222,250,.5) 0, rgba(90,128,184,.42) 22%, rgba(22,46,92,.62) 52%, rgba(12,30,70,.78) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 0 0 1px rgba(0,0,0,.35); }
+.taskbar { position: absolute; z-index: 10000; display: flex; align-items: stretch; color: #fff; transition: transform .2s cubic-bezier(.2,.7,.3,1); background: linear-gradient(rgba(var(--gc), calc(var(--ga) * .3)), rgba(var(--gc), calc(var(--ga) * .3))), linear-gradient(180deg, rgba(200,222,250,.5) 0, rgba(90,128,184,.42) 22%, rgba(22,46,92,.62) 52%, rgba(12,30,70,.78) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 0 0 1px rgba(0,0,0,.35); }
 .glass .taskbar { backdrop-filter: blur(10px) saturate(1.3); -webkit-backdrop-filter: blur(10px) saturate(1.3); will-change: transform; }
 .noglass .taskbar { background: linear-gradient(#4b78b4, #223f6b); }
 .theme-classic .taskbar { background: #d4d0c8; color: #000; box-shadow: inset 0 2px 0 #fff, inset 0 1px 0 #d4d0c8; }
@@ -162,7 +172,10 @@
 .tb-left { top: 0; bottom: 0; left: 0; flex-direction: column; } .tb-right { top: 0; bottom: 0; right: 0; flex-direction: column; }
 .taskbar.autohidden.tb-bottom { transform: translateY(calc(100% - 3px)); } .taskbar.autohidden.tb-top { transform: translateY(calc(-100% + 3px)); }
 .taskbar.autohidden.tb-left { transform: translateX(calc(-100% + 3px)); } .taskbar.autohidden.tb-right { transform: translateX(calc(100% - 3px)); }
+/* Windows 7: the Start orb is 54 px of art overlapping a 40 px bar, sitting in
+   a 58 px slot. Small icons shrink the bar to 30 px and the orb to 42 px. */
 .orb { position: relative; width: 58px; flex: none; z-index: 3; cursor: default; }
+.small .orb { width: 46px; }
 .tb-left .orb, .tb-right .orb { width: auto; height: 50px; }
 /* The Start button is the real Windows 7 orb artwork; the glow is CSS so the
    button still lights up on hover and while the Start menu is open. */
@@ -173,36 +186,81 @@
 .tb-left .orb-img, .tb-right .orb-img { left: 50%; top: 2px; margin-left: -27px; }
 .orb:hover .orb-img { filter: brightness(1.16) drop-shadow(0 0 8px rgba(120,200,255,.9)); }
 .orb:active .orb-img, .orb.on .orb-img { filter: brightness(1.24) drop-shadow(0 0 12px rgba(150,220,255,.95)); }
-.tb-items { flex: 1; display: flex; align-items: stretch; padding: 2px 0; min-width: 0; overflow: hidden; }
+/* Buttons are 1 px inside the bar's 3 px rim, exactly as Windows lays them out. */
+.tb-items { flex: 1; display: flex; align-items: stretch; padding: 2px 2px; min-width: 0; overflow: hidden; }
 .tb-left .tb-items, .tb-right .tb-items { flex-direction: column; align-items: center; }
-.tb-btn { position: relative; width: 52px; margin: 0 1px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 3px; flex: none; transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, filter .18s ease; }
-.small .tb-btn { width: 36px; }
-.tb-left .tb-btn, .tb-right .tb-btn { width: 50px; height: 42px; margin: 1px 0; }
-.tb-btn.labeled { width: 150px; justify-content: flex-start; gap: 6px; padding: 0 6px; }
-.tb-label { color: #fff; text-shadow: 0 0 3px #000; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100px; }
-.tb-btn.run { background: linear-gradient(rgba(255,255,255,.26), rgba(255,255,255,.07) 50%, rgba(255,255,255,.1)); border-color: rgba(255,255,255,.4); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 0 0 1px rgba(0,0,0,.35); }
-.tb-btn.multi { box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 0 0 1px rgba(0,0,0,.3), 2px 0 0 -0px rgba(220,235,255,.45), 4px 0 0 -0px rgba(220,235,255,.25); margin-right: 5px; }
-.tb-btn.active { background: linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,.22) 50%, rgba(255,255,255,.3)); border-color: rgba(255,255,255,.7); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), 0 0 6px rgba(255,255,255,.35); }
-.tb-btn:hover { background: radial-gradient(circle at var(--mx, 50%) 100%, rgba(255,255,255,.75), rgba(255,255,255,.2) 65%), linear-gradient(rgba(255,255,255,.2), rgba(255,255,255,.1)); border-color: rgba(255,255,255,.65); }
-.tb-btn:active { background: rgba(0,0,0,.3); }
-.tb-prog { position: absolute; left: 3px; right: 3px; bottom: 2px; height: 5px; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.4); border-radius: 2px; overflow: hidden; }
+/* Windows 7 taskbar buttons. WindowMetrics says MinWidth = 56 px with the
+   standard 24 px icons and 40 px with small icons; at rest a pinned or running
+   button is exactly that, and only a labelled (never-combined) button stretches.
+   The Aero art is: a 1 px darker rim, a top-inside light line, and a vertical
+   white-to-transparent sheen over the glass, brighter when hovered or active. */
+.tb-btn { position: relative; min-width: 56px; height: 100%; margin: 0 1px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 3px; flex: none; transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, filter .18s ease; }
+.small .tb-btn { min-width: 40px; }
+.tb-left .tb-btn, .tb-right .tb-btn { min-width: 0; width: calc(100% - 4px); height: 42px; margin: 1px 0; }
+.small .tb-left .tb-btn, .small .tb-right .tb-btn { height: 32px; }
+.tb-btn.labeled { min-width: 160px; max-width: 200px; justify-content: flex-start; gap: 6px; padding: 0 7px; }
+.tb-label { color: #fff; text-shadow: 0 0 3px #000; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 150px; }
+/* running (but not focused) — the resting glass button */
+.tb-btn.run {
+  border-color: rgba(255,255,255,.42);
+  background:
+    linear-gradient(rgba(255,255,255,.30) 0, rgba(255,255,255,.10) 45%, rgba(255,255,255,.04) 46%, rgba(255,255,255,.14) 100%),
+    linear-gradient(rgba(180,215,255,.20), rgba(60,110,180,.16));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 1px rgba(0,0,0,.30);
+}
+/* stacked group: the two offset "cards" behind the button */
+.tb-btn.multi { box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 1px rgba(0,0,0,.30), 2px 0 0 -1px rgba(225,240,255,.5), 3px 0 0 -1px rgba(0,0,0,.3), 4px 0 0 -2px rgba(225,240,255,.28), 5px 0 0 -2px rgba(0,0,0,.22); margin-right: 6px; }
+/* focused window — the "pressed", brighter state with the inner glow */
+.tb-btn.active {
+  border-color: rgba(255,255,255,.72);
+  background:
+    linear-gradient(rgba(255,255,255,.56) 0, rgba(255,255,255,.26) 45%, rgba(255,255,255,.16) 46%, rgba(255,255,255,.32) 100%),
+    linear-gradient(rgba(200,230,255,.32), rgba(90,150,215,.24));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.38), inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 12px rgba(190,225,255,.45), 0 0 0 1px rgba(0,0,0,.32), 0 0 7px rgba(160,215,255,.5);
+}
+/* hover: Aero lights the button from the pointer, so the highlight follows it */
+.tb-btn:hover {
+  border-color: rgba(255,255,255,.72);
+  background:
+    radial-gradient(circle at var(--mx, 50%) 100%, rgba(255,255,255,.72), rgba(255,255,255,.18) 68%),
+    linear-gradient(rgba(255,255,255,.24) 0, rgba(255,255,255,.08) 45%, rgba(255,255,255,.04) 46%, rgba(255,255,255,.12) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.62), 0 0 0 1px rgba(0,0,0,.3), 0 0 8px rgba(170,220,255,.55);
+}
+/* the pressed state is a visibly darker glass, not a modern flat fill */
+.tb-btn:active {
+  background: linear-gradient(rgba(20,45,85,.55), rgba(40,80,140,.42));
+  box-shadow: inset 0 1px 3px rgba(0,20,50,.6), inset 0 0 0 1px rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.35);
+}
+.tb-btn.kb { outline: 1px dotted #fff; outline-offset: -3px; }
+.tb-prog { position: absolute; left: 4px; right: 4px; bottom: 3px; height: 5px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.5); border-radius: 2px; overflow: hidden; }
+
 .tb-prog div { height: 100%; background: linear-gradient(#9cf08c, #2fb52f); }
-.tb-tray { display: flex; align-items: center; gap: 1px; padding: 0 4px 0 2px; color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.8); }
-.tb-left .tb-tray, .tb-right .tb-tray { flex-direction: column; padding: 4px 0; }
-.tray-ico { position: relative; width: 22px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid transparent; }
+/* The notification area is a raised 1 px inset well in Windows 7, and its icons
+   are 16 x 16 in a 24 x 22 hit box with the same glass hover as a taskbar
+   button. */
+.tb-tray { display: flex; align-items: center; gap: 0; padding: 0 3px 0 2px; color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.85); border-left: 1px solid rgba(0,0,0,.28); box-shadow: inset 1px 0 0 rgba(255,255,255,.22); margin-left: 2px; }
+.tb-left .tb-tray, .tb-right .tb-tray { flex-direction: column; padding: 3px 0; border-left: none; border-top: 1px solid rgba(0,0,0,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); margin-left: 0; margin-top: 2px; }
+.tray-ico { position: relative; width: 24px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid transparent; }
+.small .tray-ico { width: 20px; height: 18px; }
 .tray-ico:hover, .tray-clock:hover { background: linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.1)); border-color: rgba(255,255,255,.5); }
 .tray-badge { position: absolute; right: 2px; top: 3px; width: 7px; height: 7px; border-radius: 50%; background: #f33; border: 1px solid #fff; }
-.tray-clock { text-align: center; line-height: 14px; padding: 4px 7px; border: 1px solid transparent; border-radius: 3px; white-space: nowrap; min-width: 60px; }
-.tb-show { width: 15px; flex: none; margin-left: 2px; border-left: 1px solid rgba(255,255,255,.6); background: linear-gradient(90deg, rgba(255,255,255,.12), rgba(255,255,255,.3)); }
+/* The overflow chevron is a small raised button at the top of the well. */
+.tray-ico.tray-over { width: 18px; }
+.tray-ico.tray-over:hover { background: linear-gradient(rgba(255,255,255,.4), rgba(255,255,255,.12)); border-color: rgba(255,255,255,.55); box-shadow: 0 0 5px rgba(170,220,255,.65); }
+/* The clock: Segoe UI 9 pt, two centred lines, 16 px of padding either side. */
+.tray-clock { text-align: center; line-height: 13px; font-size: 12px; padding: 5px 9px; border: 1px solid transparent; border-radius: 3px; white-space: nowrap; min-width: 68px; }
+.small .tray-clock { font-size: 11px; line-height: 12px; padding: 2px 7px; min-width: 62px; }
+.tb-show { width: 12px; flex: none; margin-left: 1px; border-left: 1px solid rgba(0,0,0,.3); box-shadow: inset 1px 0 0 rgba(255,255,255,.5); background: linear-gradient(90deg, rgba(255,255,255,.14), rgba(255,255,255,.34)); }
 .tb-show:hover { background: linear-gradient(90deg, rgba(200,230,255,.5), rgba(255,255,255,.75)); box-shadow: inset 0 0 6px rgba(255,255,255,.8); }
 .tb-left .tb-show, .tb-right .tb-show { width: auto; height: 12px; margin: 2px 0 0; border-left: none; border-top: 1px solid rgba(255,255,255,.6); }
-.thumbs { position: absolute; z-index: 10001; display: flex; gap: 4px; padding: 6px; border-radius: 6px; background: rgba(var(--gc), .55); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.5), 0 6px 20px rgba(0,0,0,.5); animation: thumbin .13s ease-out both; transform-origin: bottom center; }
+.thumbs { position: absolute; z-index: 10001; display: flex; gap: 4px; padding: 6px; border-radius: 6px; background: rgba(var(--gc), .55); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.5), 0 6px 20px rgba(0,0,0,.5); animation: thumbin .15s ease-out both; transform-origin: bottom center; }
 /* Aero thumbnails fade in and the strip grows in height; the tiles do not
    slide or stagger. */
 @keyframes thumbin { from { opacity: 0; } to { opacity: 1; } }
 .glass .thumbs { backdrop-filter: blur(10px); will-change: transform, opacity; }
 /* Reduce blur during thumbnail fly-in animation to avoid per-frame re-blur cost. */
-.thumbs { animation: thumbin .13s ease-out both; }
+.thumbs { animation: thumbin .15s ease-out both; }
 @keyframes thumbin {
   from { opacity: 0; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   to { opacity: 1; }
@@ -223,7 +281,7 @@
 .thumb-host { position: relative; overflow: hidden; background: #fff; }
 
 /* flyouts */
-.flyout { position: absolute; z-index: 10002; color: #000; background: linear-gradient(#fbfcfe, #e9eff7); border: 1px solid #5f7391; border-radius: 3px; box-shadow: 0 0 0 4px rgba(var(--gc), .6), 0 0 0 5px rgba(0,0,0,.45), 0 8px 22px rgba(0,0,0,.5); animation: pop .14s ease-out both; font-size: 12px; transform-origin: bottom right; }
+.flyout { position: absolute; z-index: 10002; color: #000; background: linear-gradient(#fbfcfe, #e9eff7); border: 1px solid #5f7391; border-radius: 3px; box-shadow: 0 0 0 4px rgba(var(--gc), .6), 0 0 0 5px rgba(0,0,0,.45), 0 8px 22px rgba(0,0,0,.5); animation: pop .2s cubic-bezier(.2,.7,.3,1) both; font-size: 12px; transform-origin: bottom right; }
 .clock-fly { display: flex; width: 380px; }
 .cf-left { flex: 1; padding: 10px; background: #fff; }
 .cf-right { width: 160px; display: flex; align-items: center; justify-content: center; background: linear-gradient(#f1f5fb, #dfe8f4); border-left: 1px solid #d0d9e6; }
@@ -270,21 +328,24 @@
 .balloon-h { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; } .balloon-h span { margin-left: auto; color: #555; }
 
 /* ---------- start menu ---------- */
-.start-menu { position: absolute; z-index: 10003; width: 424px; height: 540px; display: flex; padding: 6px; border-radius: 9px; background: rgba(var(--gc), .6); box-shadow: 0 0 0 1px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.55), 0 10px 28px rgba(0,0,0,.6); visibility: hidden; opacity: 0; transform: translateY(22px) scale(.985); transform-origin: bottom left; transition: opacity .18s ease-out, transform .18s cubic-bezier(.2,.7,.3,1), visibility 0s .18s; }
+/* 424 x 540 px at 100%, but StartMenu.tsx sizes the panel from the emulated
+   work area (so a short or narrow screen shortens it rather than clipping it)
+   and shrinks the whole panel through --sm-scale when even that does not fit. */
+.start-menu { position: absolute; z-index: 10003; width: 424px; height: 540px; max-width: 100%; max-height: 100%; display: flex; padding: 6px; border-radius: 9px; background: rgba(var(--gc), .6); box-shadow: 0 0 0 1px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.55), 0 10px 28px rgba(0,0,0,.6); visibility: hidden; opacity: 0; transform: translateY(22px) scale(calc(.985 * var(--sm-scale, 1))); transform-origin: bottom left; transition: opacity .2s cubic-bezier(.2,.7,.3,1), transform .2s cubic-bezier(.2,.7,.3,1), visibility 0s .2s; }
 .glass .start-menu { backdrop-filter: blur(12px) saturate(1.4); -webkit-backdrop-filter: blur(12px) saturate(1.4); will-change: transform, opacity; }
 /* Drop backdrop-filter blur while the Start menu is animating open so the
    compositor doesn't re-blur the background every frame of the transition. */
 .start-menu.open { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 .noglass .start-menu { background: linear-gradient(#5f8fd0, #3a68a8); }
 .start-menu.tb-top { transform-origin: top left; }
-.start-menu.open { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
+.start-menu.open { visibility: visible; opacity: 1; transform: scale(var(--sm-scale, 1)); transition-delay: 0s; }
 /* the Start orb stays lit while its menu is open, as on Windows 7 */
 .orb.on { filter: brightness(1.18) saturate(1.15); }
 .start-menu::before { content: ""; position: absolute; inset: 0; border-radius: 9px; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.35), rgba(255,255,255,.05) 40%, rgba(255,255,255,0) 41%, rgba(255,255,255,.12) 70%, rgba(255,255,255,0)); }
 .sm-user-pic { position: absolute; z-index: 3; top: -28px; right: 52px; width: 54px; height: 54px; padding: 3px; border-radius: 6px; background: rgba(var(--gc), .75); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.7), 0 2px 8px rgba(0,0,0,.5); cursor: default; }
 .sm-user-pic img { width: 100%; height: 100%; border-radius: 3px; display: block; border: 1px solid rgba(0,0,0,.5); }
 .sm-user-pic:hover { filter: brightness(1.1); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px #fff, 0 0 10px rgba(130,200,255,.9); }
-.sm-left { position: relative; z-index: 1; width: 252px; display: flex; flex-direction: column; background: #fff; border: 1px solid rgba(0,0,0,.5); border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); color: #1a2433; }
+.sm-left { position: relative; z-index: 1; width: 252px; flex: none; min-height: 0; display: flex; flex-direction: column; background: #fff; border: 1px solid rgba(0,0,0,.5); border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); color: #1a2433; }
 .sm-list { flex: 1; overflow: auto; padding: 3px 2px 0; min-height: 0; }
 .sm-item { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border: 1px solid transparent; border-radius: 3px; cursor: default; white-space: nowrap; overflow: hidden; }
 .sm-item.big { height: 38px; font-size: 12px; }
@@ -308,7 +369,7 @@
    keyboard on menu open) it must still look like the focused search box. */
 .sm-search input[data-softkb="off"] { cursor: text; }
 .sm-search svg { position: absolute; right: 8px; top: 6px; }
-.sm-right { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; margin-left: 6px; padding: 6px 0 4px; border-radius: 5px; color: #fff; background: linear-gradient(rgba(8,30,70,.32), rgba(8,30,70,.5)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.sm-right { position: relative; z-index: 1; flex: 1; min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; margin-left: 6px; padding: 6px 0 4px; border-radius: 5px; color: #fff; background: linear-gradient(rgba(8,30,70,.32), rgba(8,30,70,.5)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
 .sm-r { display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 8px; margin: 0 3px; border: 1px solid transparent; border-radius: 3px; font: 12px "Segoe UI", Tahoma, sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,.7); white-space: nowrap; cursor: default; }
 .sm-r:first-child { font-size: 14px; font-weight: 600; padding: 4px 12px 4px 6px; }
 .sm-r:hover { background: linear-gradient(rgba(255,255,255,.45), rgba(255,255,255,.18)); border-color: rgba(255,255,255,.55); }
@@ -323,7 +384,7 @@
 
 /* ---------- context menu ---------- */
 .ctx-host { position: absolute; z-index: 20000; }
-.ctx { position: relative; min-width: 168px; padding: 2px; background: linear-gradient(90deg, #f1f1f1 0 27px, #e0e0e0 27px 28px, #fcfcfc 28px); border: 1px solid #979797; box-shadow: 2px 2px 4px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.8); color: #000; font-size: 12px; animation: ctxin .12s ease-out both; }
+.ctx { position: relative; min-width: 168px; padding: 2px; background: linear-gradient(90deg, #f1f1f1 0 27px, #e0e0e0 27px 28px, #fcfcfc 28px); border: 1px solid #979797; box-shadow: 2px 2px 4px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.8); color: #000; font-size: 12px; animation: ctxin .2s ease-out both; }
 @keyframes ctxin { from { opacity: 0; } to { opacity: 1; } }
 .ctx.sub { position: absolute; left: 100%; top: -3px; margin-left: -2px; }
 .ctx.sub.flip { left: auto; right: 100%; margin-right: -2px; }
@@ -385,12 +446,86 @@
 .w7input { height: 22px; padding: 0 4px; color: #000; background: #fff; border: 1px solid #abadb3; border-top-color: #8d8f94; outline: none; }
 .w7input:focus { border-color: #3d7bad; box-shadow: 0 0 3px rgba(61,123,173,.6); }
 textarea.w7input { height: auto; padding: 3px; }
-.w7check { display: inline-flex; align-items: center; gap: 4px; margin-right: 10px; white-space: nowrap; }
-.w7check input { margin: 0; }
-.w7range { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; }
-.w7range::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(#a8a8a8, #e8e8e8); border: 1px solid #8a8a8a; border-radius: 2px; }
-.w7range::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 20px; margin-top: -9px; background: linear-gradient(#fafafa, #d0d0d0); border: 1px solid #707070; border-radius: 3px; }
-.w7range::-webkit-slider-thumb:hover { background: linear-gradient(#eaf6fd, #a7d9f5); border-color: #3c7fb1; }
+/* ---------- Windows 7 check box / radio button (Aero) ----------
+   The real control is a 13 x 13 box with a 1 px grey rim, a top-to-bottom
+   white->#e4e4e4 gradient and a 3 px radius, plus a one-pixel bevel: a light
+   line inside the top-left and a dark one inside the bottom-right. Hover turns
+   the rim and the fill sky-blue; pressed inverts the gradient and pushes the
+   glyph down a pixel. Checked boxes draw a dark-navy tick, radios a dark-navy
+   dot. Windows 7 has no pill-shaped toggle switches anywhere in the shell, so
+   every checkbox and radio gets this art rather than a modern switch. */
+.w7 input[type="checkbox"], .w7 input[type="radio"] {
+  -webkit-appearance: none; appearance: none;
+  position: relative; flex: none; vertical-align: -2px;
+  width: 13px; height: 13px; margin: 0 3px 0 0; padding: 0;
+  border: 1px solid #8e8f93; border-radius: 3px;
+  background: linear-gradient(#fff 0%, #f4f4f4 45%, #e4e4e4 46%, #ececec 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.9), inset 1px 1px 0 rgba(255,255,255,.95), inset -1px -1px 0 rgba(0,0,0,.06);
+  cursor: default; outline: none;
+}
+.w7 input[type="radio"] { border-radius: 50%; }
+.w7 input[type="checkbox"]:hover, .w7 input[type="radio"]:hover {
+  border-color: #3c7fb1;
+  background: linear-gradient(#f4fbff 0%, #e2f4fe 45%, #c9e9fb 46%, #dff2fd 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.95), 0 0 4px rgba(110,190,240,.85);
+}
+.w7 input[type="checkbox"]:active, .w7 input[type="radio"]:active {
+  border-color: #2b6f9e;
+  background: linear-gradient(#c4e5f8 0%, #a8d8f4 45%, #8fc7ec 46%, #a2d5f2 100%);
+  box-shadow: inset 0 1px 2px rgba(0,40,70,.35), inset 0 0 0 1px rgba(255,255,255,.5);
+}
+/* the tick: a 2 px dark-navy corner rotated 45 deg, crisp at 13 px */
+.w7 input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 3px; top: 1px; width: 7px; height: 4px;
+  border-left: 2px solid #12456e; border-bottom: 2px solid #12456e;
+  transform: rotate(-45deg); transform-origin: 0 100%;
+}
+.w7 input[type="radio"]:checked::after {
+  content: ""; position: absolute; left: 3px; top: 3px; width: 5px; height: 5px;
+  border-radius: 50%; background: #12456e;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.7);
+}
+.w7 input[type="checkbox"]:disabled, .w7 input[type="radio"]:disabled { opacity: .45; }
+/* Win 7 draws the focus rectangle *around the label*, not around the box */
+.w7 input[type="checkbox"]:focus-visible, .w7 input[type="radio"]:focus-visible {
+  box-shadow: 0 0 0 1px #fff, 0 0 0 2px #4a8fe0, 0 0 5px rgba(74,143,224,.7);
+}
+.w7check { display: inline-flex; align-items: center; gap: 3px; margin-right: 10px; white-space: nowrap; }
+.w7check input[type="checkbox"], .w7check input[type="radio"] { margin: 0; }
+
+/* ---------- Windows 7 slider (Aero) ----------
+   A 4 px trough (1 px #8a8f94 rim, white->#fbfbfb fill) and a 21 x 21
+   rounded-square thumb with a vertical white->#d2d2d2 gradient, a 1 px grey
+   rim and a bright inner bevel. Hover glows Aero sky blue; dragging shows the
+   blue glass state. Vertical sliders (the volume flyout) rotate the same art,
+   which is what Windows does. */
+.w7 input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 160px; height: 21px; background: transparent; cursor: default;
+}
+.w7 input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(#a9a9a9 0%, #f2f2f2 45%, #e3e3e3 55%, #fbfbfb 100%); border: 1px solid #8a8f94; border-radius: 2px; }
+.w7 input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 21px; height: 21px; margin-top: -9px; border-radius: 3px;
+  background: linear-gradient(#fdfdfd 0%, #f2f2f2 45%, #e0e0e0 46%, #d2d2d2 100%);
+  border: 1px solid #7d7d7d;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.95), inset 1px 1px 0 rgba(255,255,255,1), inset -1px -1px 0 rgba(0,0,0,.08), 0 1px 1px rgba(0,0,0,.12);
+}
+.w7 input[type="range"]:hover::-webkit-slider-thumb { border-color: #3c7fb1; background: linear-gradient(#fbfeff 0%, #ecf8ff 45%, #cfeafa 46%, #a9dcf7 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.95), 0 0 5px rgba(120,200,255,.9); }
+.w7 input[type="range"]:active::-webkit-slider-thumb { border-color: #2b6f9e; background: linear-gradient(#e6f5fe 0%, #c3e6f8 45%, #8ec7ea 46%, #6fb4da 100%); box-shadow: inset 0 1px 2px rgba(0,40,70,.3), 0 0 6px rgba(120,200,255,.8); }
+.w7 input[type="range"]:disabled { opacity: .55; }
+.w7 input[type="range"]:focus-visible { outline: none; }
+.w7 input[type="range"]:focus-visible::-webkit-slider-thumb { border-color: #3c7fb1; box-shadow: 0 0 0 1px #fff, 0 0 0 2px rgba(74,143,224,.55); }
+/* Firefox: the same art through the standard pseudo-elements */
+.w7 input[type="range"]::-moz-range-track { height: 2px; background: #e3e3e3; border: 1px solid #8a8f94; border-radius: 2px; }
+.w7 input[type="range"]::-moz-range-thumb { width: 19px; height: 19px; border-radius: 3px; background: linear-gradient(#fdfdfd, #d2d2d2); border: 1px solid #7d7d7d; }
+/* the volume flyout's trough is 21 px wide, not 160: the general rule above is
+   more specific than `.w7range.vert`, so restate it here */
+.w7 input[type="range"].vert { width: 21px; height: 100px; }
+.w7 input[type="range"].vert::-webkit-slider-runnable-track { width: 4px; height: 100%; }
+.w7 input[type="range"].vert::-webkit-slider-thumb { margin-top: 0; margin-left: -9px; }
+/* the old class name stays as an alias so app-level rules keep working */
+.w7range { cursor: default; }
 .tabs { display: flex; padding: 4px 4px 0; flex: none; background: #fff; }
 .tab { padding: 3px 12px; margin-right: -1px; border: 1px solid #898c95; border-bottom: none; border-radius: 3px 3px 0 0; background: linear-gradient(#f6f6f6, #e0e0e0); }
 .tab.sel { background: #fff; margin-top: -2px; padding-top: 5px; position: relative; z-index: 1; }
@@ -575,10 +710,10 @@ textarea.w7input { height: auto; padding: 3px; }
 
 /* Aero Peek on Alt+Tab: the switcher fades in over a darkening desktop and
    its tiles slide up from the taskbar. */
-.alttab { animation: altab-dim .16s ease-out forwards; }
+.alttab { animation: altab-dim .2s ease-out forwards; }
 @keyframes altab-dim { to { background: rgba(0,0,0,.35); } }
 .alttab.peek-active { background: rgba(0,0,0,.15) !important; animation: none; }
-.alttab-box { animation: altab-in .14s ease-out both; }
+.alttab-box { animation: altab-in .2s ease-out both; }
 /* The Alt+Tab switcher is a straight cross-fade over the dimmed desktop. */
 @keyframes altab-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .alttab-item.peek { border-color: #000; opacity: .55; }
@@ -592,17 +727,17 @@ textarea.w7input { height: auto; padding: 3px; }
 
 /* Taskbar thumbnails fly out of the button: the strip grows from the bottom
    edge and the tiles stagger in. */
-.thumb { animation: thumbtile .12s ease-out both; }
+.thumb { animation: thumbtile .15s ease-out both; }
 @keyframes thumbtile { from { opacity: 0; } to { opacity: 1; } }
 
 /* Jump lists appear as a short fade plus a small upward slide, origin at the
    taskbar button. */
-.jumplist { animation: jumpin .12s ease-out both; transform-origin: bottom center; }
+.jumplist { animation: jumpin .2s ease-out both; transform-origin: bottom center; }
 @keyframes jumpin { from { opacity: 0; } to { opacity: 1; } }
 
 /* Dragging to the top/side of the screen shows the translucent snap overlay,
    which fades in rather than popping. */
-.snap-prev { opacity: 0; transition: opacity .12s ease-out, left .13s ease-out, top .13s ease-out, width .13s ease-out, height .13s ease-out; }
+.snap-prev { opacity: 0; transition: opacity .2s ease-out, left .2s cubic-bezier(.2,.7,.3,1), top .2s cubic-bezier(.2,.7,.3,1), width .2s cubic-bezier(.2,.7,.3,1), height .2s cubic-bezier(.2,.7,.3,1); }
 
 /* "Aero Shake": jiggling a window shakes the others out of the way. */
 .win.shake { animation: wshake .34s cubic-bezier(.36,.07,.19,.97) both; }
@@ -625,11 +760,11 @@ textarea.w7input { height: auto; padding: 3px; }
 .cb:active { filter: brightness(.94); }
 
 /* Balloon tips slide up out of the notification area. */
-.balloon { animation: balloonin .2s ease-out both, balloonout .28s ease-in forwards; animation-delay: 0s, 6s; }
+.balloon { animation: balloonin .2s ease-out both, balloonout .28s ease-in forwards; animation-delay: 0s, 9s; }
 @keyframes balloonout { to { opacity: 0; } }
 
 /* Dialogs: Windows 7 fades a modal dialog in behind a dimmed owner window. */
-.modal-dim { animation: fadein .15s ease-out both; }
+.modal-dim { animation: fadein .2s ease-out both; }
 
 /* A window closing fades and shrinks — DWM keeps it animating for ~300 ms. */
 .win.closing { will-change: opacity, transform; }
