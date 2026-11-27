@@ -32,11 +32,14 @@ npm run build:pages   # build with basePath=/windows7, copy to the repo root, ve
 git add -A && git commit -m "Publish site" && git push
 ```
 
-`npm run build:pages` ends with `scripts/verify-publish.mjs`, which **fails** if the
-committed export is stale — a referenced asset missing, chunks left over from an older
-build, or a bundle without features that must ship (Start menu search, 3D Text, Lightning,
-Fun experimental features, the fade / theme-mix CSS). `npm run verify:pages` runs the same
-check on its own, so "the site never changes" is caught before it is pushed instead of after.
+`npm run build:pages` copies the export wholesale and then **prunes** files the build no
+longer emits, so a renamed or deleted asset (an old sound set, a retired wallpaper) cannot
+linger in the published tree. It ends with `scripts/verify-publish.mjs`, which **fails** if
+the committed export is stale — a referenced asset missing, chunks left over from an older
+build, a sound set missing, or a bundle without features that must ship (Start menu search,
+3D Text, Lightning, Fun experimental features, the fade / theme-mix CSS). `npm run
+verify:pages` runs the same check on its own, so "the site never changes" is caught before
+it is pushed instead of after.
 
 > This step is not optional. Merging to `main` updates only the sources; Pages keeps serving
 > whatever export was committed last, so a merge without `npm run build:pages` ships

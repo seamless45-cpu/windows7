@@ -102,6 +102,15 @@ for (const dir of ["VistaDefault", "VistaGlass", "VistaPearl", "VistaTinker"]) {
   const n = await readdir(path.join(root, "sounds", dir)).catch(() => []);
   if (n.filter((f) => f.endsWith(".mp3")).length < 20) problems.push(`sound set ${dir} is incomplete (${n.length} files)`);
 }
+// The publish prunes stale output; a leftover .wav set would mean it did not.
+const staleWavs = [];
+for (const dir of await readdir(path.join(root, "sounds"), { withFileTypes: true })) {
+  if (!dir.isDirectory()) continue;
+  for (const f of await readdir(path.join(root, "sounds", dir.name))) {
+    if (f.endsWith(".wav")) staleWavs.push(`${dir.name}/${f}`);
+  }
+}
+if (staleWavs.length) problems.push(`${staleWavs.length} stale .wav clip(s) left in the publish, e.g. ${staleWavs[0]}`);
 
 const swSrc = await readFile(path.join(root, "sw.js"), "utf8").catch(() => "");
 if (swSrc && !/caches\.open/.test(swSrc)) problems.push("sw.js has no cache logic");
