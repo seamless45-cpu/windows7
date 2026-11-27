@@ -63,6 +63,9 @@ const PROGRAMS: PItem[] = [
         kids: [
           app("charmap", "Character Map"),
           app("cleanmgr", "Disk Cleanup"),
+          app("defrag", "Disk Defragmenter"),
+          app("activation", "Windows Activation"),
+          app("helpwin", "Windows Help"),
           app("compmgmt", "Computer Management"),
           { label: "Control Panel", icon: "controlpanel", run: () => openCP() },
           app("defender", "Windows Defender"),
@@ -88,9 +91,11 @@ const PROGRAMS: PItem[] = [
         kids: [
           app("tabtip", "Tablet PC Input Panel"),
           app("journal", "Windows Journal"),
+          app("touchcal", "Tablet PC Settings"),
         ],
       },
       app("wfs", "Windows Fax and Scan"),
+      app("faxcover", "Fax Cover Page Editor"),
       {
         label: "Windows PowerShell",
         icon: "powershell",
@@ -141,9 +146,16 @@ const PROGRAMS: PItem[] = [
     app("backup", "Backup and Restore"),
     { label: "Create a System Repair Disc", icon: "cd", run: () => openApp("backup") },
     app("help", "Help and Support"),
+    app("helpwin", "Windows Help"),
+    app("wusa", "Windows Update Stand-alone Installer"),
     app("ra", "Windows Remote Assistance"),
   ] },
   { label: "Startup", icon: "folder", kids: [] },
+  { label: "Network", icon: "networkConn", kids: [
+    app("netwiz", "Connect to a Network"),
+    { label: "Network and Sharing Center", icon: "netcat", run: () => openCP("network") },
+    app("syncw", "New Sync Partnership"),
+  ] },
   app("ie", "Internet Explorer"),
   app("chrome", "Google Chrome"),
   app("dvdmaker", "Windows DVD Maker"),
@@ -155,10 +167,14 @@ const PROGRAMS: PItem[] = [
 
 const MORE: PItem[] = [
   app("trust", "Windows Anytime Upgrade"),
+  // The paste-a-link program lives with the other browsers, under its own
+  // "Web" leaf, so it is findable without hunting through every folder.
+  { label: "Web Frame", icon: "globe", run: () => openApp("frame"), desc: APPS.frame.desc },
 ];
 
 const PINNED: PItem[] = [
   app("ie"),
+  app("frame"),
   app("chrome"),
   app("wmp"),
   app("explorer"),

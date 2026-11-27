@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Win, lsGet, lsSet } from "../store";
 import { Btn } from "../ui";
 import { Icon } from "../icons";
+import { CardFace as Face, CardBack } from "./CardArt";
 
 /* ============================================================== card model */
 type Suit = "s" | "h" | "d" | "c";
@@ -34,15 +35,7 @@ function fullDeck(): Card[] {
   return d;
 }
 
-function Face({ c }: { c: Card }) {
-  return (
-    <div className="cf">
-      <span className="cf-r">{RANKS[c.r]}</span>
-      <span className="cf-s">{glyph(c.s)}</span>
-      <span className="cf-big">{glyph(c.s)}</span>
-    </div>
-  );
-}
+
 
 /* ================================================================ FreeCell */
 /**
@@ -281,6 +274,26 @@ const TILE_KINDS = [
   "E", "S", "W", "N", "R", "G", "B",
   "f1", "f2", "f3", "f4", "fw", "fs", "fb", "fc", "fa",
 ];
+/**
+ * Mahjong Titans' three suits, drawn the way the real tiles are:
+ *
+ *  - **Characters** (萬, the blue suit): the number in Chinese numerals above
+ *    萬 — 一萬 … 九萬 — not a Western digit.
+ *  - **Dots** (筒, the green suit): circle patterns (one large ring for 1, the
+ *    diagonal 2/3, a square of 4, the 5 quincunx, …) rather than a number.
+ *  - **Bamboo** (條, the red suit): 1 is the bird, 2–9 are stacks of sticks.
+ *
+ * The face is therefore structured, not a single glyph: <MjFace kind/> renders
+ * it. `c` stays for the tile's ink colour.
+ */
+const CN_NUM = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+type TileKind = { suit: "c" | "d" | "b"; n: number };
+const kindOf = (k: string): TileKind | null => {
+  if (/^[1-9]$/.test(k)) return { suit: "c", n: +k };
+  if (/^b[1-9]$/.test(k)) return { suit: "b", n: +k.slice(1) };
+  if (/^c[1-9]$/.test(k)) return { suit: "d", n: +k.slice(1) };
+  return null;
+};
 const TILE_LABEL: Record<string, { t: string; c?: string }> = (() => {
   const m: Record<string, { t: string; c?: string }> = {};
   for (let i = 1; i <= 9; i++) m[i] = { t: String(i), c: "#1d6b3a" };
@@ -288,6 +301,51 @@ const TILE_LABEL: Record<string, { t: string; c?: string }> = (() => {
   for (let i = 1; i <= 9; i++) m["c" + i] = { t: String(i), c: "#1b4f9c" };
   return m;
 })();
+
+/** One Mahjong face: Chinese numeral + 萬, a dot pattern, or bamboo sticks. */
+function MjFace({ kind }: { kind: string }) {
+  const k = kindOf(kind);
+  if (!k) return null;
+  if (k.suit === "c") {
+    return (
+      <span className="mj-char">
+        <b>{CN_NUM[k.n]}</b>
+        <i>萬</i>
+      </span>
+    );
+  }
+  if (k.suit === "d") {
+    // dot counts, laid out the way the physical tile prints them
+    const layout: Record<number, [number, number][]> = {
+      1: [[1.5, 1.5]],
+      2: [[1, 0.6], [2, 2.4]],
+      3: [[0.6, 0.6], [1.5, 1.5], [2.4, 2.4]],
+      4: [[0.8, 0.6], [2.2, 0.6], [0.8, 2.4], [2.2, 2.4]],
+      5: [[0.8, 0.6], [2.2, 0.6], [1.5, 1.5], [0.8, 2.4], [2.2, 2.4]],
+      6: [[0.8, 0.5], [0.8, 1.5], [0.8, 2.5], [2.2, 0.5], [2.2, 1.5], [2.2, 2.5]],
+      7: [[0.8, 0.4], [1.5, 0.9], [2.2, 0.4], [0.8, 1.6], [0.8, 2.6], [2.2, 1.6], [2.2, 2.6]],
+      8: [[0.8, 0.4], [0.8, 1.4], [0.8, 2.4], [2.2, 0.4], [2.2, 1.4], [2.2, 2.4], [1.5, 1.9], [1.5, 2.9]],
+      9: [[0.6, 0.5], [1.5, 0.5], [2.4, 0.5], [0.6, 1.5], [1.5, 1.5], [2.4, 1.5], [0.6, 2.5], [1.5, 2.5], [2.4, 2.5]],
+    };
+    const dots = layout[k.n] || [];
+    return (
+      <span className="mj-dots">
+        {dots.map(([x, y], i) => (
+          <i key={i} className={(k.n === 1 ? "big " : "") + (i % 3 === 2 ? "red" : i % 3 === 1 ? "green" : "blue")} style={{ left: x * 30 + "%", top: y * 26 + "%" }} />
+        ))}
+      </span>
+    );
+  }
+  // bamboo: 1 is the sparrow, the rest are vertical sticks grouped in threes
+  if (k.n === 1) return <span className="mj-bird">🐦</span>;
+  return (
+    <span className="mj-bam">
+      {Array.from({ length: k.n }, (_, i) => (
+        <i key={i} className={i % 3 === 2 ? "red" : "green"} />
+      ))}
+    </span>
+  );
+}
 const HONORS: Record<string, string> = { E: "東", S: "南", W: "西", N: "北", R: "中", G: "發", B: "白", fw: "春", fs: "夏", fb: "秋", fc: "冬", fa: "梅", f1: "蘭", f2: "竹", f3: "菊", f4: "★" };
 
 function buildBoard(layout: [number, number, number][], seedNo = 100): Tile[] {
@@ -425,9 +483,11 @@ export function Mahjong({ win }: { win: Win }) {
                 onClick={() => click(t)}
                 title={free ? "Free tile" : "Blocked"}
               >
-                <span className="mj-face" style={{ color: lab?.c || "#222" }}>
-                  {hon ? hon : lab?.t}
-                </span>
+                {hon ? (
+                  <span className="mj-face" style={{ color: lab?.c || "#222" }}>{hon}</span>
+                ) : (
+                  <MjFace kind={t.kind} />
+                )}
               </div>
             );
           })}
@@ -729,7 +789,7 @@ export function Chess({ win }: { win: Win }) {
   };
 
   return (
-    <div className="chess">
+    <div className="chess ct">
       <div className="sol-bar">
         <Icon name="chess" size={18} />
         <span className="g-stat">{status}</span>
@@ -752,16 +812,15 @@ export function Chess({ win }: { win: Win }) {
             return (
               <div
                 key={i}
-                className={"chess-sq" + (dark ? " dark" : "") + (isSel ? " sel" : "") + (target ? " target" : "") + (last ? " last" : "")}
+                className={"chess-sq" + (dark ? " dark" : "") + (isSel ? " sel" : "") + (target ? " target" : "") + (target && s ? " occupied" : "") + (last ? " last" : "")}
                 onClick={() => click(i)}
               >
                 {s && <span className={"chess-pc " + s.c}>{PIECE[s.p][s.c]}</span>}
-                {target && !s && <span className="chess-dot" />}
               </div>
             );
           })}
         </div>
-        <div className="chess-side">
+        <div className="chess-side ct-side">
           <b>Chess Titans</b>
           <p>You play White. Click a piece, then a highlighted square.</p>
           <p className="dim">The computer searches {level >= 2 ? "two" : "one"} moves ahead at this level.</p>

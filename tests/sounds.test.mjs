@@ -9,7 +9,7 @@
  *
  * Run: node tests/sounds.test.mjs
  */
-import { readFile, readdir, access } from "node:fs/promises";
+import { readFile, readdir, access, stat } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -23,7 +23,10 @@ const soundTs = await readFile(path.join(root, "src/win7/sound.ts"), "utf8");
 
 /* --------------------------------------------------- event -> clip mapping */
 // parse SOUND_EVENTS and CLIP without executing the module (it needs a browser)
-const eventsBlock = soundTs.slice(soundTs.indexOf("export const SOUND_EVENTS"), soundTs.indexOf("/** The sound schemes"));
+// the event table ends at the next top-level export; anchoring on a comment
+// breaks as soon as a new comment mentions "sound schemes" too
+const eventsStart = soundTs.indexOf("export const SOUND_EVENTS");
+const eventsBlock = soundTs.slice(eventsStart, soundTs.indexOf("export const", eventsStart + 1));
 const eventKeys = [...eventsBlock.matchAll(/\{ key: "([^"]+)", label: "/g)].map((m) => m[1]);
 check("SOUND_EVENTS is non-empty", eventKeys.length > 20, `${eventKeys.length} events`);
 
@@ -48,6 +51,40 @@ for (const scheme of schemes) {
   const absent = clips.filter((c) => !files.has(c));
   check(`scheme "${scheme}" has every mapped clip (${clips.length})`, absent.length === 0, absent.join(", "));
 }
+
+/* ------------------------------------------ the Windows Vista schemes exist */
+// Glass / Pearl / Tinker are rendered as .wav (see scripts/gen-vista-sounds.mjs)
+// and "Vista Default" reuses the Windows Default folder, so it needs no files.
+const vista = ["VistaGlass", "VistaPearl", "VistaTinker"];
+const scoreNames = [...new Set([...soundTs.matchAll(/^ {2}"?([a-z_-]+)"?: \(\) => \{$/gm)].map((m) => m[1]))];
+for (const scheme of vista) {
+  const dir = path.join(root, "public/sounds", scheme);
+  let files;
+  try {
+    files = new Set((await readdir(dir)).map((f) => f.replace(/\.wav$/, "")));
+  } catch {
+    check(`Vista scheme folder exists: ${scheme}`, false, "missing directory");
+    continue;
+  }
+  const absent = clips.filter((c) => !files.has(c));
+  check(`Vista scheme "${scheme}" has every mapped clip (${clips.length})`, absent.length === 0, absent.join(", "));
+  // a zero-length WAV is "present" but silent
+  let tiny = [];
+  for (const c of clips) {
+    try {
+      const st = await stat(path.join(dir, `${c}.wav`));
+      if (st.size < 200) tiny.push(c);
+    } catch {
+      tiny.push(c);
+    }
+  }
+  check(`Vista scheme "${scheme}" clips are real audio, not empty files`, tiny.length === 0, tiny.join(", "));
+}
+check("the Vista schemes are listed in SCHEMES", /"Vista Glass"/.test(soundTs) && /"Vista Pearl"/.test(soundTs) && /"Vista Tinker"/.test(soundTs) && /"Vista Default"/.test(soundTs));
+check("every scheme has a description", /export const SCHEME_META/.test(soundTs) && /"Vista Tinker": \{ version: "Windows Vista"/.test(soundTs));
+check("Vista clips are played from their .wav container", /schemeExt/.test(soundTs) && /\?\.mp3`|\$\{clip\}\.\$\{schemeExt/.test(soundTs));
+check("Vista Default reuses the Windows Default clips", /\|\| scheme === "Vista Default" \? "default"/.test(soundTs));
+void scoreNames;
 
 /* --------------------------------------------------------- every event fires */
 // collect playSys("...") call sites across the app
@@ -75,6 +112,8 @@ check("every program event is triggered somewhere", neverPlayed.length === 0, ne
 /* ------------------------------------- Windows 7 has no Minimize/Restore event */
 check("no invented 'Windows Minimize' event label", !/"Windows Minimize"/.test(eventsBlock));
 check("no invented 'Windows Restore' event label", !/"Windows Restore"/.test(eventsBlock));
+// the clip *names* Windows gives the files are a different thing from event
+// labels, and the Vista notes mention them; scope those checks to SOUND_EVENTS.
 check(
   "the four real window events are present",
   ["maximize", "minimize", "restore-down", "restore-up"].every((k) => eventKeys.includes(k)),

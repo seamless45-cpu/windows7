@@ -399,7 +399,7 @@ export default function Shell() {
   return (
     <div
       ref={ref}
-      className={`w7 theme-${settings.theme}${settings.transparency && settings.theme === "aero" ? " glass" : " noglass"}${settings.highContrastText ? " bigtext" : ""} ptr-${settings.pointer} tbpos-${settings.taskbar.pos}${settings.aero.animations ? " motion" : " nomotion"}${settings.clearType ? "" : " nocleartype"}`}
+      className={`w7 theme-${settings.theme}${settings.transparency && settings.theme === "aero" ? " glass" : " noglass"}${settings.highContrastText ? " bigtext" : ""} ptr-${settings.pointer} tbpos-${settings.taskbar.pos}${settings.aero.animations ? " motion" : " nomotion"}${settings.aero.taskbarAnim ? "" : " nomotion-panels"}${settings.clearType ? "" : " nocleartype"}`}
       style={style}
       onPointerDownCapture={closeOnDown}
       onContextMenu={(e) => {

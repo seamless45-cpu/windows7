@@ -9,11 +9,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:softkb": "node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs",
-    "test:calc": "node --experimental-strip-types --no-warnings tests/calculator.test.mjs",
+    "test:calc": "node --experimental-strip-types --no-warnings tests/calculator.test.mjs && node tests/features7.test.mjs",
     "verify:pages": "node scripts/verify-publish.mjs",
     "test:sw": "node tests/sw.test.mjs",
     "test:pwa": "node tests/pwa.test.mjs",
-    "test": "node tests/sw.test.mjs && node tests/registry.test.mjs && node tests/accuracy.test.mjs && node tests/sounds.test.mjs && node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs && node --experimental-strip-types --no-warnings tests/calculator.test.mjs",
+    "test": "node tests/sw.test.mjs && node tests/registry.test.mjs && node tests/accuracy.test.mjs && node tests/sounds.test.mjs && node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs && node --experimental-strip-types --no-warnings tests/calculator.test.mjs && node tests/features7.test.mjs",
     "icons": "node scripts/make-icons.mjs",
     "test:accuracy": "node tests/accuracy.test.mjs",
     "test:sounds": "node tests/sounds.test.mjs"

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { APPS } from "./registry";
 import { seedFs, WALLPAPERS } from "./data";
-import { snd, playSys, SCHEMES, clearCache, preload } from "./sound";
+import { snd, playSys, SCHEMES, isScheme, clearCache, preload } from "./sound";
 import { bugcheckText, logEvent, EVENT_IDS, type StopCode } from "./kernel";
 
 /* ------------------------------------------------------------------ types */
@@ -244,7 +244,12 @@ export const DEFAULTS: Settings = {
   wpInterval: 30,
   aeroSnap: true,
   shake: true,
-  aero: { animations: true, shadows: true, taskbarAnim: true, smoothScroll: true },
+  // `taskbarAnim` is Windows 7's "Animate controls and elements inside windows".
+  // It is off by default in this build: every menu, panel, flyout and taskbar
+  // button changes state instantly, which is the "remove animations on the
+  // taskbar / start menu" behaviour. The window min/max flights are the separate
+  // `animations` flag and stay on.
+  aero: { animations: true, shadows: true, taskbarAnim: false, smoothScroll: true },
   recentDocs: [],
 };
 
@@ -368,7 +373,7 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     // legacy saves stored "default"/"none"; the scheme names are Windows' own
     playStartupSound: bool(saved.playStartupSound, d.playStartupSound),
     soundScheme: saved.soundScheme === "none" ? "No Sounds"
-      : SCHEMES.includes(saved.soundScheme as (typeof SCHEMES)[number]) ? (saved.soundScheme as string)
+      : isScheme(saved.soundScheme) ? saved.soundScheme
       : "Windows Default",
     screensaver: oneOf(saved.screensaver, SCREENSAVERS, d.screensaver),
     ssPassword: bool(obj(saved).ssPassword, d.ssPassword),
@@ -1482,9 +1487,11 @@ const RUN_MAP: Record<string, string> = {
   notepad: "notepad", calc: "calc", mspaint: "paint", paint: "paint", cmd: "cmd", explorer: "explorer", iexplore: "ie", taskmgr: "taskmgr", wmplayer: "wmp", write: "wordpad", wordpad: "wordpad",
   snippingtool: "snip", charmap: "charmap", magnify: "magnifier", stikynot: "sticky2", soundrecorder: "recorder", dvdmaker: "dvdmaker", winver: "winver", minesweeper: "minesweeper", helppane: "help",
   sol: "solitaire", solitaire: "solitaire", spider: "spider", hearts: "hearts", gameexplorer: "gamecenter", journal: "journal", xpsrchvw: "xps",
-  sysdiag: "sysdiag", msinfo32: "sysdiag", msinfo: "sysdiag", eventvwr: "eventvwr", cleanmgr: "cleanmgr", dfrgui: "cleanmgr", regedit: "regedit", optionalfeatures: "features", features: "features", freecell: "freecell", mahjong: "mahjong", mahjongtitans: "mahjong", chess: "chess", chesstitans: "chess", purbleplace: "purble", purble: "purble",
+  sysdiag: "sysdiag", msinfo32: "sysdiag", msinfo: "sysdiag", eventvwr: "eventvwr", cleanmgr: "cleanmgr", dfrgui: "defrag", defrag: "defrag", regedit: "regedit", optionalfeatures: "features", features: "features", freecell: "freecell", mahjong: "mahjong", mahjongtitans: "mahjong", chess: "chess", chesstitans: "chess", purbleplace: "purble", purble: "purble",
     speechux: "speech", mblctr: "mobility", windowsanytimeupgradeui: "trust", notepad2: "notepad", sticky: "sticky2",
   services: "services", msconfig: "msconfig", osk: "osk", narrator: "narrator", psr: "psr", mip: "mip",
+  slui: "activation", wusa: "wusa",
+  fxscover: "faxcover", tabcal: "touchcal", wincal: "calendar", helpwin: "helpwin", winhlp32: "helpwin",
   tasksched: "tasksched", resmon: "resmon", compmgmt: "compmgmt", devmgr: "devmgr", diskmgmt: "diskmgmt",
   fw: "fw", wf: "fw", secpol: "secpol", rdp: "rdp", mstsc: "rdp", sync: "sync", mobsync: "sync", migwiz: "migwiz",
   mdsched: "mdsched", memdiag: "mdsched", perfmon: "perfmon",
@@ -1574,6 +1581,12 @@ export function runCommand(raw: string): boolean {
     return true;
   }
   if (/^https?:\/\//i.test(cmd) || /^www\./i.test(cmd)) return openApp("ie", { url: cmd }), true;
+  // `webframe <url>` (or `frame`) is the paste-a-link program: it takes the
+  // address as an argument so Run, the address bar and shell shortcuts all
+  // land on the same page.
+  const fm = /^(?:webframe|frame)(?:\.exe)?\s+(.+)$/i.exec(cmd);
+  if (fm) return openApp("frame", { url: fm[1].replace(/^"|"$/g, "") }), true;
+  if (lc === "webframe" || lc === "webframe.exe" || lc === "frame" || lc === "frame.exe") return openApp("frame"), true;
   cmd = cmd.replace(/^"|"$/g, "");
   if (cmd === "." || cmd === "..") return openPath("home"), true;
   if (cmd.startsWith("\\\\")) return openPath("network"), true;

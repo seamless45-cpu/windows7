@@ -404,10 +404,48 @@ body.col-resize { cursor: col-resize; }
 .card.dim { opacity: .55; }
 .card.back .card-back-art { position: absolute; inset: 3px; border-radius: 3px; background: repeating-linear-gradient(45deg, rgba(255,255,255,.16) 0 3px, transparent 3px 7px), linear-gradient(#1a5aa8, #06284d); }
 .card-face { width: 100%; height: 100%; }
-.cf { position: relative; width: 100%; height: 100%; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
-.cf-r { position: absolute; left: 4px; top: 1px; font-size: 13px; font-weight: 700; line-height: 1; }
-.cf-s { position: absolute; left: 4px; top: 15px; font-size: 12px; line-height: 1; }
-.cf-big { position: absolute; right: 5px; bottom: 2px; font-size: 26px; opacity: .9; line-height: 1; }
+/* Windows 7's card faces are the real thing: an indexed corner (rank + suit
+   stacked, and the same pair rotated 180 deg in the opposite corner), a proper
+   pip layout for the numbers, and a centre court card for J/Q/K. The old face
+   was a big suit glyph in the bottom-right corner, which read as a placeholder. */
+.card { border-radius: 5px; box-shadow: 0 1px 2px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.18); }
+.cf { position: relative; width: 100%; height: 100%; font-family: "Segoe UI", Tahoma, Arial, sans-serif; container-type: size; }
+.cf-corner { position: absolute; display: flex; flex-direction: column; align-items: center; line-height: .92; }
+.cf-corner.tl { left: 3px; top: 2px; }
+.cf-corner.br { right: 3px; bottom: 2px; transform: rotate(180deg); }
+.cf-rank { font-size: 13px; font-weight: 700; letter-spacing: -.5px; }
+.cf-suit { font-size: 11px; margin-top: -1px; }
+.cf.court .cf-rank { font-size: 11px; }
+/* the pip field: a 3-column grid whose rows are placed per rank */
+.cf-pips { position: absolute; inset: 16px 14px 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: repeat(4, 1fr); place-items: center; }
+.cf-pip { font-size: 15px; line-height: 1; }
+.cf-pip.flip { transform: rotate(180deg); }
+/* court cards: a framed panel with the letter and suit, as Microsoft draws them */
+.cf-court {
+  position: absolute; inset: 15px 12px 13px; border-radius: 2px;
+  border: 1px solid rgba(0,0,0,.28);
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,.045) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, #fffdf6, #f4eeee);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.cf-court .big { font-size: 26px; font-weight: 700; line-height: 1; }
+.cf-court .glyph { font-size: 15px; line-height: 1; }
+.cf-court .nm { font-size: 8px; letter-spacing: .6px; opacity: .7; text-transform: uppercase; }
+.cf.red { color: #c8102e; }
+.cf.black { color: #131313; }
+/* Win 7's card back: the blue "Microsoft Solitaire" lattice with a white rule */
+.card.back .card-back-art {
+  position: absolute; inset: 3px; border-radius: 3px;
+  border: 1px solid #f2f6fb;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.13) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.09) 0 2px, transparent 2px 8px),
+    radial-gradient(circle at 50% 45%, #2f74c0 0%, #14539c 55%, #08356e 100%);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.32), inset 0 0 14px rgba(0,0,0,.35);
+}
+/* a selected card gets Win 7's soft yellow halo, not a hard outline */
+.card.sel { box-shadow: 0 0 0 2px #ffe680, 0 0 12px rgba(255,230,128,.95), 0 1px 2px rgba(0,0,0,.45); }
 .sol-won { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,10,25,.45); }
 .sol-won > div { padding: 20px 28px; border-radius: 10px; background: linear-gradient(#fdfefe, #e6eef8); color: #14304f; text-align: center; box-shadow: 0 14px 40px rgba(0,0,0,.5); }
 .sol-won b { font-size: 18px; }
@@ -595,16 +633,29 @@ body.col-resize { cursor: col-resize; }
 .mj-face { font-family: "Segoe UI", "Microsoft YaHei", serif; font-size: 17px; font-weight: 700; line-height: 1; }
 
 /* ---- Chess Titans ---- */
-.chess { display: flex; flex-direction: column; height: 100%; background: #e9eef5; }
-.chess-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 14px; align-items: flex-start; }
-.chess-board { flex: none; display: grid; grid-template-columns: repeat(8, 62px); grid-template-rows: repeat(8, 62px); border: 3px solid #4a3a22; border-radius: 3px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
-.chess-sq { position: relative; display: flex; align-items: center; justify-content: center; background: #efe0c2; cursor: default; }
-.chess-sq.dark { background: linear-gradient(#b98a53, #9a6d3b); }
-.chess-sq.last { box-shadow: inset 0 0 0 3px rgba(255,220,110,.85); }
-.chess-sq.sel { box-shadow: inset 0 0 0 3px #2a7fd4; }
-.chess-pc { font-size: 42px; line-height: 1; user-select: none; }
-.chess-pc.w { color: #fffdf8; text-shadow: 0 0 1px #333, 0 1px 2px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.6); }
-.chess-pc.b { color: #23272d; text-shadow: 0 1px 1px rgba(255,255,255,.35); }
+/* Chess Titans: Windows 7 draws a blue-and-silver board in a bevelled frame,
+   not a brown wooden one. The squares are a pale blue-grey and a slate blue,
+   selected squares get the gold ring, and the last move gets the green one. */
+.chess { display: flex; flex-direction: column; height: 100%; background: linear-gradient(#eef4fb, #d8e4f2); }
+.chess-body { flex: 1; min-height: 0; display: flex; gap: 18px; padding: 16px; align-items: flex-start; justify-content: center; }
+.chess-board {
+  flex: none; display: grid; grid-template-columns: repeat(8, 52px); grid-template-rows: repeat(8, 52px);
+  border: 0; border-radius: 3px;
+  box-shadow: 0 0 0 1px #4a5a6e, 0 0 0 6px #b9c8d9, 0 0 0 7px #7f93a9, 0 14px 30px rgba(0,0,0,.4);
+  overflow: hidden;
+}
+.chess-sq { position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #f2f6fb, #dfe8f3); cursor: default; }
+.chess-sq.dark { background: linear-gradient(160deg, #8fa9c6, #6d8bad); }
+.chess-sq.last { box-shadow: inset 0 0 0 3px rgba(120,200,120,.85); }
+.chess-sq.sel { box-shadow: inset 0 0 0 3px #ffd54a; }
+.chess-sq.target::after { content: ""; position: absolute; width: 22%; height: 22%; border-radius: 50%; background: rgba(20,60,100,.42); }
+.chess-sq.target.occupied::after { width: 78%; height: 78%; background: transparent; border: 3px solid rgba(20,60,100,.42); border-radius: 50%; }
+.chess-pc { font-size: 38px; line-height: 1; user-select: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.chess-pc.w { color: #fffdf7; text-shadow: 0 0 1px #2a3a4a, 0 1px 0 #cfd8e2, 0 -1px 0 #4a5a6a, 1px 0 0 #7a8a9a, -1px 0 0 #7a8a9a; }
+.chess-pc.b { color: #22303e; text-shadow: 0 1px 0 #aebccb; }
+.chess-side { width: 200px; flex: none; padding: 10px 12px; background: linear-gradient(#fbfdff, #eaf1f9); border: 1px solid #b7c9de; border-radius: 4px; }
+.chess-side b { font-size: 13px; color: #10406f; }
+.chess-side p { font-size: 11.5px; line-height: 1.5; color: #33506d; }
 .chess-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: rgba(40,120,200,.55); }
 .chess-side { flex: 1; font-size: 12px; color: #17324f; }
 .chess-side .dim { color: #5b6b7d; }
@@ -1760,3 +1811,415 @@ body.col-resize { cursor: col-resize; }
 /* IE 8 lights the Feeds button when the page advertises a feed */
 .ie-cmds .ie-feedbtn.found { color: #e07b00; font-weight: 600; }
 .ie-cmds .ie-feedbtn.found::after { content: "•"; margin-left: 2px; color: #e07b00; }
+
+/* ==================================================================
+   Web Frame — paste a link, run the site in a window
+   ================================================================== */
+.fv { display: flex; flex-direction: column; height: 100%; min-height: 0; background: #fff; color: #12283f; outline: none; }
+.fv-bar { flex: none; display: flex; align-items: center; gap: 5px; padding: 6px 8px; background: linear-gradient(#f3f8fd, #dfe9f4); border-bottom: 1px solid #a9b9cc; }
+.fv-nav { display: flex; gap: 2px; }
+.fv-btn {
+  min-width: 26px; height: 24px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 11.5px; color: #12395e; white-space: nowrap; cursor: default;
+  border: 1px solid #8fa6bf; border-radius: 3px;
+  background: linear-gradient(rgba(255,255,255,.95), rgba(255,255,255,.25) 48%, rgba(255,255,255,0) 49%), linear-gradient(#eef4fb, #c9d9ea);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.75);
+}
+.fv-btn:hover:not(:disabled) { border-color: #3c7fb1; background: linear-gradient(rgba(255,255,255,.95), rgba(255,255,255,.3) 48%, rgba(255,255,255,0) 49%), linear-gradient(#f2fbff, #b8e0f7); }
+.fv-btn:active:not(:disabled) { background: linear-gradient(#a8d8f4, #7dbde0); box-shadow: inset 0 1px 2px rgba(0,40,70,.35); }
+.fv-btn:disabled { opacity: .45; }
+.fv-btn.on { border-color: #2b6f9e; background: linear-gradient(#d9effc, #a9d8f2); }
+.fv-btn.star { padding: 0 6px; }
+.fv-addr {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 3px 0 7px;
+  background: #fff; border: 1px solid #7f95ad; border-radius: 3px; box-shadow: inset 0 1px 2px rgba(0,0,0,.14);
+}
+.fv-addr:focus-within { border-color: #3d7bad; box-shadow: 0 0 3px rgba(61,123,173,.6), inset 0 1px 2px rgba(0,0,0,.1); }
+.fv-addr input { flex: 1; min-width: 0; height: 20px; border: none; outline: none; background: transparent; color: #0a2340; font: 12.5px "Segoe UI", Tahoma, sans-serif; }
+.fv-addr input::placeholder { color: #8b9aab; }
+.fv-go { height: 20px; padding: 0 9px; font-size: 11.5px; color: #10395f; border: 1px solid #8fa6bf; border-radius: 3px; background: linear-gradient(#fdfefe, #dfe8f3); }
+.fv-go:hover { border-color: #3c7fb1; background: linear-gradient(#f2fbff, #bfe3f8); }
+.fv-panel { flex: none; max-height: 190px; overflow: auto; padding: 4px 6px; background: #f7fafd; border-bottom: 1px solid #b9c9da; font-size: 12px; }
+.fv-row { display: flex; align-items: center; gap: 8px; padding: 3px 5px; border-radius: 3px; }
+.fv-row:hover { background: linear-gradient(#eaf6fd, #d8ecfa); outline: 1px solid #a6d4f2; }
+.fv-row a { color: #0a4a8c; text-decoration: none; cursor: default; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fv-row a:hover { text-decoration: underline; }
+.fv-dim { color: #7b8899; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.fv-x { margin-left: auto; border: 0; background: transparent; color: #6b7c8f; }
+.fv-x:hover { color: #b3351f; }
+.fv-empty { padding: 8px 6px; color: #7b8899; font-style: italic; }
+.fv-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.fv-frame { flex: 1; width: 100%; min-height: 0; border: none; background: #fff; }
+.fv-status { flex: none; display: flex; align-items: center; gap: 12px; padding: 3px 9px; font-size: 11px; color: #44586e; background: linear-gradient(#f7fafd, #e6eef7); border-top: 1px solid #b9c9da; }
+.fv-wait { color: #7b6a20; }
+.fv-link { border: 0; background: transparent; padding: 0; font-size: 11px; color: #0a5bb5; }
+.fv-link:hover { text-decoration: underline; }
+.fv-link:last-child { margin-left: auto; }
+
+/* start page */
+.fv-home, .fv-blocked { flex: 1; overflow: auto; padding: 26px 32px; background: linear-gradient(#eef6ff, #fbfdff 45%); }
+.fv-home h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font: 300 26px "Segoe UI", Tahoma, sans-serif; color: #123f6d; }
+.fv-home h2, .fv-blocked h3 { margin: 22px 0 8px; font-size: 13px; font-weight: 600; color: #2b4a68; text-transform: none; }
+.fv-home p { max-width: 660px; line-height: 1.55; color: #2c465f; font-size: 12.5px; }
+.fv-note { color: #6b7a8b !important; }
+.fv-grid { display: flex; flex-wrap: wrap; gap: 8px; max-width: 760px; margin-top: 6px; }
+.fv-card {
+  display: flex; flex-direction: column; gap: 2px; width: 172px; padding: 8px 10px; text-align: left; cursor: default;
+  border: 1px solid #b9cde2; border-radius: 5px; background: linear-gradient(#fff, #eef5fc); color: #12324f;
+}
+.fv-card b { font-size: 12.5px; color: #0a4a8c; }
+.fv-card span { font-size: 11px; color: #5b6d80; }
+.fv-card:hover { border-color: #3c7fb1; background: linear-gradient(#f4fbff, #d8eefb); box-shadow: 0 0 7px rgba(120,200,255,.65); }
+
+/* refused-to-frame page */
+.fv-blocked { text-align: left; }
+.fv-blocked h2 { margin: 10px 0 8px; font: 400 20px "Segoe UI", Tahoma, sans-serif; color: #7a2b18; }
+.fv-blocked p { max-width: 640px; line-height: 1.55; font-size: 12.5px; color: #2c465f; }
+.fv-blocked code { font: 11.5px Consolas, "Courier New", monospace; background: #eef2f7; border: 1px solid #d6dfe9; padding: 0 3px; border-radius: 2px; }
+.fv-warn { color: #8a5a10 !important; }
+.fv-blocked-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.fv-primary {
+  height: 26px; padding: 0 14px; font-size: 12px; color: #0b1a2b; cursor: default;
+  border: 1px solid #3f7fae; border-radius: 3px;
+  background: linear-gradient(rgba(255,255,255,.95), rgba(255,255,255,.3) 48%, rgba(255,255,255,0) 49%), linear-gradient(#eef7ff, #b9e0f7);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.85), 0 0 6px rgba(120,200,255,.6);
+}
+.fv-primary:hover { background: linear-gradient(rgba(255,255,255,.95), rgba(255,255,255,.35) 48%, rgba(255,255,255,0) 49%), linear-gradient(#f4fbff, #a4d9f5); }
+.fv-primary:active { background: linear-gradient(#a8d8f4, #7dbde0); }
+
+/* ==================================================================
+   New Windows 7 inbox programs (SystemTools7.tsx)
+   ================================================================== */
+
+/* ---- slui.exe: Windows Activation ---- */
+.act { display: flex; flex-direction: column; height: 100%; background: #f3f7fb; color: #17324f; }
+.act-head { flex: none; display: flex; gap: 14px; align-items: center; padding: 16px 18px; background: linear-gradient(#eef6ff, #dbe9f8); border-bottom: 1px solid #b7c9de; }
+.act-head b { display: block; font-size: 15px; color: #10406f; }
+.act-head span { font-size: 11.5px; color: #5b6d80; }
+.act-body { flex: 1; overflow: auto; padding: 16px 18px; font-size: 12.5px; line-height: 1.55; }
+.act-body p { margin: 0 0 10px; max-width: 480px; }
+.act-key { width: 300px; font: 13px Consolas, "Courier New", monospace; letter-spacing: 1px; margin: 4px 0 8px; }
+.act-btns { display: flex; gap: 8px; margin-top: 14px; }
+.act-wait { display: flex; align-items: center; gap: 8px; color: #4a5e75; }
+.act .ok { color: #216b2a; font-weight: 600; }
+.act .err { color: #98250f; font-weight: 600; }
+
+/* ---- wusa.exe ---- */
+.wusa { display: flex; flex-direction: column; height: 100%; background: #f4f7fb; color: #17324f; }
+.wusa-banner { flex: none; display: flex; gap: 12px; align-items: center; padding: 14px 18px; background: linear-gradient(#f3f9ff, #dde9f7); border-bottom: 1px solid #b7c9de; }
+.wusa-banner b { display: block; font-size: 14px; }
+.wusa-banner span { font-size: 11.5px; color: #5b6d80; }
+.wusa-body { flex: 1; overflow: auto; padding: 14px 18px; font-size: 12.5px; }
+.wusa-list { max-height: 220px; overflow: auto; margin: 8px 0 12px; border: 1px solid #c3d0de; background: #fff; }
+.wusa-row { display: block; padding: 6px 9px; border-bottom: 1px solid #e6edf5; }
+.wusa-row.on { background: #eaf4fe; }
+.wusa-row em { display: block; font-style: normal; color: #77879a; font-size: 11px; margin-left: 18px; }
+.wusa-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.wusa-bar { height: 16px; margin: 8px 0 10px; background: #e8eef5; border: 1px solid #a9b9cc; border-radius: 2px; overflow: hidden; }
+.wusa-bar div { height: 100%; background: linear-gradient(#c9edb8, #4aa832); transition: width .2s linear; }
+.wusa-log { height: 150px; overflow: auto; padding: 6px 8px; background: #fff; border: 1px solid #c3d0de; font: 11.5px Consolas, "Courier New", monospace; color: #2c465f; }
+
+/* ---- Connect to a network ---- */
+.ctn { display: flex; flex-direction: column; height: 100%; background: #f4f8fc; color: #17324f; }
+.ctn-head { flex: none; display: flex; gap: 12px; align-items: center; padding: 14px 18px; background: linear-gradient(#eef6ff, #dce9f8); border-bottom: 1px solid #b7c9de; }
+.ctn-head b { display: block; font-size: 14px; color: #10406f; }
+.ctn-head span { font-size: 11.5px; color: #5b6d80; }
+.ctn-body { flex: 1; overflow: auto; padding: 12px 14px; font-size: 12.5px; }
+.ctn-list { border: 1px solid #c3d0de; background: #fff; }
+.ctn-row { display: grid; grid-template-columns: 1fr 80px 210px; gap: 8px; align-items: center; padding: 6px 9px; border-bottom: 1px solid #eaf0f7; }
+.ctn-row.head { background: linear-gradient(#f4f8fd, #e6eef8); font-weight: 600; color: #33506d; font-size: 11.5px; }
+.ctn-row.sel { background: linear-gradient(#eaf6fd, #d4ecfb); outline: 1px solid #a6d4f2; }
+.ctn-row.on { background: #eef8ef; }
+.ctn-ssid { display: flex; align-items: center; gap: 6px; }
+.ctn-ssid em { font-style: normal; font-size: 11px; color: #2d7a35; margin-left: 4px; }
+.ctn-bars { display: inline-flex; align-items: flex-end; gap: 1px; height: 12px; }
+.ctn-bars i { width: 3px; background: #c9d4e0; border-radius: 1px; }
+.ctn-bars i:nth-child(1) { height: 3px; } .ctn-bars i:nth-child(2) { height: 6px; }
+.ctn-bars i:nth-child(3) { height: 9px; } .ctn-bars i:nth-child(4) { height: 12px; }
+.ctn-bars i.on { background: #2f9e44; }
+.ctn-join { margin: 12px 0; padding: 12px; border: 1px solid #b7c9de; background: linear-gradient(#f8fbff, #eaf2fb); border-radius: 4px; max-width: 420px; }
+.ctn-join input { width: 260px; margin: 6px 0; }
+
+/* ---- Window Color and Appearance ---- */
+.wca { display: flex; height: 100%; background: #f2f6fb; color: #17324f; }
+.wca-preview { flex: 1; display: flex; align-items: center; justify-content: center; padding: 18px; background: radial-gradient(circle at 50% 40%, #6ea8dd, #1d4e86 70%, #0d2846); }
+.wca-win { width: 250px; border-radius: 7px; background: rgba(var(--pcol), .62); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.7), 0 12px 28px rgba(0,0,0,.5); overflow: hidden; }
+.wca-win[data-round="square"] { border-radius: 0; }
+.wca-bar { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; color: #fff; font-size: 11.5px; text-shadow: 0 1px 2px #000; background: linear-gradient(rgba(255,255,255,.4), rgba(255,255,255,.08) 48%, rgba(255,255,255,.02) 52%, rgba(255,255,255,.2)); }
+.wca-bar i { font-style: normal; width: 16px; height: 12px; border-radius: 2px; background: linear-gradient(#e9a898, #c43c22); border: 1px solid #7a2418; text-align: center; line-height: 10px; font-size: 8px; }
+.wca-client { padding: 16px; background: #f7fafd; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.wca-text { font-size: 11.5px; color: #33495f; }
+.wca-btn { padding: 3px 16px; font-size: 11.5px; border: 1px solid #6d7c90; border-radius: 3px; background: linear-gradient(#f6f8fa, #dfe4ea); }
+.wca-controls { flex: none; width: 300px; padding: 12px; overflow: auto; border-left: 1px solid #b7c9de; background: linear-gradient(#f8fbff, #eef4fb); }
+.wca-swatches { display: flex; flex-wrap: wrap; gap: 5px; }
+.wca-sw { width: 24px; height: 24px; border-radius: 3px; border: 1px solid rgba(0,0,0,.45); box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
+.wca-sw.on { outline: 2px solid #1f6fb5; outline-offset: 1px; }
+
+/* ---- Windows Help (three panes) ---- */
+.hlp { display: flex; flex-direction: column; height: 100%; background: #fff; color: #12283f; }
+.hlp-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 9px; background: linear-gradient(#f3f8fd, #dfe9f4); border-bottom: 1px solid #a9b9cc; }
+.hlp-bar b { font-size: 12.5px; }
+.hlp-search { flex: 1; display: flex; gap: 4px; justify-content: flex-end; }
+.hlp-search input { width: 200px; }
+.hlp-body { flex: 1; display: flex; min-height: 0; }
+.hlp-toc { width: 240px; flex: none; overflow: auto; border-right: 1px solid #d3dde9; background: #f7fafd; padding: 4px; }
+.hlp-toc-h { padding: 5px 7px; font-weight: 600; font-size: 11.5px; color: #33506d; border-bottom: 1px solid #dde6f0; margin-bottom: 4px; }
+.hlp-t { display: flex; align-items: center; gap: 3px; padding: 3px 7px; font-size: 12px; border-radius: 3px; cursor: default; }
+.hlp-t.sub { padding-left: 22px; }
+.hlp-t:hover { background: linear-gradient(#eaf6fd, #d8ecfa); }
+.hlp-t.sel { background: linear-gradient(#cfe8fb, #a9d6f4); font-weight: 600; }
+.hlp-tri { width: 10px; color: #4a6b8c; font-size: 9px; }
+.hlp-page { flex: 1; overflow: auto; padding: 20px 26px; }
+.hlp-page h1 { margin: 0 0 12px; font: 400 21px "Segoe UI", Tahoma, sans-serif; color: #10406f; }
+.hlp-page p { max-width: 620px; line-height: 1.6; font-size: 12.5px; margin: 0 0 10px; }
+.hlp-foot { margin-top: 22px !important; padding-top: 10px; border-top: 1px solid #e0e7ef; color: #66788c; }
+.hlp-foot a { color: #0a5bb5; }
+
+/* ---- Tablet PC / touch calibration ---- */
+.tcal { display: flex; flex-direction: column; height: 100%; background: #f4f8fc; color: #17324f; }
+.tcal-head { flex: none; display: flex; gap: 12px; align-items: center; padding: 13px 17px; background: linear-gradient(#eef6ff, #dce9f8); border-bottom: 1px solid #b7c9de; }
+.tcal-head b { display: block; font-size: 14px; }
+.tcal-head span { font-size: 11.5px; color: #5b6d80; }
+.tcal-body { flex: 1; overflow: auto; padding: 16px 18px; font-size: 12.5px; }
+.tcal-screens { display: flex; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+.tcal-screen { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; border: 1px solid #c3d0de; border-radius: 5px; background: #fff; }
+.tcal-screen.on { border-color: #3c7fb1; box-shadow: 0 0 6px rgba(120,200,255,.7); }
+.tcal-screen em { font-style: normal; font-size: 11px; color: #66788c; }
+.tcal-stage { position: relative; flex: 1; margin: 14px; background: #fff; border: 2px solid #8fa6bf; border-radius: 4px; overflow: hidden; }
+.tcal-hint { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: #66788c; font-size: 12.5px; }
+.tcal-cross { position: absolute; transform: translate(-50%, -50%); font: 26px/1 Consolas, monospace; color: #1f6fb5; }
+.tcal-cross.done { color: #3aa757; }
+.tcal .ok { color: #216b2a; font-weight: 600; }
+
+/* ---- Fax Cover Page Editor ---- */
+.fce { display: flex; flex-direction: column; height: 100%; background: #f2f6fb; color: #17324f; }
+.fce-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 9px; background: linear-gradient(#f3f8fd, #dfe9f4); border-bottom: 1px solid #a9b9cc; }
+.fce-body { flex: 1; display: flex; min-height: 0; }
+.fce-fields { width: 320px; flex: none; padding: 12px; overflow: auto; border-right: 1px solid #c3d0de; background: #f8fbff; }
+.fce-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; font-size: 11.5px; color: #33506d; }
+.fce-row input, .fce-row textarea { width: 100%; }
+.fce-preview { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 18px; background: #8b95a3; }
+.fce-page { width: 430px; min-height: 560px; padding: 26px 30px; background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.45); color: #111; font: 12px "Segoe UI", Tahoma, sans-serif; }
+.fce-page h2 { margin: 0 0 18px; font-size: 34px; letter-spacing: 6px; color: #1d3f66; border-bottom: 3px double #1d3f66; padding-bottom: 6px; }
+.fce-line { display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px dotted #aab; }
+.fce-line b { width: 74px; color: #1d3f66; }
+.fce-note { margin-top: 22px; line-height: 1.6; white-space: pre-wrap; }
+
+/* ---- Disk Defragmenter ---- */
+.dfg { display: flex; flex-direction: column; height: 100%; background: #f4f8fc; color: #17324f; }
+.dfg-head { flex: none; display: flex; gap: 12px; align-items: center; padding: 13px 17px; background: linear-gradient(#eef6ff, #dce9f8); border-bottom: 1px solid #b7c9de; }
+.dfg-head b { display: block; font-size: 14px; }
+.dfg-head span { font-size: 11.5px; color: #5b6d80; }
+.dfg-body { flex: none; padding: 10px 14px; }
+.dfg-row { display: grid; grid-template-columns: 1fr 130px 150px 170px; gap: 8px; padding: 5px 9px; font-size: 12px; background: #fff; border: 1px solid #c3d0de; border-top: none; }
+.dfg-row.head { border-top: 1px solid #c3d0de; background: linear-gradient(#f4f8fd, #e6eef8); font-weight: 600; font-size: 11.5px; }
+.dfg-row.sel { background: linear-gradient(#eaf6fd, #dceffb); border-color: #a6d4f2; }
+.dfg-row span:first-child { display: flex; align-items: center; gap: 6px; }
+.dfg-map { flex: 1; min-height: 0; padding: 0 14px 8px; display: flex; flex-direction: column; gap: 6px; }
+.dfg-bar { flex: 1; display: flex; gap: 1px; padding: 4px; background: #fff; border: 1px solid #a9b9cc; overflow: hidden; }
+.dfg-bar i { flex: 1; border-radius: 1px; }
+.dfg-bar i.used { background: linear-gradient(#8fc8f5, #2f7fd0); }
+.dfg-bar i.free { background: #f0f4f8; }
+.dfg-legend { display: flex; gap: 16px; font-size: 11px; color: #44607c; }
+.dfg-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.25); }
+.dfg-legend i.frag { background: repeating-linear-gradient(90deg, #e05a3a 0 2px, #f6b3a1 2px 4px); }
+.dfg-legend i.used { background: #2f7fd0; }
+.dfg-legend i.free { background: #f0f4f8; }
+.dfg-foot { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: linear-gradient(#f7fafd, #e6eef7); border-top: 1px solid #b9c9da; }
+
+/* ---- New Sync Partnership ---- */
+.syncw { display: flex; flex-direction: column; height: 100%; background: #f4f8fc; color: #17324f; }
+.syncw-head { flex: none; display: flex; gap: 12px; align-items: center; padding: 13px 17px; background: linear-gradient(#eef6ff, #dce9f8); border-bottom: 1px solid #b7c9de; }
+.syncw-head b { display: block; font-size: 14px; }
+.syncw-head span { font-size: 11.5px; color: #5b6d80; }
+.syncw-body { flex: 1; overflow: auto; padding: 16px 18px; font-size: 12.5px; }
+.syncw-list { border: 1px solid #c3d0de; background: #fff; margin: 10px 0; }
+.syncw-item { display: flex; gap: 10px; align-items: center; padding: 6px 9px; border-bottom: 1px solid #eaf0f7; }
+.syncw-item span { color: #66788c; font-size: 11.5px; }
+.syncw-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.syncw .ok { color: #216b2a; font-weight: 600; }
+
+/* the Ace's single centred pip */
+.cf-ace { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 32px; line-height: 1; }
+
+/* ==================================================================
+   Solitaire-family felt and chrome (Windows 7 look)
+   ================================================================== */
+/* Win 7 Solitaire's table is the deep green board (#0b6a2f is the classic
+   value) with a subtle radial lift in the middle, not a flat green. */
+.sol { background: radial-gradient(ellipse 120% 90% at 50% 25%, #17833c 0%, #0f6c30 45%, #075223 100%); }
+.sol-bar { background: linear-gradient(#f7fafd, #e2eaf3); border-bottom: 1px solid #a4b6ca; }
+/* the stock and foundation slots are drawn as recessed card outlines */
+.sol-stock, .sol-waste, .sol-found { filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+.card.empty-slot { border: 1px dashed rgba(255,255,255,.5); background: rgba(0,0,0,.14); box-shadow: inset 0 2px 6px rgba(0,0,0,.3); }
+.slot-suit { color: rgba(255,255,255,.42); }
+/* the win banner is Win 7's, not a generic dialog */
+.sol-won > div { border-radius: 6px; background: linear-gradient(#fdfefe, #e3ecf7); box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 16px 44px rgba(0,0,0,.55), inset 0 0 0 1px #fff; }
+.sol-won b { font-size: 18px; color: #14304f; }
+
+/* ==================================================================
+   Minesweeper — Windows 7 (Aero) tiles, not the Win 98 grey blocks
+   ================================================================== */
+.mines { background: linear-gradient(#cfe0f2, #a9c3dd); }
+.mines .menubar { background: linear-gradient(#f8fbff, #e4edf7); }
+.mines-body {
+  margin: 8px; padding: 8px; border-radius: 4px;
+  border: 1px solid #7f93a9;
+  background: linear-gradient(#eaf2fb, #c9d9ea);
+  box-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(255,255,255,.6), 0 2px 6px rgba(0,0,0,.25);
+}
+.mines-head {
+  padding: 5px 8px; margin-bottom: 8px; border-radius: 3px;
+  border: 1px solid #8798ab;
+  background: linear-gradient(#dbe7f4, #b9cde3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(0,0,0,.12);
+}
+/* the LED counter is a sunken black window with the red seven-segment digits */
+.led {
+  background: linear-gradient(#0d0d0d, #1a1a1a); color: #ff2d20;
+  font: 700 24px/28px "Consolas", "Courier New", monospace; letter-spacing: 3px;
+  min-width: 58px; text-align: center; padding: 0 5px; border-radius: 2px;
+  border: 1px solid #5a6a7c; box-shadow: inset 0 2px 5px rgba(0,0,0,.9);
+  text-shadow: 0 0 6px rgba(255,45,32,.85);
+}
+.smiley {
+  width: 34px; height: 34px; font-size: 20px; padding: 0; border-radius: 50%;
+  border: 1px solid #8fa1b4;
+  background: radial-gradient(circle at 50% 25%, #fff, #dfe8f3 60%, #b9cbe0);
+  box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,.3);
+}
+.smiley:hover { background: radial-gradient(circle at 50% 25%, #fff, #eef7ff 55%, #b7dcf5); border-color: #3c7fb1; }
+.smiley:active { background: radial-gradient(circle at 50% 70%, #cfe4f6, #a9c6df); box-shadow: inset 0 2px 4px rgba(0,40,70,.35); }
+.mines-grid { border-radius: 2px; border: 1px solid #7a8b9e; box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); }
+/* a covered tile: light Aero blue with a raised bevel; hover lifts it */
+.mc {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  font: 700 15px "Segoe UI", Tahoma, sans-serif;
+  background: linear-gradient(#f4f9ff 0%, #dbe8f7 48%, #c3d7ec 52%, #d6e5f5 100%);
+  border: 1px solid; border-color: #fff #93a9c0 #93a9c0 #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95);
+}
+.mc:hover { background: linear-gradient(#ffffff 0%, #ecf7ff 48%, #cfeaff 52%, #e2f3ff 100%); border-color: #fff #6fa8d4 #6fa8d4 #fff; }
+.mc:active { background: linear-gradient(#c9def0, #dbe9f6); border-color: #93a9c0 #fff #fff #93a9c0; }
+/* an opened cell: recessed, white-blue field; numbers use the Win 7 palette */
+.mc.open {
+  border: 1px solid #b2c3d4; background: linear-gradient(#eef4fb, #e3ecf6);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
+}
+.mc.open.mine { background: linear-gradient(#ffd9d4, #ffb3a8); }
+.mc.flag { color: #e07b00; }
+
+/* ==================================================================
+   Mahjong Titans: Windows 7's ivory tile with the beveled "bamboo" edge
+   ================================================================== */
+.mj-tile {
+  position: absolute; width: 36px; height: 48px; border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 42%),
+    linear-gradient(160deg, #fffef8 0%, #f7f2e2 58%, #e6ddc6 100%);
+  border: 1px solid #9a9276;
+  box-shadow:
+    1px 1px 0 #fdfbf2, 2px 2px 0 #d8cfb6, 3px 3px 0 #c4ba9d,
+    4px 4px 6px rgba(0,0,0,.45), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.07);
+  display: flex; align-items: center; justify-content: center; cursor: default;
+  transition: transform .1s ease-out, box-shadow .1s ease-out, filter .1s ease-out;
+}
+.mj-tile:hover { transform: translateY(-2px); box-shadow: 1px 1px 0 #fdfbf2, 2px 2px 0 #d8cfb6, 3px 3px 0 #c4ba9d, 5px 7px 9px rgba(0,0,0,.5), inset 0 1px 0 #fff; }
+/* a tile with another tile on top of it is dimmed, exactly as the real game does */
+.mj-tile.blocked { filter: brightness(.74) saturate(.72); }
+.mj-tile.blocked:hover { transform: none; }
+/* the selection ring is Win 7's bright cyan glow */
+.mj-tile.sel { box-shadow: 0 0 0 2px #37b6ff, 0 0 14px rgba(90,200,255,.95), 2px 2px 0 #c4ba9d, 4px 4px 6px rgba(0,0,0,.45); }
+.mj-face { font-family: "Segoe UI", "Microsoft YaHei", serif; font-size: 18px; font-weight: 700; line-height: 1; }
+.mj-felt {
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 40%, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 70%),
+    linear-gradient(#1d6f4a, #0e4a30 70%, #0a3a26);
+  border-radius: 4px;
+}
+
+/* ==================================================================
+   Chess Titans: Windows 7's blue-and-silver board with real pieces
+   ================================================================== */
+.ct { display: flex; flex-direction: column; height: 100%; background: linear-gradient(#eef4fb, #d8e4f2); color: #17324f; }
+.ct-body { flex: 1; display: flex; min-height: 0; align-items: center; justify-content: center; gap: 18px; padding: 12px 18px; }
+.ct-board {
+  position: relative; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+  width: min(76%, 560px); aspect-ratio: 1 / 1;
+  border-radius: 4px; padding: 0;
+  box-shadow: 0 0 0 1px #4a5a6e, 0 0 0 6px #b9c8d9, 0 0 0 7px #7f93a9, 0 14px 30px rgba(0,0,0,.4);
+  overflow: hidden;
+}
+.ct-sq { position: relative; display: flex; align-items: center; justify-content: center; }
+/* Win 7 Chess Titans: pale blue-grey and slate squares */
+.ct-sq.light { background: linear-gradient(160deg, #f2f6fb, #dfe8f3); }
+.ct-sq.dark { background: linear-gradient(160deg, #8fa9c6, #6d8bad); }
+.ct-sq.sel { box-shadow: inset 0 0 0 3px #ffd54a; }
+.ct-sq.last { box-shadow: inset 0 0 0 3px rgba(120,200,120,.85); }
+.ct-sq.check { background: radial-gradient(circle, #ff8a72 0%, #e2482c 80%); }
+.ct-sq .dot { width: 22%; height: 22%; border-radius: 50%; background: rgba(20,60,100,.4); }
+.ct-sq .ring { position: absolute; inset: 6%; border: 3px solid rgba(20,60,100,.4); border-radius: 50%; }
+.ct-piece { font-size: min(6.2vw, 44px); line-height: 1; user-select: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.ct-piece.w { color: #fffdf7; text-shadow: 0 0 1px #2a3a4a, 0 1px 0 #cfd8e2, 0 -1px 0 #4a5a6a, 1px 0 0 #7a8a9a, -1px 0 0 #7a8a9a; }
+.ct-piece.b { color: #22303e; text-shadow: 0 1px 0 #aebccb; }
+.ct-side { width: 190px; flex: none; }
+.ct-side h3 { margin: 0 0 6px; font-size: 12.5px; text-transform: none; color: #2b4a68; }
+.ct-moves { height: 170px; overflow: auto; padding: 4px 6px; background: #fff; border: 1px solid #9fb4c9; font: 11.5px Consolas, "Courier New", monospace; }
+.ct-move { display: flex; gap: 8px; padding: 1px 0; }
+.ct-move i { width: 22px; color: #7b8899; font-style: normal; }
+.ct-status { padding: 6px 18px; background: linear-gradient(#f7fafd, #e4edf7); border-top: 1px solid #b9c8d9; font-size: 12px; color: #33506d; }
+
+/* ==================================================================
+   Purble Place: the candy-coloured Windows 7 shell
+   ================================================================== */
+.purble { background: linear-gradient(#fff4fb 0%, #f7e4f4 45%, #efd6ec 100%); }
+.purble-tab { height: 26px; border-radius: 13px; border-color: #d0a8d0; background: linear-gradient(#fff, #f6e8f6); color: #6b2f63; }
+.purble-tab.on { background: linear-gradient(#ffe6fb, #e9bfe4); border-color: #a356a0; box-shadow: inset 0 1px 0 #fff, 0 0 6px rgba(220,130,210,.6); }
+.purble-pick { border-radius: 12px; border-color: #d7b0d7; }
+.purble-pick.on { background: linear-gradient(#ffd6f0, #e7a9d8); border-color: #9c5f96; }
+/* the cake plate: a soft shadowed ring under the art */
+.purble-mine svg, .purble-order svg { filter: drop-shadow(0 6px 10px rgba(120,40,110,.25)); }
+
+/* ==================================================================
+   Hearts: Win 7's table with the four seat plates
+   ================================================================== */
+.hearts-table { background: radial-gradient(ellipse 120% 90% at 50% 30%, #2b7ac0 0%, #14568f 55%, #0a3a66 100%); }
+.ht-seat { background: linear-gradient(rgba(255,255,255,.28), rgba(255,255,255,.06)); border: 1px solid rgba(255,255,255,.5); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 6px rgba(0,0,0,.35); }
+.ht-seat.cur { border-color: #ffe680; box-shadow: 0 0 10px rgba(255,230,128,.85), inset 0 1px 0 rgba(255,255,255,.6); }
+.hearts-actions { background: linear-gradient(#f7fafd, #e4edf7); border-top: 1px solid #a4b6ca; }
+
+/* Mahjong faces: structure, not a single glyph */
+.mj-char { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1; }
+.mj-char b { font: 700 13px "Microsoft YaHei", "Segoe UI", serif; color: #1b4f9c; }
+.mj-char i { font: 400 10px "Microsoft YaHei", serif; font-style: normal; color: #1b4f9c; }
+.mj-dots, .mj-bam { position: absolute; inset: 5px 4px; }
+.mj-dots i {
+  position: absolute; width: 26%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
+  border: 1px solid rgba(0,0,0,.28);
+}
+.mj-dots i.big { width: 54%; }
+.mj-dots i.blue { background: radial-gradient(circle at 35% 30%, #dff0ff, #2f6fc0); }
+.mj-dots i.green { background: radial-gradient(circle at 35% 30%, #e2f7e0, #2e8b3a); }
+.mj-dots i.red { background: radial-gradient(circle at 35% 30%, #ffe2de, #c0302a); }
+.mj-bam { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: center; }
+.mj-bam i { width: 6px; height: 13px; border-radius: 2px; border: 1px solid rgba(0,0,0,.25); }
+.mj-bam i.green { background: linear-gradient(#8fdc8a, #218a34); }
+.mj-bam i.red { background: linear-gradient(#ffb3a8, #b3251f); }
+.mj-bird { font-size: 17px; line-height: 1; }
+
+/* ===== Sound Schemes tab ===== */
+.schemes-page { padding: 2px 0; }
+.scheme-group { margin: 12px 0 4px; }
+.scheme-group h3 { margin: 0 0 8px; font-size: 12.5px; color: #2b4a68; text-transform: none; }
+.scheme-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.scheme-card {
+  width: 208px; padding: 8px 10px; border: 1px solid #b9cde2; border-radius: 5px;
+  background: linear-gradient(#fff, #f1f7fd); color: #17324f; cursor: default;
+}
+.scheme-card:hover { border-color: #3c7fb1; background: linear-gradient(#f4fbff, #dceffb); box-shadow: 0 0 7px rgba(120,200,255,.6); }
+.scheme-card.on { border-color: #2b6f9e; background: linear-gradient(#e8f5ff, #cfe8fb); box-shadow: inset 0 0 0 1px #fff, 0 0 8px rgba(120,200,255,.7); }
+.scheme-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.scheme-head b { font-size: 12.5px; color: #0a4a8c; }
+.scheme-card > span { display: block; font-size: 11px; color: #5b6d80; line-height: 1.4; min-height: 30px; }
+.scheme-actions { display: flex; gap: 5px; margin-top: 6px; }
+.scheme-actions .w7btn { min-width: 0; height: 20px; padding: 0 7px; font-size: 11px; }
