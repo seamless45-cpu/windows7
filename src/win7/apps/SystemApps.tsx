@@ -597,8 +597,14 @@ export function Minesweeper({ win }: { win: Win }) {
         <div className="mines-head"><div className="led">{led(left)}</div><button className="smiley" onClick={() => reset()}>{state === "lost" ? "😵" : state === "won" ? "😎" : down ? "😮" : "🙂"}</button><div className="led">{led(time)}</div></div>
         <div className="mines-grid" style={{ gridTemplateColumns: `repeat(${cols}, 24px)` }} onPointerDown={() => setDown(true)} onPointerUp={() => setDown(false)} onPointerLeave={() => setDown(false)}>
           {cells.map((c, i) => (
-            <div key={i} className={"mc" + (c.o ? " open" : "")} onClick={() => open(i)} onContextMenu={(e) => flag(e, i)} style={{ color: colors[c.n] }}>
-              {c.o ? (c.m ? "💣" : c.n || "") : c.f ? "🚩" : ""}
+            <div
+              key={i}
+              className={"mc" + (c.o ? " open" : "") + (c.o && c.m ? " mine" : "") + (!c.o && c.f ? " flag" : "")}
+              onClick={() => open(i)}
+              onContextMenu={(e) => flag(e, i)}
+              style={{ color: colors[c.n] }}
+            >
+              {c.o ? (c.m ? "✹" : c.n || "") : c.f ? "⚑" : ""}
             </div>
           ))}
         </div>

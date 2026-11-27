@@ -696,6 +696,39 @@ textarea.w7input { height: auto; padding: 3px; }
 }
 .nomotion .win { transition-property: opacity, visibility !important; }
 
+/* ===== "Animate controls and elements inside windows" =====
+   Windows splits motion into *two* Performance Options check boxes. The one
+   above ("Animate windows when minimizing and maximizing", `aero.animations`)
+   owns the DWM window flights. This one (`aero.taskbarAnim`) owns every control
+   and panel transition — the Start menu panel, tray flyouts, context menus,
+   jump lists, the thumbnail strips and the taskbar buttons themselves.
+
+   It is off by default here, which is what makes the shell feel instant: the
+   Start menu, every menu and every flyout opens and closes with no animation at
+   all, and taskbar buttons change state immediately. Turning it on in Control
+   Panel → System → Advanced system settings → Performance restores the full
+   Windows 7 timings, and window open/close/minimize/maximize keep their real
+   Aero flights either way. */
+.nomotion-panels .start-menu, .nomotion-panels .flyout, .nomotion-panels .ctx,
+.nomotion-panels .jumplist, .nomotion-panels .thumbs, .nomotion-panels .thumb,
+.nomotion-panels .balloon, .nomotion-panels .altab, .nomotion-panels .altab-box,
+.nomotion-panels .modal-dim, .nomotion-panels .sm-results, .nomotion-panels .sm-none,
+.nomotion-panels .ie-tab, .nomotion-panels .tb-btn, .nomotion-panels .tray-ico,
+.nomotion-panels .tray-clock, .nomotion-panels .orb-img, .nomotion-panels .taskbar,
+.nomotion-panels .w7btn, .nomotion-panels .g-btn, .nomotion-panels .cb,
+.nomotion-panels .sm-left, .nomotion-panels .snap-prev, .nomotion-panels .ie-tabrow,
+.nomotion-panels .thumb-x, .nomotion-panels .fv-btn, .nomotion-panels .fv-card,
+.nomotion-panels .mc-tile, .nomotion-panels .mc-cell, .nomotion-panels .pp-card,
+.nomotion-panels .jumplist *, .nomotion-panels .ctx * {
+  animation-duration: .001s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+/* the panels are not faded in either — they are simply there */
+.nomotion-panels .start-menu { animation: none !important; }
+.nomotion-panels .start-menu.open { transition: none !important; }
+.nomotion-panels .balloon { animation: none !important; }
+
 /* ===== Aero motion, but respect the OS "reduce motion" setting ===== */
 @media (prefers-reduced-motion: reduce) {
   .win, .start-menu, .thumbs, .flyout, .balloon, .ctx, .jumplist, .altab { animation-duration: .001s !important; transition-duration: .001s !important; }

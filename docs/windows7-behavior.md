@@ -283,3 +283,129 @@ the taskbar button's live rectangle with linear timing.
 `tests/accuracy.test.mjs` now pins all of these numbers (13 px check box, 21 px thumb, 56 /
 24 / 40 / 16 taskbar metrics, 225 / 155 / 250 ms timings, linear flights) and asserts that
 `.win` never transitions layout properties again.
+
+## Web Frame (the paste-a-link program)
+
+A new program, **Web Frame** (`webframe.exe`, Start menu, Run → `webframe <url>`,
+`frame <url>`): one address box and one `<iframe>`. Type a link, press Enter, the site runs
+inside the window with its own scripts, video, maps and forms.
+
+It is deliberately *not* Internet Explorer — no history model, no favourites, no synthetic
+pages — and it is deliberately honest about the one thing it cannot do. A page may send
+`X-Frame-Options` or `Content-Security-Policy: frame-ancestors`, and the browser enforces
+that **before any of our code runs**. No sandbox relaxation can override it. So:
+
+- the frame uses the same relaxed sandbox and Permissions-Policy as IE (`embed.ts`), never a
+  hand-rolled policy;
+- if a host is known to refuse framing the explanation appears immediately; otherwise the
+  program waits for the `load` event and treats "still nothing after 6 s" as refused, and the
+  status bar also offers **“Came up blank?”** so the user can say so at once;
+- the refusal page names the actual header, warns separately when the address is `http:` on
+  an `https:` shell (mixed content), and offers **Open in a real browser tab**, which always
+  works;
+- a short list of sites known to allow framing (example.com, Wikipedia, Wikimedia Commons,
+  archive.org, OpenStreetMap, MDN, Hacker News, lite.duckduckgo.com, this simulator) is on
+  the start page and on the refusal page, so a first failure is recoverable;
+- a bare host gets `https://`, and prose is turned into a search instead of a broken URL;
+- **Saved** and **Recent** addresses persist in `win7.frame.bookmarks` / `win7.frame.recent`.
+
+`tests/features7.test.mjs` guards the whole path: registration, mounting, the Start-menu
+entry, the Run verbs, the iframe wiring, the shared sandbox helpers, the refusal copy, the
+real-tab escape hatch, the example list (each entry must be an absolute URL), URL
+normalisation, and both storage keys.
+
+## Sound schemes: the Windows Vista sets
+
+The fourteen Windows 7 sets were already there. This PC now also offers the **Windows Vista**
+family, and the Sound dialog lists them by version:
+
+| Scheme | What it is |
+| --- | --- |
+| Vista Glass | Aero Glass: bright FM bell tones with a crystalline shimmer |
+| Vista Pearl | Soft sine arpeggios with a long decay |
+| Vista Tinker | Short wooden marimba hits with a clicky attack |
+| Vista Default | Vista's own default assignments, played from the shared Windows Default clips |
+
+Vista's *default* scheme is the same set of clips Windows 7 uses, so "Vista Default" is a
+real scheme entry that reuses the existing folder rather than duplicating 43 files. Glass,
+Pearl and Tinker are genuinely different sets: they are **rendered by
+`scripts/gen-vista-sounds.mjs`**, because the Vista RTM WAVs are Microsoft's and this
+repository has no redistribution rights to them. Pointing three "new" schemes at the Windows
+7 clips would have produced three identical schemes with different names, which is worse than
+none. Every clip the Win 7 folders carry exists in each Vista folder (43 × 3 WAVs, mono
+22 kHz), so the per-scheme fallback in `sound.ts` never fires for them; `schemeExt()` selects
+`.wav` for the rendered sets and `.mp3` for the rest.
+
+Control Panel → Sound gained a **Sound Schemes** tab: a card per scheme grouped by Windows
+version, a one-line description, the current scheme highlighted, and *Play startup* /
+*Play notify* previews. `tests/sounds.test.mjs` asserts every scheme folder exists, holds
+every mapped clip, and that the rendered clips are real audio rather than empty files.
+
+## More Windows 7 programs
+
+Nine inbox programs that were missing, all of which actually do something:
+
+- **Windows Activation** (`slui.exe`) — accepts a product key, "contacts the activation
+  server", and really flips the activation flag the System page reads.
+- **Windows Update Stand-alone Installer** (`wusa.exe`) — the .msu picker with a real
+  progress bar and an install log.
+- **Connect to a network** (`netshell.dll`) — the wireless wizard with signal bars, security
+  state, the key prompt and a real "connected" list persisted in `win7.wifi`.
+- **Window Color and Appearance** — live glass preview, colour swatches, intensity and
+  transparency, writing the real `colorKey`/`intensity`/`transparency` settings.
+- **Windows Help** (`winhlp32.exe`) — the three-pane help viewer: contents tree (expandable,
+  with sub-topics), topic pane and search.
+- **Tablet PC Settings** (`tabcal.exe`) — the crosshair touch calibration flow.
+- **Fax Cover Page Editor** (`fxscover.exe`) — the field list with a live cover-page preview.
+- **Disk Defragmenter** (`dfrgui.exe`) — drive list, schedule, *Analyze* and *Defragment*
+  with a block map that settles. **`dfrgui.exe` used to open Disk Cleanup**, which is a
+  different program; that mapping is corrected.
+- **New Sync Partnership** — the Sync Center wizard.
+
+All are registered in `registry.ts`, mounted in `appmap.tsx`, reachable from Run where they
+have a real verb, and placed in the Start menu where Windows 7 puts them (Disk Defragmenter,
+Windows Activation and Windows Help under Accessories → System Tools; the cover-page editor
+next to Windows Fax and Scan; Tablet PC Settings in the Tablet PC folder; the update installer
+under Maintenance; a Network leaf for the wizard and the sync wizard).
+
+## Games: visual rework
+
+Graphics only — no rules or AI were touched.
+
+- **Cards (Solitaire, Spider, FreeCell)** — the old face was a rank plus one oversized suit
+  glyph in the corner. `apps/CardArt.tsx` now draws the real thing: indexed corners at the
+  top-left and rotated 180° at the bottom-right, a proper **pip layout** for A–10 (the
+  standard three-column placement with the lower pips inverted), a framed **court panel**
+  for J/Q/K, red `#c8102e` / black `#131313`, and the Win 7 blue lattice back with its white
+  rule and inner shadow. Solitaire's table is the deep Win 7 green with a radial lift;
+  selected cards get the soft yellow halo.
+- **Minesweeper** — was the Windows 98 grey block grid. Now the Windows 7 Aero board: pale
+  blue gradient tiles with a light bevel, a hover lift, a recessed opened cell, the round
+  Aero smiley, and the sunken black LED counter with red glowing digits.
+- **Mahjong Titans** — ivory tiles with the stacked "bamboo" edge and Win 7's cyan selection
+  glow, and real faces: **character** tiles show the Chinese numeral over 萬, **dot** tiles
+  show the actual dot patterns (large ring for 1, diagonals for 2/3, the 5 quincunx, …), and
+  **bamboo** tiles show sticks (the sparrow for 1). Blocked tiles dim, as in the real game.
+- **Chess Titans** — was a brown wooden board. Windows 7 draws blue-and-silver: pale
+  blue-grey and slate squares in a bevelled silver frame, gold ring for the selected square,
+  green for the last move, dot/ring move markers, and light/dark pieces with the Aero bevel.
+- **Purble Place / Hearts** — the candy shell got its rounded pink controls and shadowed
+  cake art; Hearts got the Win 7 blue table with the four seat plates and the gold
+  current-player ring.
+
+## Animations on the taskbar, Start menu and menus
+
+Windows splits motion across **two** Performance Options check boxes, and this shell now
+respects both:
+
+| Setting | Owns |
+| --- | --- |
+| *Animate windows when minimizing and maximizing* (`aero.animations`) | the DWM open/close/minimize/maximize flights |
+| *Animate controls and elements inside windows* (`aero.taskbarAnim`) | the Start menu panel, tray flyouts, context menus, jump lists, thumbnail strips, Alt+Tab, balloons, and the taskbar buttons/tray themselves |
+
+`taskbarAnim` now **defaults to off**, and the root element gets `nomotion-panels` when it is
+off, which zeroes the duration and delay of every panel/button transition and removes the
+Start menu's fade entirely — so the Start menu, every menu, every flyout and every taskbar
+button change state instantly. The window minimize/maximize flights are unaffected, because
+they are the other switch. Turning the setting back on in Control Panel → System restores the
+full Windows 7 timings from the previous accuracy pass.

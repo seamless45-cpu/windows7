@@ -184,6 +184,15 @@ const G: Record<string, () => React.ReactNode> = {
       <circle cx="40" cy="8" r="3" fill="#ffd23a" />
     </>
   ),
+  /* Web Frame: a browser-agnostic globe on a page, not a branded browser logo */
+  globe: () => (
+    <>
+      <circle cx="24" cy="24" r="17" fill="url(#iSphere)" stroke="#1d5a9e" strokeWidth="1.6" />
+      <ellipse cx="24" cy="24" rx="7.5" ry="17" fill="none" stroke="#e8f4ff" strokeWidth="1.4" opacity=".85" />
+      <path d="M7.6 18.5h32.8M7.6 29.5h32.8M24 7v34" stroke="#e8f4ff" strokeWidth="1.4" opacity=".7" fill="none" />
+      <path d="M9 12c4-4.5 9-7 15-7s11 2.5 15 7" fill="none" stroke="#fff" strokeWidth="2" opacity=".45" />
+    </>
+  ),
   chrome: () => (
     <>
       <defs>

@@ -12,7 +12,7 @@ import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
 import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
-import { playSys, playPreview, SCHEMES, SOUND_EVENTS, isNoSounds, SOUND_CLIPS, clipLabel, soundFor, setSoundFor, type SysSound } from "../sound";
+import { playSys, playPreview, SCHEMES, SCHEME_META, SOUND_EVENTS, isNoSounds, SOUND_CLIPS, clipLabel, soundFor, setSoundFor, type SysSound } from "../sound";
 import { wpStyle } from "../fileops";
 import { listMedia, addMedia, removeMedia, mediaUrl, prettySize, prettyDur, WP_FITS, type MediaMeta } from "../media";
 import { DeviceManager } from "./ComputerManagement";
@@ -258,7 +258,7 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
   void tick;
   return (
     <div className="cp-dialog">
-      <Tabs tabs={["Playback", "Recording", "Sounds", "Communications"]} value={tab} onChange={setTab} />
+      <Tabs tabs={["Playback", "Recording", "Sounds", "Sound Schemes", "Communications"]} value={tab} onChange={setTab} />
       <div className="cp-tabbody">
         {tab === "Playback" && (
           <div>
@@ -275,8 +275,14 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
             <p>A sound scheme is a set of sounds applied to events in Windows and programs. You can select Windows Default, one of the extra schemes, or No Sounds.</p>
             <p>
               Sound Scheme:{" "}
-              <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={SCHEMES.map((x) => [x, x]) as [string, string][]} />
+              <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={SCHEMES.map((x) => [x as string, x as string])} />
               {s.soundScheme !== "Windows Default" && s.soundScheme !== "No Sounds" ? <span className="dim"> (modified)</span> : null}
+            </p>
+            {/* Windows 7 shows the scheme's description under the drop-down;
+                this PC offers two Windows versions' worth of schemes, so the
+                line also says which one a scheme came from. */}
+            <p className="dim">
+              {SCHEME_META[s.soundScheme as keyof typeof SCHEME_META]?.version ?? "Windows 7"} — {SCHEME_META[s.soundScheme as keyof typeof SCHEME_META]?.note ?? ""}
             </p>
             <div className="sound-grid">
               <div className="ev-list">
@@ -299,11 +305,52 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
                 />
                 <p><Btn onClick={() => playPreview(s.soundScheme, ev)} disabled={isNoSounds(s.soundScheme) || soundFor(s.soundScheme, ev) === null}>Test</Btn></p>
                 <p className="dim">Click an event to select it, choose a sound, then press Test to hear it in the current scheme.</p>
-                <p className="dim">Schemes: {SCHEMES.length - 1} sound schemes plus No Sounds.</p>
+                <p className="dim">
+                  Schemes: {SCHEMES.filter((x) => x !== "No Sounds").length} sound schemes plus No Sounds —{" "}
+                  {SCHEMES.filter((x) => !x.startsWith("Vista ") && x !== "No Sounds").length} from Windows 7,{" "}
+                  {SCHEMES.filter((x) => x.startsWith("Vista ")).length} from Windows Vista.
+                </p>
                 <p><Btn onClick={() => { SOUND_EVENTS.forEach((e) => setSoundFor(s.soundScheme, e.key, undefined)); setTick((t) => t + 1); }}>Restore this scheme&apos;s defaults</Btn></p>
               </div>
             </div>
             <p><Check checked={s.playStartupSound} onChange={(v) => setSettings({ playStartupSound: v })} label="Play Windows Startup sound" /></p>
+          </div>
+        )}
+        {tab === "Sound Schemes" && (
+          <div className="schemes-page">
+            <p>
+              A sound scheme is a set of sounds applied to the events in Windows and programs. This PC carries the Windows 7
+              sets and the Windows Vista sets; pick one below and every program event is reassigned to it.
+            </p>
+            {(["Windows 7", "Windows Vista"] as const).map((version) => (
+              <div key={version} className="scheme-group">
+                <h3>{version} schemes</h3>
+                <div className="scheme-grid">
+                  {SCHEMES.filter((x) => SCHEME_META[x].version === version).map((x) => (
+                    <div
+                      key={x}
+                      className={"scheme-card" + (s.soundScheme === x ? " on" : "")}
+                      onClick={() => { setSettings({ soundScheme: x }); }}
+                      title={`Use the ${x} scheme`}
+                    >
+                      <div className="scheme-head">
+                        <Icon name="audio" size={18} />
+                        <b>{x}</b>
+                      </div>
+                      <span>{SCHEME_META[x].note}</span>
+                      <div className="scheme-actions">
+                        <Btn onClick={() => playPreview(x, "startup")} disabled={isNoSounds(x)}>Play startup</Btn>
+                        <Btn onClick={() => playPreview(x, "notify")} disabled={isNoSounds(x)}>Play notify</Btn>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p className="dim">
+              The Windows Vista sets are rendered from a documented tone model in <code>scripts/gen-vista-sounds.mjs</code> (Glass,
+              Pearl and Tinker are separate sets; Windows Vista&apos;s own default is the Windows Default clips).
+            </p>
           </div>
         )}
         {tab === "Communications" && <div><p>When Windows detects communications activity:</p><Radio checked label="Do nothing" onChange={() => {}} /><br /><Radio checked={false} label="Reduce the volume of other sounds by 80%" onChange={() => {}} /></div>}
@@ -1045,8 +1092,12 @@ function AeroPage() {
       <GroupBox title="Aero effects">
         <div><Check checked={s.transparency} onChange={(v) => setSettings({ transparency: v })} label="Enable transparency" /></div>
         <div><Check checked={a.animations} onChange={(v) => set({ animations: v })} label="Animate windows when minimizing and maximizing" /></div>
+        <p className="dim">
+          Windows keeps these two separate: the first owns the DWM minimize/maximize flights, the second owns every menu, panel and
+          taskbar transition. Turning the second off makes the Start menu, every menu and every flyout open instantly.
+        </p>
         <div><Check checked={a.shadows} onChange={(v) => set({ shadows: v })} label="Show shadows under windows" /></div>
-        <div><Check checked={a.taskbarAnim} onChange={(v) => set({ taskbarAnim: v })} label="Animate controls and elements inside windows" /></div>
+        <div><Check checked={a.taskbarAnim} onChange={(v) => set({ taskbarAnim: v })} label="Animate controls and elements inside windows (Start menu, menus, flyouts, taskbar buttons)" /></div>
         <div><Check checked={a.smoothScroll} onChange={(v) => set({ smoothScroll: v })} label="Use smooth scrolling for lists" /></div>
         <div><Check checked={s.shake} onChange={(v) => setSettings({ shake: v })} label="Enable Aero Shake (shake a window to minimize the others)" /></div>
         <div><Check checked={s.aeroSnap} onChange={(v) => setSettings({ aeroSnap: v })} label="Automatically arrange windows when dragged to the edge of the screen" /></div>
@@ -1056,7 +1107,8 @@ function AeroPage() {
         <p>Change picture every <Sel value={s.wpInterval} onChange={(v) => setSettings({ wpInterval: Number(v) })} opts={[[1, "1 minute"], [5, "5 minutes"], [10, "10 minutes"], [30, "30 minutes"], [60, "1 hour"]]} /></p>
       </GroupBox>
       <GroupBox title="Sound scheme">
-        <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={SCHEMES.map((x) => [x, x]) as [string, string][]} />
+        <Sel value={s.soundScheme} onChange={(v) => setSettings({ soundScheme: v })} opts={SCHEMES.map((x) => [x as string, x as string])} />
+        <p className="dim">{SCHEME_META[s.soundScheme as keyof typeof SCHEME_META]?.note}</p>
       </GroupBox>
       <p><Btn onClick={() => setSettings({ theme: s.theme === "aero" ? "basic" : "aero" })}>Switch to Windows {s.theme === "aero" ? "7 Basic" : "Aero"}</Btn></p>
     </div>

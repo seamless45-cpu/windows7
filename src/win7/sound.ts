@@ -70,7 +70,17 @@ export const SOUND_EVENTS: { key: SysSound; label: string }[] = [
   { key: "speech-disambiguation", label: "Speech Recognition — Disambiguation" },
 ];
 
-/** The sound schemes shipped in Windows 7 (the folder names on disk). */
+/**
+ * The sound schemes this PC offers. The first fourteen are the ones Windows 7
+ * ships (Windows Default plus the thirteen extra sets), and the last four are
+ * the Vista family: Windows Vista's own default set is Windows Default, and the
+ * three *distinct* Vista selections — Glass, Pearl and Tinker — are provided so
+ * "all the Vista schemes" are selectable rather than only the default.
+ *
+ * Glass, Pearl and Tinker are rendered by `scripts/gen-vista-sounds.mjs` from a
+ * documented tone model (see that file for why they are not the Microsoft WAVs)
+ * and stored as .wav, which is why `schemeExt` exists.
+ */
 export const SCHEMES = [
   "Windows Default",
   "Afternoon",
@@ -86,13 +96,51 @@ export const SCHEMES = [
   "Raga",
   "Savannah",
   "Sonata",
+  "Vista Glass",
+  "Vista Pearl",
+  "Vista Tinker",
+  "Vista Default",
   "No Sounds",
 ] as const;
 
+export type Scheme = (typeof SCHEMES)[number];
+export const isScheme = (v: unknown): v is Scheme => typeof v === "string" && (SCHEMES as readonly string[]).includes(v);
+
+/** What each scheme is, for the Sound dialog's description line. */
+export const SCHEME_META: Record<Scheme, { version: string; note: string }> = {
+  "Windows Default": { version: "Windows 7", note: "The sounds Windows 7 uses out of the box." },
+  Afternoon: { version: "Windows 7", note: "Warm, mellow chimes." },
+  Calligraphy: { version: "Windows 7", note: "Brush-stroke bells." },
+  Characters: { version: "Windows 7", note: "Playful, cartoonish set." },
+  Cityscape: { version: "Windows 7", note: "Clean, urban tones." },
+  Delta: { version: "Windows 7", note: "Low, earthy set." },
+  Festival: { version: "Windows 7", note: "Bright celebratory set." },
+  Garden: { version: "Windows 7", note: "Soft, breezy set." },
+  Heritage: { version: "Windows 7", note: "Traditional, stately set." },
+  Landscape: { version: "Windows 7", note: "Open, airy set." },
+  Quirky: { version: "Windows 7", note: "Offbeat, comedic set." },
+  Raga: { version: "Windows 7", note: "Indian-inspired set." },
+  Savannah: { version: "Windows 7", note: "Wide, warm set." },
+  Sonata: { version: "Windows 7", note: "Classical piano set." },
+  "Vista Glass": { version: "Windows Vista", note: "Aero Glass: crystalline bell tones." },
+  "Vista Pearl": { version: "Windows Vista", note: "Soft sine arpeggios with a long tail." },
+  "Vista Tinker": { version: "Windows Vista", note: "Short wooden marimba hits." },
+  "Vista Default": { version: "Windows Vista", note: "Vista's own default assignments, played from this PC's Windows 7 clips." },
+  "No Sounds": { version: "Windows 7", note: "Silences every event." },
+};
+
 export const isNoSounds = (scheme: string) => scheme === "No Sounds";
 
-/** Folder that holds a scheme's clips. */
-const folder = (scheme: string) => (scheme === "Windows Default" ? "default" : scheme);
+/**
+ * "Vista Default" is not a separate set of files: Vista and 7 share the same
+ * default clips, so it plays the Windows Default folder. Glass/Pearl/Tinker have
+ * their own folders and, being rendered as PCM, use .wav instead of .mp3.
+ */
+const folder = (scheme: string) =>
+  scheme === "Windows Default" || scheme === "Vista Default" ? "default" : scheme.replace(/^Vista /, "Vista");
+
+/** Container the clips in a scheme's folder use. */
+const schemeExt = (scheme: string) => (scheme.startsWith("Vista ") && scheme !== "Vista Default" ? "wav" : "mp3");
 
 // Inlined by next.config.ts (`env`): "" locally, "/windows7" on GitHub Pages.
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -295,7 +343,7 @@ const clipOf = (kind: SysSound) => CLIP[kind] ?? kind;
 const url = (scheme: string, kind: SysSound) => {
   const over = soundFor(scheme, kind);
   const clip = over === undefined ? clipOf(kind) : over;
-  return `${BASE}/sounds/${folder(scheme)}/${clip}.mp3`;
+  return `${BASE}/sounds/${folder(scheme)}/${clip}.${schemeExt(scheme)}`;
 };
 
 /** Fetch and decode a clip; safe to call repeatedly. */

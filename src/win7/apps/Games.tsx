@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Win, useStore, setWin, closeWin, openApp, msgBox, lsGet, lsSet, MenuItem } from "../store";
 import { MenuBar, Btn, useNow } from "../ui";
 import { Icon } from "../icons";
+import { CardFace, CardBack } from "./CardArt";
 
 /* ============================================================== card model */
 type Suit = "s" | "h" | "d" | "c";
@@ -356,7 +357,7 @@ export function Solitaire({ win }: { win: Win }) {
       <div className="sol-table" style={{ background: skinsCss }}>
         <div className="sol-top">
           <div className="sol-stock" onClick={drawCard} title="Click to draw">
-            {tab.length ? <div className="card back" style={{ ...cardStyle(null), width: CARD_W, height: CARD_H }}><span className="card-back-art" /></div> : <div className="card empty-slot" />}
+            {tab.length ? <div className="card back" style={{ ...cardStyle(null), width: CARD_W, height: CARD_H }}><CardBack /></div> : <div className="card empty-slot" />}
           </div>
           <div className="sol-waste">
             {waste.slice(-3).map((c, i, arr) => {
@@ -426,15 +427,7 @@ export function Solitaire({ win }: { win: Win }) {
   );
 }
 
-function CardFace({ c }: { c: Card }) {
-  return (
-    <div className="cf">
-      <span className="cf-r">{RANKS[c.r]}</span>
-      <span className="cf-s">{glyph(c.s)}</span>
-      <span className="cf-big">{glyph(c.s)}</span>
-    </div>
-  );
-}
+
 
 /* ================================================================== Spider */
 export function Spider({ win }: { win: Win }) {
