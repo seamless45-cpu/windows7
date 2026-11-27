@@ -13,6 +13,9 @@
  *  - `out/_next` is replaced wholesale; Next.js fingerprints those file names.
  *  - `out/index.html` becomes the root `index.html`.
  *  - every other generated file is copied only if it is not a source path.
+ *  - files the build no longer emits are pruned from the published copy, so a
+ *    renamed or deleted asset (an old sound set, a stale wallpaper) does not
+ *    linger in the branch forever.
  *  - `.nojekyll` is written so GitHub serves the files verbatim.
  */
 import { cp, mkdir, readdir, rm, writeFile, access } from "node:fs/promises";
@@ -66,6 +69,29 @@ await cp(path.join(out, "_next"), path.join(root, "_next"), { recursive: true })
 const IGNORED = [/^__next\./, /^_not-found$/, /^404$/, /^index\.txt$/];
 
 
+/**
+ * Delete files in `published/` that `built/` no longer contains, recursively.
+ * Only ever called on directories that are pure build output.
+ */
+async function prune(published, built, label) {
+  const inBuilt = new Set(await readdir(built));
+  let removed = 0;
+  for (const entry of await readdir(published, { withFileTypes: true })) {
+    if (!inBuilt.has(entry.name)) {
+      await rm(path.join(published, entry.name), { recursive: true, force: true });
+      removed += 1;
+      continue;
+    }
+    if (entry.isDirectory()) {
+      const b = path.join(built, entry.name);
+      const isDir = await readdir(b).then(() => true, () => false);
+      if (isDir) removed += await prune(path.join(published, entry.name), b, label);
+    }
+  }
+  return removed;
+}
+
+let pruned = 0;
 const entries = await readdir(out, { withFileTypes: true });
 let copied = 0;
 for (const entry of entries) {
@@ -82,6 +108,7 @@ for (const entry of entries) {
     recursive: true,
     force: true,
   });
+  if (entry.isDirectory()) pruned += await prune(path.join(root, entry.name), path.join(out, entry.name), entry.name);
   copied += 1;
 }
 
@@ -89,3 +116,4 @@ await writeFile(path.join(root, ".nojekyll"), "");
 await mkdir(path.join(root, "_next"), { recursive: true });
 
 console.log(`Published the static site to the repository root (${copied} entries + _next, .nojekyll).`);
+if (pruned) console.log(`Pruned ${pruned} stale file(s) that the build no longer emits.`);
