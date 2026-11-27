@@ -16,7 +16,8 @@
     "test": "node tests/sw.test.mjs && node tests/registry.test.mjs && node tests/accuracy.test.mjs && node tests/sounds.test.mjs && node --experimental-strip-types --no-warnings tests/softkeyboard.test.mjs && node --experimental-strip-types --no-warnings tests/calculator.test.mjs && node tests/features7.test.mjs",
     "icons": "node scripts/make-icons.mjs",
     "test:accuracy": "node tests/accuracy.test.mjs",
-    "test:sounds": "node tests/sounds.test.mjs"
+    "test:sounds": "node tests/sounds.test.mjs",
+    "import:vista-sounds": "node scripts/import-vista-sounds.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -31,6 +32,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "jsdom": "^25.0.1",
+    "lamejs": "^1.2.1",
     "postcss": "8.5.8",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"

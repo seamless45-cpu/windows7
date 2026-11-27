@@ -78,10 +78,12 @@ for (const s of ["Vista Glass", "Vista Pearl", "Vista Tinker", "Vista Default"])
 }
 check("schemes carry a description", /export const SCHEME_META/.test(sound));
 check("Vista sets are described as Windows Vista", /version: "Windows Vista"/.test(sound));
-for (const dir of ["VistaGlass", "VistaPearl", "VistaTinker"]) {
-  check(`sound folder ${dir} exists`, await exists(`public/sounds/${dir}/startup.wav`));
+// Pearl does not override startup, so probe a clip every Vista set carries.
+for (const dir of ["VistaDefault", "VistaGlass", "VistaPearl", "VistaTinker"]) {
+  check(`sound folder ${dir} exists`, await exists(`public/sounds/${dir}/notify.mp3`));
 }
-check("the generator is in the repo", await exists("scripts/gen-vista-sounds.mjs"));
+check("the Vista importer is in the repo", await exists("scripts/import-vista-sounds.mjs"));
+check("no tone synthesiser is shipped", !(await exists("scripts/gen-vista-sounds.mjs")));
 check("the Sound dialog has a schemes browser", /Sound Schemes/.test(await src("src/win7/apps/ControlPanel.tsx")));
 
 /* ------------------------------------------------------- more Win 7 programs */

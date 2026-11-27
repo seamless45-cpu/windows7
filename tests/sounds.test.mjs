@@ -52,39 +52,50 @@ for (const scheme of schemes) {
   check(`scheme "${scheme}" has every mapped clip (${clips.length})`, absent.length === 0, absent.join(", "));
 }
 
-/* ------------------------------------------ the Windows Vista schemes exist */
-// Glass / Pearl / Tinker are rendered as .wav (see scripts/gen-vista-sounds.mjs)
-// and "Vista Default" reuses the Windows Default folder, so it needs no files.
-const vista = ["VistaGlass", "VistaPearl", "VistaTinker"];
-const scoreNames = [...new Set([...soundTs.matchAll(/^ {2}"?([a-z_-]+)"?: \(\) => \{$/gm)].map((m) => m[1]))];
+/* ------------------------------------ the Windows Vista schemes are genuine */
+// Every Vista set is a real, imported folder of MP3s. A Vista *set* only
+// overrides the events it was authored for; sound.ts falls back to the Windows
+// Default clip for the rest, exactly as Windows does, so partial folders are
+// correct as long as they are not empty and every file is real audio.
+const vista = ["VistaDefault", "VistaGlass", "VistaPearl", "VistaTinker"];
+const setOwnFiles = (scheme) =>
+  readdir(path.join(root, "public/sounds", scheme)).then((f) => new Set(f.filter((x) => x.endsWith(".mp3")).map((x) => x.replace(/\.mp3$/, ""))));
 for (const scheme of vista) {
-  const dir = path.join(root, "public/sounds", scheme);
   let files;
   try {
-    files = new Set((await readdir(dir)).map((f) => f.replace(/\.wav$/, "")));
+    files = await setOwnFiles(scheme);
   } catch {
     check(`Vista scheme folder exists: ${scheme}`, false, "missing directory");
     continue;
   }
-  const absent = clips.filter((c) => !files.has(c));
-  check(`Vista scheme "${scheme}" has every mapped clip (${clips.length})`, absent.length === 0, absent.join(", "));
-  // a zero-length WAV is "present" but silent
-  let tiny = [];
-  for (const c of clips) {
-    try {
-      const st = await stat(path.join(dir, `${c}.wav`));
-      if (st.size < 200) tiny.push(c);
-    } catch {
-      tiny.push(c);
-    }
+  check(`Vista scheme "${scheme}" has clips`, files.size >= 20, `${files.size} files`);
+  const known = new Set([...clips, ...(soundTs.slice(soundTs.indexOf("export const SOUND_CLIPS"), soundTs.indexOf("const CLIP_LABEL")).match(/"([a-z_-]+)"/g) || []).map((x) => x.replace(/"/g, ""))]);
+  const unknown = [...files].filter((c) => !known.has(c));
+  check(`Vista scheme "${scheme}" only contains known clip names`, unknown.length === 0, unknown.join(", "));
+  // every file must be a real MP3 with audio in it, not a placeholder
+  const broken = [];
+  let total = 0;
+  for (const c of files) {
+    const st = await stat(path.join(root, "public/sounds", scheme, `${c}.mp3`));
+    total += st.size;
+    if (st.size < 1024) broken.push(`${c} (${st.size}B)`);
   }
-  check(`Vista scheme "${scheme}" clips are real audio, not empty files`, tiny.length === 0, tiny.join(", "));
+  check(`Vista scheme "${scheme}" clips are real audio, not placeholders`, broken.length === 0, broken.join(", "));
+  check(`Vista scheme "${scheme}" is a full-size set`, total > 80_000, `${total} bytes`);
 }
+// The point of this pass: these must be the genuine Vista recordings, so the
+// importer and the source WAVs (not a synthesiser) are what produced them.
+const importer = await readFile(path.join(root, "scripts/import-vista-sounds.mjs"), "utf8");
+check("the importer reads the real Vista media folders", /Windows Vista/.test(importer) && /Glass/.test(importer) && /Tinker/.test(importer));
+check("the importer converts WAV to MP3 rather than generating tones", /wavToMono/.test(importer) && /toMp3/.test(importer));
+check("no synthesiser script remains", !(await readdir(path.join(root, "scripts"))).includes("gen-vista-sounds.mjs"));
+check("a partial Vista set falls back to Vista Default, not Windows 7", /fallbackScheme/.test(soundTs) && /\? "Vista Default" : "Windows Default"/.test(soundTs));
+check("the fallback is actually used when a clip 404s", /const base = fallbackScheme\(scheme\)/.test(soundTs) && /load\(base, kind\)/.test(soundTs));
+check("Vista Default has its own recordings, not the Windows 7 folder", /scheme === "Windows Default" \? "default"/.test(soundTs) && !/\|\| scheme === "Vista Default"/.test(soundTs));
+const vd = await setOwnFiles("VistaDefault");
+check("Vista Default covers the program events", clips.filter((c) => vd.has(c)).length >= 30, `${clips.filter((c) => vd.has(c)).length} of ${clips.length}`);
 check("the Vista schemes are listed in SCHEMES", /"Vista Glass"/.test(soundTs) && /"Vista Pearl"/.test(soundTs) && /"Vista Tinker"/.test(soundTs) && /"Vista Default"/.test(soundTs));
 check("every scheme has a description", /export const SCHEME_META/.test(soundTs) && /"Vista Tinker": \{ version: "Windows Vista"/.test(soundTs));
-check("Vista clips are played from their .wav container", /schemeExt/.test(soundTs) && /\?\.mp3`|\$\{clip\}\.\$\{schemeExt/.test(soundTs));
-check("Vista Default reuses the Windows Default clips", /\|\| scheme === "Vista Default" \? "default"/.test(soundTs));
-void scoreNames;
 
 /* --------------------------------------------------------- every event fires */
 // collect playSys("...") call sites across the app

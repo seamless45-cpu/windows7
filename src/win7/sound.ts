@@ -71,15 +71,14 @@ export const SOUND_EVENTS: { key: SysSound; label: string }[] = [
 ];
 
 /**
- * The sound schemes this PC offers. The first fourteen are the ones Windows 7
- * ships (Windows Default plus the thirteen extra sets), and the last four are
- * the Vista family: Windows Vista's own default set is Windows Default, and the
- * three *distinct* Vista selections — Glass, Pearl and Tinker — are provided so
- * "all the Vista schemes" are selectable rather than only the default.
+ * The sound schemes this PC offers: the fourteen Windows 7 sets, the four
+ * Windows Vista sets (Vista Default, Glass, Pearl, Tinker) and No Sounds.
  *
- * Glass, Pearl and Tinker are rendered by `scripts/gen-vista-sounds.mjs` from a
- * documented tone model (see that file for why they are not the Microsoft WAVs)
- * and stored as .wav, which is why `schemeExt` exists.
+ * The Vista sets are the genuine Vista RTM recordings, imported from the Vista
+ * media by `scripts/import-vista-sounds.mjs` (44.1 kHz stereo WAV -> 22 kHz
+ * mono MP3) and stored in `public/sounds/VistaDefault|VistaGlass|VistaPearl|
+ * VistaTinker`. They are *different* clips from the Windows 7 ones, including
+ * Vista Default: Vista and 7 shipped different recordings for the same events.
  */
 export const SCHEMES = [
   "Windows Default",
@@ -96,10 +95,10 @@ export const SCHEMES = [
   "Raga",
   "Savannah",
   "Sonata",
+  "Vista Default",
   "Vista Glass",
   "Vista Pearl",
   "Vista Tinker",
-  "Vista Default",
   "No Sounds",
 ] as const;
 
@@ -122,25 +121,18 @@ export const SCHEME_META: Record<Scheme, { version: string; note: string }> = {
   Raga: { version: "Windows 7", note: "Indian-inspired set." },
   Savannah: { version: "Windows 7", note: "Wide, warm set." },
   Sonata: { version: "Windows 7", note: "Classical piano set." },
-  "Vista Glass": { version: "Windows Vista", note: "Aero Glass: crystalline bell tones." },
-  "Vista Pearl": { version: "Windows Vista", note: "Soft sine arpeggios with a long tail." },
-  "Vista Tinker": { version: "Windows Vista", note: "Short wooden marimba hits." },
-  "Vista Default": { version: "Windows Vista", note: "Vista's own default assignments, played from this PC's Windows 7 clips." },
+  "Vista Default": { version: "Windows Vista", note: "The sounds Windows Vista used out of the box." },
+  "Vista Glass": { version: "Windows Vista", note: "Vista's Glass set: glassy bells. Covers part of the events; the rest play Vista Default." },
+  "Vista Pearl": { version: "Windows Vista", note: "Vista's Pearl set: soft, rounded tones. Covers part of the events; the rest play Vista Default." },
+  "Vista Tinker": { version: "Windows Vista", note: "Vista's Tinker set: short, wooden hits. Covers part of the events; the rest play Vista Default." },
   "No Sounds": { version: "Windows 7", note: "Silences every event." },
 };
 
 export const isNoSounds = (scheme: string) => scheme === "No Sounds";
 
-/**
- * "Vista Default" is not a separate set of files: Vista and 7 share the same
- * default clips, so it plays the Windows Default folder. Glass/Pearl/Tinker have
- * their own folders and, being rendered as PCM, use .wav instead of .mp3.
- */
-const folder = (scheme: string) =>
-  scheme === "Windows Default" || scheme === "Vista Default" ? "default" : scheme.replace(/^Vista /, "Vista");
+/** "Vista Glass" lives in the folder "VistaGlass"; Windows Default in "default". */
+const folder = (scheme: string) => (scheme === "Windows Default" ? "default" : scheme.replace(/^Vista /, "Vista"));
 
-/** Container the clips in a scheme's folder use. */
-const schemeExt = (scheme: string) => (scheme.startsWith("Vista ") && scheme !== "Vista Default" ? "wav" : "mp3");
 
 // Inlined by next.config.ts (`env`): "" locally, "/windows7" on GitHub Pages.
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -264,6 +256,9 @@ export const SOUND_CLIPS = [
   "menu", "uac", "print", "hardware-insert", "hardware-remove", "hardware-fail",
   "battery-low", "battery-critical", "feed", "infobar", "popup", "navigation",
   "ringin", "ringout", "tada", "chimes", "chord",
+  // Windows' Media folder also carries these, and the Sounds drop-down lists
+  // every .wav in the folder, so they are selectable here too.
+  "ir_begin", "ir_end", "ir_inter", "shutdown-long",
 ] as const;
 
 const CLIP_LABEL: Record<string, string> = {
@@ -298,6 +293,10 @@ const CLIP_LABEL: Record<string, string> = {
   tada: "Windows Tada",
   chimes: "chimes",
   chord: "chord",
+  ir_begin: "ir_begin",
+  ir_end: "ir_end",
+  ir_inter: "ir_inter",
+  "shutdown-long": "Windows Shutdown (long)",
 };
 export const clipLabel = (clip: string) => CLIP_LABEL[clip] || clip;
 
@@ -339,11 +338,20 @@ export function setSoundFor(scheme: string, kind: SysSound, clip: string | null 
   clearCache();
 }
 
+/**
+ * Where a scheme's unassigned events come from. Windows' alternative schemes
+ * only redefine part of the program-event list; the rest play from the base
+ * scheme. Vista's base is Vista Default, never Windows 7's set.
+ */
+const fallbackScheme = (scheme: string) =>
+  scheme.startsWith("Vista ") && scheme !== "Vista Default" ? "Vista Default" : "Windows Default";
+
 const clipOf = (kind: SysSound) => CLIP[kind] ?? kind;
 const url = (scheme: string, kind: SysSound) => {
   const over = soundFor(scheme, kind);
   const clip = over === undefined ? clipOf(kind) : over;
-  return `${BASE}/sounds/${folder(scheme)}/${clip}.${schemeExt(scheme)}`;
+  // Every scheme folder ships MP3s, including the imported Vista ones.
+  return `${BASE}/sounds/${folder(scheme)}/${clip}.mp3`;
 };
 
 /** Fetch and decode a clip; safe to call repeatedly. */
@@ -366,10 +374,11 @@ function load(scheme: string, kind: SysSound) {
       // Windows' alternative schemes only redefine 20 of the program events;
       // for the rest the OS keeps using the Windows Default clip. Fall back to
       // it so every scheme is complete instead of silently dropping a sound.
-      if (scheme !== "Windows Default") {
-        const dkey = "Windows Default/" + kind;
+      const base = fallbackScheme(scheme);
+      if (scheme !== base) {
+        const dkey = base + "/" + kind;
         if (!cache.has(dkey)) {
-          load("Windows Default", kind);
+          load(base, kind);
           // retry once the default clip arrives
           const wait = (n: number) => {
             const b = cache.get(dkey);

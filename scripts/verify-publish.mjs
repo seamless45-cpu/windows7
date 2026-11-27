@@ -93,6 +93,16 @@ for (const [label, marker] of Object.entries(MARKERS)) {
 for (const f of ["manifest.webmanifest", "sw.js", "icons/pwa/icon-192.png", "icons/pwa/icon-512.png"]) {
   if (!(await exists(path.join(root, f)))) problems.push(`PWA file missing from the publish: ${f}`);
 }
+// 6: the sound sets are part of the publish — the Vista clips are real audio
+// imported from the Vista media, and a publish that drops them sounds broken.
+for (const f of ["sounds/VistaDefault/startup.mp3", "sounds/VistaGlass/notify.mp3", "sounds/default/notify.mp3"]) {
+  if (!(await exists(path.join(root, f)))) problems.push(`sound clip missing from the publish: ${f}`);
+}
+for (const dir of ["VistaDefault", "VistaGlass", "VistaPearl", "VistaTinker"]) {
+  const n = await readdir(path.join(root, "sounds", dir)).catch(() => []);
+  if (n.filter((f) => f.endsWith(".mp3")).length < 20) problems.push(`sound set ${dir} is incomplete (${n.length} files)`);
+}
+
 const swSrc = await readFile(path.join(root, "sw.js"), "utf8").catch(() => "");
 if (swSrc && !/caches\.open/.test(swSrc)) problems.push("sw.js has no cache logic");
 

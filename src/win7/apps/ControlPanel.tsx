@@ -348,8 +348,9 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
               </div>
             ))}
             <p className="dim">
-              The Windows Vista sets are rendered from a documented tone model in <code>scripts/gen-vista-sounds.mjs</code> (Glass,
-              Pearl and Tinker are separate sets; Windows Vista&apos;s own default is the Windows Default clips).
+              The Windows Vista sets are the genuine Vista recordings, imported from the Vista media by{" "}
+              <code>scripts/import-vista-sounds.mjs</code>. Glass, Pearl and Tinker only override the events they
+              were authored for; everything else falls back to the Vista Default clip, as in Windows.
             </p>
           </div>
         )}
