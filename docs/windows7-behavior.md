@@ -321,25 +321,47 @@ family, and the Sound dialog lists them by version:
 
 | Scheme | What it is |
 | --- | --- |
-| Vista Glass | Aero Glass: bright FM bell tones with a crystalline shimmer |
-| Vista Pearl | Soft sine arpeggios with a long decay |
-| Vista Tinker | Short wooden marimba hits with a clicky attack |
-| Vista Default | Vista's own default assignments, played from the shared Windows Default clips |
+| Vista Default | Vista's own default scheme — the ~46-event assignment Vista shipped |
+| Vista Glass | Vista's Aero Glass set (a partial set: it overrides the events Microsoft authored for it) |
+| Vista Pearl | Vista's Pearl set (partial, same rule) |
+| Vista Tinker | Vista's Tinker set (partial, same rule) |
 
-Vista's *default* scheme is the same set of clips Windows 7 uses, so "Vista Default" is a
-real scheme entry that reuses the existing folder rather than duplicating 43 files. Glass,
-Pearl and Tinker are genuinely different sets: they are **rendered by
-`scripts/gen-vista-sounds.mjs`**, because the Vista RTM WAVs are Microsoft's and this
-repository has no redistribution rights to them. Pointing three "new" schemes at the Windows
-7 clips would have produced three identical schemes with different names, which is worse than
-none. Every clip the Win 7 folders carry exists in each Vista folder (43 × 3 WAVs, mono
-22 kHz), so the per-scheme fallback in `sound.ts` never fires for them; `schemeExt()` selects
-`.wav` for the rendered sets and `.mp3` for the rest.
+These are the **genuine Vista recordings**, not approximations. The clips come from the
+Windows Vista media (the `(2006) Windows Vista` folder of the community
+[`MCPlayer2015/all-windows-sounds`](https://github.com/MCPlayer2015/all-windows-sounds)
+archive, which preserves the Vista RTM `C:\Windows\Media` WAVs): 39 default clips, 38 Glass,
+26 Pearl, 32 Tinker — 140 clips in all.
+
+The source masters are 44.1 kHz/16-bit stereo PCM and are **not committed** (33 MB). Instead
+`scripts/import-vista-sounds.mjs` imports them:
+
+```sh
+node scripts/import-vista-sounds.mjs "/path/(2006) Windows Vista"
+```
+
+It resolves `<path>/<set>`, `<path>/Windows Vista/<set>` or the archive layout, parses the
+WAV headers itself (no ffmpeg dependency), downsamples to 22.05 kHz mono, and encodes
+64 kbps MP3 with `lamejs` into `public/sounds/VistaDefault|VistaGlass|VistaPearl|VistaTinker`.
+Unmapped files are skipped with a log line; the run is deterministic. The shipped sets are
+~0.3 KB per second of audio: about 1.5 MB total, versus 2.9 MB per set as WAV.
+
+Vista's *default* scheme is not identical to Windows 7's — Vista has its own startup, logon,
+navigation and shutdown recordings — so "Vista Default" gets its own folder rather than
+pointing at the Windows 7 clips. Glass, Pearl and Tinker are **partial** sets by design: they
+only carry the events Microsoft authored for them, and everything else falls back to the
+Vista Default clip (never a Windows 7 clip — `fallbackScheme()` keeps the two eras apart),
+exactly as Windows does. Every scheme folder ships MP3s, so the URL builder is a plain
+`…/${clip}.mp3`; there is no per-scheme container switch.
+
+The Sounds drop-down (`SOUND_CLIPS`) also gained the four extra files Vista's Media folder
+carries — `ir_begin`, `ir_end`, `ir_inter` and the long shutdown sting — because Windows lists
+every `.wav` in the folder.
 
 Control Panel → Sound gained a **Sound Schemes** tab: a card per scheme grouped by Windows
 version, a one-line description, the current scheme highlighted, and *Play startup* /
-*Play notify* previews. `tests/sounds.test.mjs` asserts every scheme folder exists, holds
-every mapped clip, and that the rendered clips are real audio rather than empty files.
+*Play notify* previews. `tests/sounds.test.mjs` asserts each Vista folder exists, is a
+full-size set, holds only known clip names, and that every file is real audio rather than a
+placeholder — and that no synthesiser script has crept back in.
 
 ## More Windows 7 programs
 
