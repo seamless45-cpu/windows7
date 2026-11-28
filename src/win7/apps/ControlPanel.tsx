@@ -19,7 +19,7 @@ import { DeviceManager } from "./ComputerManagement";
 
 interface PageDef { title: string; icon: string; cat: string }
 const CATS: { id: string; title: string; icon: string; items: string[]; links: [string, string][] }[] = [
-  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "secpol", "perfmon", "mdsched", "support", "backup", "bitlocker", "wei", "ra"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "backup"], ["Find and fix problems", "support"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
+  { id: "cat-system", title: "System and Security", icon: "security", items: ["actioncenter", "firewall", "system", "wupdate", "power", "devmgr", "reliability", "anytime", "eventvwr", "cleanmgr", "sysdiag", "services", "azman", "iscsi", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "secpol", "perfmon", "mdsched", "support", "backup", "bitlocker", "wei", "ra"], links: [["Review your computer's status", "actioncenter"], ["Back up your computer", "backup"], ["Find and fix problems", "support"], ["View event logs", "eventvwr"], ["Free up disk space", "cleanmgr"]] },
   { id: "cat-network", title: "Network and Internet", icon: "netcat", items: ["network", "inetopts", "rdp", "sync", "homegroup"], links: [["View network status and tasks", "network"], ["Choose homegroup and sharing options", "homegroup"]] },
   { id: "cat-hardware", title: "Hardware and Sound", icon: "hardware", items: ["devices", "sound", "power", "mouse", "keyboard", "mobility", "wfs"], links: [["View devices and printers", "devices"], ["Add a device", "devices"], ["Adjust commonly used mobility settings", "power"]] },
   { id: "cat-programs", title: "Programs", icon: "programs", items: ["programs", "defaultprogs", "features", "gadgets", "games", "migwiz", "mce", "stkmgr"], links: [["Uninstall a program", "programs"], ["Default Programs", "defaultprogs"]] },
@@ -69,6 +69,8 @@ const PAGES: Record<string, PageDef> = {
   games: { title: "Games", icon: "gamecenter", cat: "cat-programs" },
   anytime: { title: "Windows Anytime Upgrade", icon: "trust", cat: "cat-system" },
   services: { title: "Administrative Tools", icon: "services", cat: "cat-system" },
+  azman: { title: "Authorization Manager", icon: "shield", cat: "cat-system" },
+  iscsi: { title: "iSCSI Initiator", icon: "drive", cat: "cat-system" },
   msconfig: { title: "System Configuration", icon: "msconfig", cat: "cat-system" },
   compmgmt: { title: "Computer Management", icon: "cmg", cat: "cat-system" },
   tasksched: { title: "Task Scheduler", icon: "tasksched", cat: "cat-system" },
@@ -105,7 +107,7 @@ const PAGES: Record<string, PageDef> = {
   odbcad: { title: "ODBC Data Source Administrator", icon: "drive", cat: "cat-system" },
   sigverif: { title: "File Signature Verification", icon: "shield", cat: "cat-system" },
 };
-const ALL_ITEMS = ["printmgmt", "colorcpl", "recdisc", "compsvc", "odbcad", "sigverif", "actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
+const ALL_ITEMS = ["admintools", "printmgmt", "colorcpl", "recdisc", "compsvc", "odbcad", "sigverif", "actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -1323,7 +1325,7 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   eventvwr: () => <CPLaunch app="eventvwr" text="Event Viewer shows the System, Application and Security logs. Open it to read the events this PC has recorded." />,
   cleanmgr: () => <CPLaunch app="cleanmgr" text="Disk Cleanup frees space by removing temporary files, thumbnails, crash dumps and the contents of the Recycle Bin." />,
   sysdiag: () => <CPLaunch app="sysdiag" text="System Information shows hardware resources, components and the software environment." />,
-  services: () => <CPLaunch app="services" text="Administrative Tools collects the management consoles: Services, System Configuration, Event Viewer, Disk Cleanup and System Information." />,
+  services: () => <AdminFolder />,
   compmgmt: () => <CPLaunch app="compmgmt" text="Computer Management is the console that groups the System Tools, Storage and Services snap-ins — Task Scheduler, Event Viewer, Device Manager, Disk Management and Services." />,
   tasksched: () => <CPLaunch app="tasksched" text="Task Scheduler runs programs at a time, at logon or at startup. Run a task to see it move to Running and record its result." />,
   resmon: () => <CPLaunch app="resmon" text="Resource Monitor shows live CPU, memory, disk and network graphs and the processes behind each of them." />,
@@ -1365,7 +1367,48 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   compsvc: () => <CPLaunch app="compsvc" text="Component Services is the console for COM+ applications, DCOM configuration and running COM+ processes." />,
   odbcad: () => <CPLaunch app="odbcad" text="ODBC Data Source Administrator manages the User, System and File data sources that programs use to reach a database." />,
   sigverif: () => <CPLaunch app="sigverif" text="File Signature Verification checks that the system files on this PC carry a valid digital signature." />,
+  azman: () => <CPLaunch app="azman" text="Authorization Manager defines user roles and the tasks each role can perform in this computer's authorization store." />,
+  iscsi: () => <CPLaunch app="iscsi" text="iSCSI Initiator connects this computer to a storage device over the network, so its disk appears under Computer." />,
 };
+
+/**
+ * Control Panel's "Administrative Tools" item is not a property sheet: it is
+ * the shell folder. Windows 7 renders it in place, so this does the same and
+ * then hands over to the real folder window (admintools) when asked.
+ */
+function AdminFolder() {
+  return (
+    <div>
+      <Head title="Administrative Tools" desc="Manage this computer with the Microsoft Management Console snap-ins, the same folder that the Start menu's Administrative Tools entry shows." />
+      <div className="cp-small">
+        {[
+          ["Component Services", "compsvc", "COM+ applications and DCOM configuration"],
+          ["Computer Management", "compmgmt", "System tools, storage and services"],
+          ["Data Sources (ODBC)", "odbcad", "ODBC Data Source Administrator"],
+          ["Event Viewer", "eventvwr", "Application, security and system logs"],
+          ["iSCSI Initiator", "iscsi", "Connect this computer to a storage device over the network"],
+          ["Local Security Policy", "secpol", "Security settings for this computer"],
+          ["Performance Monitor", "perfmon", "Real-time performance counters"],
+          ["Print Management", "printmgmt", "Printers, drivers, ports and queues"],
+          ["Resource Monitor", "resmon", "CPU, disk, network and memory use"],
+          ["Services", "services", "Start, stop and configure Windows services"],
+          ["System Configuration", "msconfig", "Startup, boot and service selection"],
+          ["Task Scheduler", "tasksched", "Scheduled tasks and triggers"],
+          ["Windows Firewall with Advanced Security", "fw", "Inbound and outbound rules"],
+          ["Windows Memory Diagnostic", "mdsched", "Test the RAM at the next restart"],
+          ["Authorization Manager", "azman", "User roles and task authorisation"],
+        ].map(([name, app, desc]) => (
+          <div key={name} className="cp-sm-it" onClick={() => openApp(app)} title={desc}>
+            <Icon name={ALL_ICONS[app] || "cmg"} size={24} />
+            <span>{name}</span>
+          </div>
+        ))}
+      </div>
+      <p style={{ marginTop: 12 }}><Btn def onClick={() => openApp("admintools")}>Open the Administrative Tools folder</Btn> <Btn onClick={() => openApp("help")}>Help and Support</Btn></p>
+      <p className="cp-desc">Every console here is a working snap-in; the ones that change the machine write to the simulated registry, services or event log.</p>
+    </div>
+  );
+}
 
 function CPLaunch({ app, text }: { app: string; text: string }) {
   return (
@@ -1375,6 +1418,7 @@ function CPLaunch({ app, text }: { app: string; text: string }) {
     </div>
   );
 }
+const ALL_ICONS: Record<string, string> = Object.fromEntries([...ALL_ITEMS, "eventvwr", "cleanmgr", "sysdiag", "features"].map((i) => [i, PAGES[i]?.icon || "cmg"])) as Record<string, string>;
 const ALL_TITLES = Object.fromEntries([...ALL_ITEMS, "eventvwr", "cleanmgr", "sysdiag", "features"].map((i) => [i, PAGES[i]?.title || i])) as Record<string, string>;
 
 const SIDE: Record<string, [string, string][]> = {

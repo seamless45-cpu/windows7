@@ -149,5 +149,13 @@ check("Explorer Help dialog really changes folder options", /helpDlg/.test(await
 check("cmd echo supports echo. / @echo off / %VAR%", /ECHO is on/.test(await src("src/win7/apps/SystemApps.tsx")) && /echoOff/.test(await src("src/win7/apps/SystemApps.tsx")));
 check("Heart's New game button deals again", /New game<\/Btn>/.test(await src("src/win7/apps/Games.tsx")));
 
+/* ----------------------------------- Administrative Tools is a real folder */
+check("Administrative Tools folder window exists", /export function AdminTools/.test(inbox) && /\badmintools:/.test(registry) && /\badmintools:/.test(appmap));
+check("the folder lists the MMC consoles and opens them", /ADMIN_TOOLS/.test(inbox) && /onDoubleClick=\{\(\) => open\(i\)\}/.test(inbox));
+check("Control Panel's Administrative Tools opens the folder", /function AdminFolder/.test(cp) && /services: \(\) => <AdminFolder \/>/.test(cp));
+check("Start menu has the folder entry", /app\("admintools", "Administrative Tools"\)/.test(menu));
+check("iSCSI Initiator is implemented", /export function IscsiInitiator/.test(inbox) && /iscsicpl/.test(store));
+check("Authorization Manager is implemented", /export function AuthorizationManager/.test(inbox) && /azman/.test(store));
+
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
 process.exit(failures ? 1 : 0);

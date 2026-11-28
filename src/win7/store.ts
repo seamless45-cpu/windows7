@@ -1563,6 +1563,7 @@ const RUN_MAP: Record<string, string> = {
   printmanagement: "printmgmt", printmgmt: "printmgmt", printui: "printmgmt", dcomcnfg: "compsvc", compsvc: "compsvc",
   odbcad32: "odbcad", odbcad: "odbcad", sigverif: "sigverif", recdisc: "recdisc", colorcpl: "colorcpl",
   displayswitch: "displayswitch", netproj: "netproj", // Ctrl+P (projector) and the Accessories verb
+  admintools: "admintools", iscsi: "iscsi", iscsicpl: "iscsi", azman: "azman",
 };
 export function runCommand(raw: string): boolean {
   let cmd = raw.trim();
@@ -1642,6 +1643,9 @@ export function runCommand(raw: string): boolean {
   if (lc === "ehshell" || lc === "ehshell.exe" || lc === "mediacenter" || lc === "mce") return openApp("mce"), true;
   if (lc === "perfmon.msc" || lc === "perfmon.exe" || lc === "perfmon") return openApp("perfmon"), true;
   if (lc === "printmanagement.msc") return openApp("printmgmt"), true;
+  if (lc === "iscsicpl.exe" || lc === "iscsicpl") return openApp("iscsi"), true;
+  if (lc === "azman.msc" || lc === "azman") return openApp("azman"), true;
+  if (lc === "admintools" || lc === "administrative tools" || lc === "admin tools" || lc === "administrative_tools.msc") return openApp("admintools"), true;
   if (lc === "odbcad32.exe") return openApp("odbcad"), true;
   if (lc === "ccm" || lc === "control color") return openCP("colorcpl"), true;
   if (lc === "dpiscaling" || lc === "dpi") return openCP("display"), true;

@@ -496,3 +496,38 @@ Component Services, ODBC, File Signature Verification).
 
 `npm test` covers all of it — the new guards assert the registry/appmap entries, the storage
 keys, the tab wiring and the specific behaviours above.
+
+## Administrative Tools is a folder, not a dead shortcut
+
+Windows 7 does not ship an "Administrative Tools" program. The Start menu entry is the shell
+folder `%ProgramData%\Microsoft\Windows\Start Menu\Programs\Administrative Tools`, and Control
+Panel's *Administrative Tools* item (`control.exe /name Microsoft.AdministrativeTools`) opens
+that same folder rendered inline by Explorer.
+
+This build now does the same:
+
+- **`admintools`** (`src/win7/apps/Inbox7.tsx`) is a real folder window — command bar with
+  Back and an *Organize* menu (Tiles / Details / Show hidden items / Refresh), a search box,
+  details and tile views, a status bar and double-click-to-open. It lists the 16 consoles a
+  Windows 7 Ultimate machine carries: Component Services, Computer Management, Data Sources
+  (ODBC), Event Viewer, iSCSI Initiator, Local Security Policy, Performance Monitor, Print
+  Management, Resource Monitor, Security Configuration Management, Services, System
+  Configuration, Task Scheduler, Windows Firewall with Advanced Security, Windows Memory
+  Diagnostic and Windows PowerShell Modules. The two admin-only ones (iSCSI, Security
+  Configuration Management) are hidden until *Organize ▸ Show hidden items*, and opening them
+  raises the UAC prompt first, as Windows does. The view and the hidden-items state persist in
+  `win7.admintools.view` / `win7.admintools.windows`.
+- **Control Panel ▸ System and Security ▸ Administrative Tools** renders the folder inline
+  (`AdminFolder`) and has an *Open the Administrative Tools folder* button.
+- **Start menu**: the *Administrative Tools* group has a first leaf that opens the folder
+  itself, plus the new *iSCSI Initiator* and *Authorization Manager* leaves.
+- Run/search aliases: `admintools`, `administrative tools`, `admin tools`, `iscsicpl` /
+  `iscsicpl.exe`, `azman.msc`, and the folder is a program in `catalog.ts`, so typing
+  "administrative" in the Start menu search or the Control Panel search finds it.
+
+### The two consoles that the folder needed
+
+| Console | Run id | What it does |
+| --- | --- | --- |
+| **iSCSI Initiator** (`iscsicpl.exe`) | `iscsi` | General / Discovery / Targets / Volumes and Devices / RADIUS tabs. Quick Connect validates the IPv4 portal, "discovers" a target after a delay, Connect takes it to *Connected* and logs an iSCSI event (id 12), Disconnect logs id 13; targets persist in `win7.iscsi`. |
+| **Authorization Manager** (`azman.msc`) | `azman` | Console tree of Applications / User Roles / Task Definitions; role membership (the real user accounts) and per-role task assignment persist in `win7.azman` and `win7.azman.tasks`. |
