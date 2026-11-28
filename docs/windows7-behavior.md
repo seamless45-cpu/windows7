@@ -431,3 +431,68 @@ Start menu's fade entirely — so the Start menu, every menu, every flyout and e
 button change state instantly. The window minimize/maximize flights are unaffected, because
 they are the other switch. Turning the setting back on in Control Panel → System restores the
 full Windows 7 timings from the previous accuracy pass.
+
+## Completeness pass 2: the consoles and tabs that were still inert
+
+The first pass built the inbox programs; this pass removed the remaining *inert* UI — panels
+that drew a Windows 7 control but did nothing when clicked.
+
+### Eight new consoles (`src/win7/apps/Inbox7.tsx`)
+
+| Program | Run id / command | What actually happens |
+| --- | --- | --- |
+| Print Management | `printmgmt`, `printmanagement.msc`, `printui` | printers list persisted in `win7.printers`, add / set default / delete, "Print Test Page" really spools a job through `printDocument`, drivers, ports and the queue nodes |
+| Component Services | `compsvc`, `dcomcnfg` | console tree, COM+ applications, DCOM Config, Running Processes with the dllhost PIDs, a shortcut into Services |
+| ODBC Data Source Administrator | `odbcad`, `odbcad32.exe` | User / System / File DSN tabs stored in `win7.odbc`, add / remove / configure |
+| File Signature Verification | `sigverif` | scans with a progress bar, lists the unsigned file, writes an optional log to Documents |
+| Create a System Repair Disc | `recdisc` | label form → burn percentage → writes `<label>.iso.txt` into Documents and logs Kernel-General 34 |
+| Color Management | `colorcpl` | `win7.colorprofiles`: devices, all profiles, advanced, set default, link to the display calibration |
+| Display Switch | `displayswitch` (Win+P) | four tiles (computer only / duplicate / extend / projector only) persisted in `win7.display.mode` |
+| Connect to a Network Projector | `netproj` | scan, passcode, connect → duplicate mode |
+
+They are wired end-to-end: `registry.ts`, `appmap.tsx`, `RUN_MAP`/`runCommand`, the Start
+menu (Accessories, System Tools, Administrative Tools, Backup), `catalog.ts` search and six
+Control Panel items (Print Management, Color Management, Create a System Repair Disc,
+Component Services, ODBC, File Signature Verification).
+
+### Tabs and controls that became real
+
+- **Mouse** — five tabs. *Pointer Options* now writes `pointerSpeed`, `pointerPrecision`,
+  `snapTo`, `hidePointer` and `ptrLocate`; the wheel setting (`wheelLines`) is read by the
+  Explorer wheel handler so one notch scrolls that many lines (or a screen). *Wheel* and
+  *Hardware* are new and complete.
+- **Keyboard** — the Speed tab gained a repeat-rate slider, "None" on the blink slider and a
+  live key click in the test box; *Hardware* is a real device page.
+- **Date and Time** — all three tabs. *Additional Clocks* stores two offsets + display
+  names (`extraClocks`), *Internet Time* picks the server and records a real "Update now".
+- **Region and Language** — all four tabs (Location, Keyboards and Languages, Administrative,
+  Formats).
+- **Folder Options** — General / View / Search are all rendered, with *Restore Defaults* and
+  the new `openDouble` single-vs-double-click switch, which Explorer honours on tiles.
+- **Sound → Communications** — the four radios are a real `commActivity` setting and the
+  "Test the setting" button ducks or mutes the volume flyout.
+- **Taskbar and Start Menu → Notification area** — each system icon (Clock, Volume, Network,
+  Power, Action Center) can be turned off, which `Taskbar.tsx` respects via `showSys()`.
+- **WordPad → View** — zoom presets (200/100/75/1 page), ± steps, ruler, status bar, wrap
+  mode, units and the Paint-drawing insert.
+- **Paint → View** — 50–800 % zoom presets, a working status-bar zoom slider up to 800 %,
+  rulers, gridlines, the thumbnail strip (with the Pictures folder shortcut), full screen.
+- **Explorer** — the Help button opens a real folder-options dialog; a wheel notch follows
+  the Mouse setting.
+
+### Shell and games
+
+- **Quick Launch** is a fourth taskbar toolbar (right-click the taskbar ▸ Toolbars ▸ Quick
+  Launch) with Explorer, IE, Media Player, Snipping Tool, Paint and Show Desktop.
+- **cmd.exe** gets `echo.` (blank line), `@echo off`/`echo on` (suppresses the prompt echo)
+  and `%VAR%` expansion against the same environment `set` prints.
+- Windows Activation: *Change product key* reopens the key page, *Ask me later* dismisses the
+  prompt, Windows Update's *Cancel* leaves the installer, and the Help topics' *Yes*/*No*
+  vote records a real preference.
+- Games: Hearts' *New game* deals again; the Games for Windows Marketplace *Download* button
+  explains that the LIVE Marketplace closed in 2013 instead of being disabled.
+- Windows Easy Transfer and Remote Desktop checkboxes (Desktop background, font smoothing,
+  the transfer categories) are toggles, not decorations.
+
+`npm test` covers all of it — the new guards assert the registry/appmap entries, the storage
+keys, the tab wiring and the specific behaviours above.

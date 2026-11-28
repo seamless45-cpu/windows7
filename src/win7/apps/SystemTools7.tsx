@@ -67,13 +67,14 @@ export function WindowsActivation() {
             <p>This copy of Windows is activated. Activation confirms that your copy of Windows is genuine and has not been used on more computers than the licence allows.</p>
             <p className="dim">Product ID: 00426-OEM-8992662-00006</p>
             {key && <p className="dim">Key entered: {key}</p>}
-            <p><Btn>Change product key</Btn> <Btn onClick={() => { lsSet("win7.activated", false); setOn(false); }}>Deactivate (demo)</Btn></p>
+            <p><Btn onClick={() => { setOn(false); setKey(""); setStep("start"); setTimeout(() => document.getElementById("slui-key")?.focus(), 40); }}>Change product key</Btn> <Btn onClick={() => { lsSet("win7.activated", false); setOn(false); }}>Deactivate (demo)</Btn></p>
           </>
         ) : (
           <>
             <p>To help reduce software piracy, please activate Windows. Activation takes only a moment and you can do it later.</p>
             <p>Type the product key from the sticker on your PC or the certificate that came with your copy of Windows:</p>
             <input
+              id="slui-key"
               className="w7input act-key"
               value={key}
               placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
@@ -87,7 +88,7 @@ export function WindowsActivation() {
             {step === "fail" && <p className="err">The product key you entered appears to be invalid. Check the key and try again.</p>}
             <p className="act-btns">
               <Btn def disabled={step === "checking"} onClick={activate}>Activate</Btn>
-              <Btn>Ask me later</Btn>
+              <Btn onClick={() => setOn(true)}>Ask me later</Btn>
             </p>
             <p className="dim">Valid demo keys look like {ACTIVATION_KEYS[0]}.</p>
           </>
@@ -148,7 +149,7 @@ export function UpdateInstaller() {
               </label>
             ))}
           </div>
-          <p className="wusa-btns"><Btn def disabled={!sel.length} onClick={start}>Install</Btn><Btn>Cancel</Btn></p>
+          <p className="wusa-btns"><Btn def disabled={!sel.length} onClick={start}>Install</Btn><Btn onClick={() => openApp("wupdate")}>Close</Btn></p>
         </div>
       )}
       {phase !== "pick" && (
@@ -364,7 +365,10 @@ export function HelpTopics() {
         <div className="hlp-page">
           <h1>{cur.title}</h1>
           {cur.body.map((p, i) => <p key={i}>{p}</p>)}
-          <p className="hlp-foot">Was this helpful? <a>Yes</a> · <a>No</a></p>
+          <p className="hlp-foot">Was this helpful?{" "}
+            <a onClick={() => { lsSet("win7.help.vote." + cur.title, true); notify({ title: "Windows Help and Support", text: "Thank you for your feedback.", icon: "info" }); }}>Yes</a> ·{" "}
+            <a onClick={() => { lsSet("win7.help.vote." + cur.title, false); notify({ title: "Windows Help and Support", text: "Thanks — this topic will be reviewed.", icon: "info" }); }}>No</a>
+          </p>
         </div>
       </div>
     </div>
@@ -557,6 +561,8 @@ export function DiskDefragmenter() {
 export function SyncCenterWizard() {
   const [step, setStep] = useState(0);
   const [what, setWhat] = useState("files");
+  /* the folders ticked on the "what to sync" page */
+  const [picked, setPicked] = useState<string[]>(["Documents", "Music"]);
   return (
     <div className="syncw">
       <div className="syncw-head"><Icon name="share" size={32} /><div><b>New Sync Partnership</b><span>Step {step + 1} of 3</span></div></div>
@@ -575,9 +581,12 @@ export function SyncCenterWizard() {
         <div className="syncw-body">
           <p>{what === "files" ? "Select the folder to sync:" : what === "offline" ? "Select the network location:" : "Connect the device, then select it:"}</p>
           <div className="syncw-list">
-            <label className="syncw-item"><Check checked label="Documents" onChange={() => {}} /><span>\\\\HOME-PC\\Users\\Public\\Documents</span></label>
-            <label className="syncw-item"><Check checked={false} label="Pictures" onChange={() => {}} /><span>\\\\HOME-PC\\Users\\Public\\Pictures</span></label>
-            <label className="syncw-item"><Check checked label="Music" onChange={() => {}} /><span>\\\\HOME-PC\\Users\\Public\\Music</span></label>
+            {(["Documents", "Pictures", "Music"] as const).map((f) => (
+              <label key={f} className="syncw-item">
+                <Check checked={picked.includes(f)} onChange={(v) => setPicked(v ? [...picked, f] : picked.filter((x) => x !== f))} label={f} />
+                <span>{"\\\\HOME-PC\\Users\\Public\\" + f}</span>
+              </label>
+            ))}
           </div>
           <p className="syncw-btns"><Btn onClick={() => setStep(0)}>Back</Btn><Btn def onClick={() => setStep(2)}>Next</Btn></p>
         </div>

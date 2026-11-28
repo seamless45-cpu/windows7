@@ -76,6 +76,24 @@ export interface Settings {
   dpi: number;
   pointer: "aero" | "large" | "black";
   trails: boolean;
+  /** pointer speed (1-11) and the "Enhance pointer precision" checkbox */
+  pointerSpeed: number;
+  pointerPrecision: boolean;
+  snapTo: boolean;
+  hidePointer: boolean;
+  ptrLocate: boolean;
+  /** lines per wheel notch (0 = one screen) */
+  wheelLines: number;
+  wheelHorz: number;
+  /** Sound > Communications: none | 80 | 50 | mute */
+  commActivity: "none" | "80" | "50" | "mute";
+  /** up to two additional clocks: offset in minutes, 0 = off */
+  extraClocks: Record<number, number>;
+  extraClockNames: Record<number, string>;
+  ntpServer: string;
+  lastSync: number;
+  homeLocation: string;
+  displayLanguage: string;
   keyClick: boolean;
   users: User[];
   currentUser: string;
@@ -93,7 +111,12 @@ export interface Settings {
   firewall: boolean;
   autoUpdate: string;
   uac: "always" | "default" | "never";
-  folder: { showHidden: boolean; showExt: boolean; preview: boolean; details: boolean; navPane: boolean };
+  folder: {
+    showHidden: boolean; showExt: boolean; preview: boolean; details: boolean; navPane: boolean;
+    /** single-click or double-click to open */ openDouble: boolean;
+    searchContent: boolean; searchSubfolders: boolean; searchNatural: boolean; searchHidden: boolean;
+    alwaysIcons: boolean; tips: boolean; compact: boolean;
+  };
   ie: { home: string; favs: { title: string; url: string }[]; history: string[] };
   installed: Installed[];
   hiddenTray: string[];
@@ -134,8 +157,8 @@ export interface Win {
 
 export interface Notif { id: number; title: string; text: string; icon: string; time: number }
 /** taskbar toolbars, in the order they are added */
-export type TaskbarBar = "address" | "links" | "desktop";
-export const TASKBAR_BAR_IDS: TaskbarBar[] = ["address", "links", "desktop"];
+export type TaskbarBar = "address" | "links" | "desktop" | "quicklaunch";
+export const TASKBAR_BAR_IDS: TaskbarBar[] = ["address", "links", "desktop", "quicklaunch"];
 
 export type Power = "boot" | "login" | "welcome" | "desktop" | "locked" | "shuttingdown" | "off" | "sleep" | "restarting" | "logoff";
 
@@ -205,6 +228,20 @@ export const DEFAULTS: Settings = {
   dpi: 100,
   pointer: "aero",
   trails: false,
+  pointerSpeed: 6,
+  pointerPrecision: true,
+  snapTo: false,
+  hidePointer: true,
+  ptrLocate: false,
+  wheelLines: 3,
+  wheelHorz: 3,
+  commActivity: "80",
+  extraClocks: { 1: 0, 2: 0 },
+  extraClockNames: { 1: "", 2: "" },
+  ntpServer: "time.windows.com",
+  lastSync: 0,
+  homeLocation: "United States",
+  displayLanguage: "English (United States)",
   keyClick: false,
   users: [
     { name: "User", pic: "flower", admin: true },
@@ -227,7 +264,7 @@ export const DEFAULTS: Settings = {
   firewall: true,
   autoUpdate: "auto",
   uac: "default",
-  folder: { showHidden: false, showExt: true, preview: false, details: true, navPane: true },
+  folder: { showHidden: false, showExt: true, preview: false, details: true, navPane: true, openDouble: true, searchContent: true, searchSubfolders: true, searchNatural: false, searchHidden: false, alwaysIcons: false, tips: true, compact: false },
   ie: { home: "about:home", favs: [{ title: "Windows Live", url: "about:home" }, { title: "Wikipedia", url: "https://en.m.wikipedia.org" }, { title: "Bing", url: "about:bing" }], history: [] },
   installed: [
     { id: "ie8", name: "Windows Internet Explorer 8", publisher: "Microsoft Corporation", size: "—", date: "7/14/2009", version: "8.0.7600" },
@@ -336,6 +373,8 @@ function sanitizeSettings(savedRaw: unknown): Settings {
   const ieSaved = obj(saved.ie);
   const aero = obj(saved.aero);
   const o3 = obj(saved.ssText3D);
+  const ec = obj(saved.extraClocks);
+  const ecn = obj(saved.extraClockNames);
   const defaults = obj(saved.defaults);
   const sysIconsRaw = obj(saved.sysIcons);
   const sysIcons: Record<string, boolean> = { ...d.sysIcons };
@@ -395,6 +434,20 @@ function sanitizeSettings(savedRaw: unknown): Settings {
     dpi: num(saved.dpi, d.dpi, 100, 200),
     pointer: oneOf(saved.pointer, POINTERS, d.pointer),
     trails: bool(saved.trails, d.trails),
+    pointerSpeed: num(saved.pointerSpeed, d.pointerSpeed, 1, 11),
+    pointerPrecision: bool(saved.pointerPrecision, d.pointerPrecision),
+    snapTo: bool(saved.snapTo, d.snapTo),
+    hidePointer: bool(saved.hidePointer, d.hidePointer),
+    ptrLocate: bool(saved.ptrLocate, d.ptrLocate),
+    wheelLines: num(saved.wheelLines, d.wheelLines, 0, 100),
+    wheelHorz: num(saved.wheelHorz, d.wheelHorz, 0, 100),
+    commActivity: oneOf(saved.commActivity, ["none", "80", "50", "mute"] as const, d.commActivity),
+    extraClocks: { 1: num(ec[1], 0, -720, 840), 2: num(ec[2], 0, -720, 840) },
+    extraClockNames: { 1: str(ecn[1], ""), 2: str(ecn[2], "") },
+    ntpServer: str(saved.ntpServer, d.ntpServer),
+    lastSync: num(saved.lastSync, d.lastSync, 0, Number.MAX_SAFE_INTEGER),
+    homeLocation: str(saved.homeLocation, d.homeLocation),
+    displayLanguage: str(saved.displayLanguage, d.displayLanguage),
     keyClick: bool(saved.keyClick, d.keyClick),
     users,
     currentUser,
@@ -431,6 +484,14 @@ function sanitizeSettings(savedRaw: unknown): Settings {
       preview: bool(folder.preview, d.folder.preview),
       details: bool(folder.details, d.folder.details),
       navPane: bool(folder.navPane, d.folder.navPane),
+      openDouble: bool(folder.openDouble, d.folder.openDouble),
+      searchContent: bool(folder.searchContent, d.folder.searchContent),
+      searchSubfolders: bool(folder.searchSubfolders, d.folder.searchSubfolders),
+      searchNatural: bool(folder.searchNatural, d.folder.searchNatural),
+      searchHidden: bool(folder.searchHidden, d.folder.searchHidden),
+      alwaysIcons: bool(folder.alwaysIcons, d.folder.alwaysIcons),
+      tips: bool(folder.tips, d.folder.tips),
+      compact: bool(folder.compact, d.folder.compact),
     },
     ie: {
       home: str(ieSaved.home, d.ie.home),
@@ -1498,6 +1559,10 @@ const RUN_MAP: Record<string, string> = {
   cardspace: "cardspace", openwith: "openwith", fun: "fun", bsod: "fun", crash: "fun", gettingstarted: "gettingstarted", dccw: "dccw", powershell_ise: "ise", ise: "ise", wab: "contacts",
   backup: "backup", sdclt: "backup", bitlocker: "bitlocker", homegroup: "homegroup", credmgr: "credmgr", wei: "wei", msra: "ra", eudcedit: "eudc", tabtip: "tabtip", msdt: "support", wfs: "wfs", mce: "mce", ehshell: "mce", mediacenter: "mce",
   powershell: "powershell", sysrestore: "sysrestore", defender: "defender", calendar: "calendar", lusrmgr: "lusrmgr", msascui: "defender", rstrui: "sysrestore", control_management: "compmgmt",
+  // Administrative Tools consoles and the display / printer subsystems
+  printmanagement: "printmgmt", printmgmt: "printmgmt", printui: "printmgmt", dcomcnfg: "compsvc", compsvc: "compsvc",
+  odbcad32: "odbcad", odbcad: "odbcad", sigverif: "sigverif", recdisc: "recdisc", colorcpl: "colorcpl",
+  displayswitch: "displayswitch", netproj: "netproj", // Ctrl+P (projector) and the Accessories verb
 };
 export function runCommand(raw: string): boolean {
   let cmd = raw.trim();
@@ -1576,6 +1641,10 @@ export function runCommand(raw: string): boolean {
   if (lc === "wfs" || lc === "wfs.exe") return openApp("wfs"), true;
   if (lc === "ehshell" || lc === "ehshell.exe" || lc === "mediacenter" || lc === "mce") return openApp("mce"), true;
   if (lc === "perfmon.msc" || lc === "perfmon.exe" || lc === "perfmon") return openApp("perfmon"), true;
+  if (lc === "printmanagement.msc") return openApp("printmgmt"), true;
+  if (lc === "odbcad32.exe") return openApp("odbcad"), true;
+  if (lc === "ccm" || lc === "control color") return openCP("colorcpl"), true;
+  if (lc === "dpiscaling" || lc === "dpi") return openCP("display"), true;
   if (lc === "gpedit.msc") {
     msgBox({ title: cmd, text: "Registry editing has been disabled by your administrator.", icon: "error" });
     return true;

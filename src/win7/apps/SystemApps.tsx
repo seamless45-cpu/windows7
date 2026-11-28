@@ -57,6 +57,9 @@ export function Cmd({ win }: { win: Win }) {
   const [cwd, setCwd] = useState(start.dir && getState().fs[start.dir] ? start.dir : "home");
   const [input, setInput] = useState("");
   const [col, setCol] = useState(start.color || "07");
+  /* echo off suppresses the prompt+command; it is off for this session until
+     "echo on" is typed, which mirrors cmd.exe's batch behaviour closely enough. */
+  const echoOff = useRef(false);
   const [size, setSize] = useState({ cols: start.cols || 80, lines: start.lines || 25 });
   const hist = useRef<string[]>([]);
   const hi = useRef(0);
@@ -86,7 +89,20 @@ export function Cmd({ win }: { win: Win }) {
     else if (/^[a-z]:$/.test(cmd)) { const id = resolvePath(cmd.toUpperCase() + "\\"); if (id) c = id; else say("The system cannot find the drive specified."); }
     else if (cmd === "help") say(...(arg ? [`${arg.toUpperCase()}: see the full list by typing HELP.`] : HELP.split("\n")));
     else if (cmd === "cls") { setLines([]); setCwd(c); return; }
-    else if (cmd === "echo") say(arg || "ECHO is on.");
+    else if (cmd === "echo") {
+      /* cmd.exe's echo: "echo." prints a blank line, @echo off/on toggles the
+         command echo, and %VAR% is expanded from the same environment SET shows. */
+      const env: Record<string, string> = {
+        COMPUTERNAME: "PC", OS: "Windows_NT", SystemDrive: "C:", SystemRoot: "C:\\Windows",
+        USERNAME: getState().settings.currentUser, USERPROFILE: "C:\\Users\\" + getState().settings.currentUser,
+        PATH: "C:\\Windows\\system32;C:\\Windows", TEMP: "C:\\Users\\" + getState().settings.currentUser + "\\AppData\\Local\\Temp",
+      };
+      const a = arg.replace(/^["']|["']$/g, "");
+      if (/^@?echo\.?$/i.test(a)) say("");
+      else if (/^@?echo\s+(on|off)$/i.test(a)) say(`ECHO is ${/off/i.test(a) ? "off" : "on"}.`);
+      else say(a.replace(/%([A-Za-z_]+)%/g, (m, k: string) => env[k.toUpperCase()] ?? m) || "ECHO is on.");
+    }
+    else if (/^@echo\s*(off|on)?$/i.test(cmd)) { /* the @ silences the command echo */ }
     else if (cmd === "ver") say("", "Microsoft Windows [Version 6.1.7601]");
     else if (cmd === "date") say("The current date is: " + new Date().toLocaleDateString("en-US", { weekday: "short", month: "2-digit", day: "2-digit", year: "numeric" }));
     else if (cmd === "time") say("The current time is: " + new Date().toLocaleTimeString("en-US", { hour12: false }) + ".00");
@@ -159,7 +175,10 @@ export function Cmd({ win }: { win: Win }) {
     else if (["calc", "notepad", "mspaint", "explorer", "iexplore", "taskmgr", "wordpad", "charmap", "magnify", "wmplayer", "write", "winver", "control"].includes(cmd.replace(/\.exe$/, ""))) runCommand(cmd);
     else say(`'${cmd0}' is not recognized as an internal or external command,`, "operable program or batch file.");
     setCwd(c);
-    setLines((l) => [...l, prompt(cwd) + raw, ...out, ...(cmd ? [""] : [])]);
+    if (/^echo\s+off$/i.test(cmdline)) echoOff.current = true;
+    else if (/^echo\s+on$/i.test(cmdline)) echoOff.current = false;
+    const shown = echoOff.current && !/^echo\s+on$/i.test(cmdline) ? [] : [prompt(cwd) + raw];
+    setLines((l) => [...l, ...shown, ...out, ...(cmd ? [""] : [])]);
   };
 
   // COLOR uses two hex nibbles: background then foreground (0-7, 8-F = bright).

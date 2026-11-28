@@ -768,7 +768,7 @@ export function Hearts({ win }: { win: Win }) {
       </div>
       {round === "over" && (
         <div className="sol-won" onClick={() => { setScores([0, 0, 0, 0]); deal(); }}>
-          <div><b>Game over</b><p>{winnerName} wins with {Math.min(...scores)} points.</p><Btn def>New game</Btn></div>
+          <div><b>Game over</b><p>{winnerName} wins with {Math.min(...scores)} points.</p><Btn def onClick={() => { setScores([0, 0, 0, 0]); deal(); }}>New game</Btn></div>
         </div>
       )}
     </div>
@@ -865,7 +865,7 @@ export function MoreGames() {
               <b>{name}</b>
               <div className="mg-desc">{desc}</div>
             </div>
-            <Btn disabled>Download</Btn>
+            <Btn onClick={() => import("../store").then((m) => m.msgBox({ title: "Games for Windows - Marketplace", text: `"${name}" cannot be downloaded: the LIVE Marketplace service was retired on 22 August 2013, so the storefront and every download behind it are gone.`, icon: "info" }))}>Download</Btn>
           </div>
         ))}
       </div>

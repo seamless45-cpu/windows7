@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Win, useStore, getState, setWin, setGuard, closeWin, msgBox, printDocument, mkfile, writeFile, lsGet, lsSet, openApp, MenuItem, setState, uid, notify, extOf, jumpTouch,
 } from "../store";
-import { MenuBar, Btn, Check } from "../ui";
+import { MenuBar, Btn, Check, Radio } from "../ui";
 import { openFileDialog } from "../dialogs";
 import { htmlToRtf, rtfToHtml } from "../formats";
 import { Icon } from "../icons";
@@ -245,6 +245,15 @@ export function WordPad({ win }: { win: Win }) {
   const [dirty, setDirty] = useState(false);
   const [fmt, setFmt] = useState({ b: false, i: false, u: false });
   const [zoom, setZoom] = useState(100);
+  /* the zoom preset shown in the View tab of the ribbon */
+  const [preset, setPreset] = useState<"200" | "100" | "75" | "page">("100");
+  /* WordPad's View tab is a real tab in Windows 7, not a label: the ruler,
+     the status bar, the measurement units and word wrap all live there. */
+  const [tab, setTab] = useState<"Home" | "View">("Home");
+  const [ruler, setRuler] = useState(true);
+  const [statusBar, setStatusBar] = useState(true);
+  const [wrap, setWrap] = useState<"window" | "ruler" | "none">("window");
+  const [units, setUnits] = useState<"in" | "cm">("in");
   const st = useRef({ dirty, fileId });
   st.current = { dirty, fileId };
   const name = fileId ? fs[fileId]?.name || "Document" : "Document";
@@ -328,7 +337,51 @@ export function WordPad({ win }: { win: Win }) {
   );
   return (
     <div className="wp">
-      <div className="ribbon-tabs"><div className="rt-file" onClick={fileMenu}>File ▾</div><div className="rt sel">Home</div><div className="rt">View</div></div>
+      <div className="ribbon-tabs">
+        <div className="rt-file" onClick={fileMenu}>File ▾</div>
+        <div className={"rt" + (tab === "Home" ? " sel" : "")} onClick={() => setTab("Home")}>Home</div>
+        <div className={"rt" + (tab === "View" ? " sel" : "")} onClick={() => setTab("View")}>View</div>
+        <div className="rt-quick"><button title="Save" onClick={() => save()}>💾</button><button title="Undo" onClick={() => cmd("undo")}>↶</button><button title="Redo" onClick={() => cmd("redo")}>↷</button></div>
+      </div>
+      {tab === "View" ? (
+        <div className="ribbon wp-view">
+          <div className="rg"><div className="rg-body col">
+            <div className="wp-zoom-row">
+              {(["200", "100", "75", "page"] as const).map((p) => (
+                <button key={p} className={"pt-btn" + (preset === p ? " on" : "")} title={p === "page" ? "Whole page" : p + "%"}
+                  onClick={() => { setPreset(p); setZoom(p === "page" ? 75 : Number(p)); }}>
+                  {p === "page" ? "1 page" : p + "%"}
+                </button>
+              ))}
+            </div>
+            <div className="wp-zoom-row">
+              <Btn onClick={() => { setPreset("100"); setZoom(Math.max(10, zoom - 10)); }}>−</Btn>
+              <span className="wp-zoom-pct">{zoom}%</span>
+              <Btn onClick={() => { setPreset("100"); setZoom(Math.min(500, zoom + 10)); }}>+</Btn>
+            </div>
+          </div><div className="rg-t">Zoom</div></div>
+          <div className="rg"><div className="rg-body col">
+            <div><Check checked={ruler} onChange={setRuler} label="Ruler" /></div>
+            <div><Check checked={statusBar} onChange={setStatusBar} label="Status bar" /></div>
+          </div><div className="rg-t">Show or hide</div></div>
+          <div className="rg"><div className="rg-body col">
+            <div><Radio checked={wrap === "window"} onChange={() => setWrap("window")} label="Wrap to window" name="wpwrap" /></div>
+            <div><Radio checked={wrap === "ruler"} onChange={() => setWrap("ruler")} label="Wrap to ruler" name="wpwrap" /></div>
+            <div><Radio checked={wrap === "none"} onChange={() => setWrap("none")} label="No wrap" name="wpwrap" /></div>
+          </div><div className="rg-t">Word wrap</div></div>
+          <div className="rg"><div className="rg-body col">
+            <div><Radio checked={units === "in"} onChange={() => setUnits("in")} label="Inches" name="wpunits" /></div>
+            <div><Radio checked={units === "cm"} onChange={() => setUnits("cm")} label="Centimetres" name="wpunits" /></div>
+          </div><div className="rg-t">Measurement units</div></div>
+          <div className="rg"><div className="rg-body">
+            <button className="rb-btn" title="Insert a Paint drawing" onClick={() => {
+              const d = mkfile("pics", "Paint drawing.png", "", 0);
+              openApp("paint", { file: d });
+              notify({ title: "WordPad", text: "A new Paint drawing was created in Pictures. Use Image → Paste in Paint when you are done, or insert an existing picture with Picture.", icon: "info" });
+            }}><b><Icon name="paint" size={24} /></b><br />Paint drawing</button>
+          </div><div className="rg-t">Insert</div></div>
+        </div>
+      ) : (
       <div className="ribbon">
         <div className="rg"><div className="rg-body">
           <Tb label={<><Icon name="file" size={24} /><br />Paste</>} title="Paste" fn={async () => { try { const t = await navigator.clipboard.readText(); cmd("insertText", t); } catch { msgBox({ title: "WordPad", text: "Use Ctrl+V to paste.", icon: "info" }); } }} />
@@ -357,10 +410,18 @@ export function WordPad({ win }: { win: Win }) {
           <Tb label="🔍 Find" title="Find" fn={find} /><Tb label="Select all" title="Select all" fn={() => cmd("selectAll")} />
         </div><div className="rg-t">Editing</div></div>
       </div>
-      <div className="wp-page-wrap">
+      )}
+      <div className={"wp-page-wrap" + (wrap === "none" ? " nowrap" : "")}>
+        {ruler && (
+          <div className="wp-ruler" aria-hidden>
+            {Array.from({ length: units === "in" ? 7 : 18 }, (_, i) => (
+              <span key={i} style={{ left: (i / (units === "in" ? 7 : 18)) * 100 + "%" }}>{units === "in" ? i : Math.round(i / 2.54 * 10) / 10}</span>
+            ))}
+          </div>
+        )}
         <div ref={ed} className="wp-page" contentEditable suppressContentEditableWarning spellCheck={false} style={{ zoom: zoom / 100 }} onInput={() => setDirty(true)} onKeyUp={refresh} onMouseUp={refresh} onContextMenu={(e) => e.stopPropagation()} />
       </div>
-      <div className="wp-status"><span>{dirty ? "Modified" : "Saved"}</span><div style={{ flex: 1 }} /><span>{zoom}%</span><input type="range" className="w7range" min={50} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} style={{ width: 120 }} /></div>
+      {statusBar && <div className="wp-status"><span>{dirty ? "Modified" : "Saved"}</span><div style={{ flex: 1 }} /><span>{wrap === "none" ? "No wrap" : wrap === "ruler" ? "Wrap to ruler" : "Wrap to window"}</span><span>{units === "in" ? "Inches" : "Centimetres"}</span><span>{zoom}%</span><input type="range" className="w7range" min={50} max={200} value={zoom} onChange={(e) => setZoom(+e.target.value)} style={{ width: 120 }} /></div>}
     </div>
   );
 }
