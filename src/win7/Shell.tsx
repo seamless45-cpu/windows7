@@ -176,7 +176,9 @@ export default function Shell() {
         else if (k === "tab" && !(e.ctrlKey && e.altKey)) { flipStart(e.shiftKey ? -1 : 1); }
         else if (k === "home") { shakeDesktop(); }
         else if (k === "t") taskbarFocus(st.taskbarIdx === null ? 0 : st.taskbarIdx + (e.shiftKey ? -1 : 1));
-        else if (k === "p") { openApp("mobility"); }
+        // Win+P is the projector switcher (displayswitch.exe), not Mobility
+        // Center — that is Win+X. They were mapped to the same program.
+        else if (k === "p") { openApp("displayswitch"); }
         else if (k === "x") { openApp("mobility"); }
         else if (k === "+" || k === "=" ) { setState({ mag: { on: true, level: Math.min(8, st.mag.level + 0.5) } }); openApp("magnifier"); }
         else if (k === "-") setState({ mag: { ...st.mag, level: Math.max(1, st.mag.level - 0.5) } });

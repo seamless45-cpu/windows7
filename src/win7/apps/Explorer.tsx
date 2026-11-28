@@ -9,7 +9,7 @@ import { Icon, nodeIcon } from "../icons";
 import { GlassBar, cmpLocale } from "../ui";
 import { nodeMenuItems, newItems, deleteNodes, pasteInto, clipboardSet, doRename, createShortcutFor, undoLast, canUndo, undoName, showProps, setUndo } from "../fileops";
 import { emptyRecycle } from "../dialogs";
-import { InlineEdit } from "../ui";
+import { InlineEdit, Btn, Check, Radio, GroupBox } from "../ui";
 
 type ViewMode = "xl" | "large" | "medium" | "small" | "list" | "details" | "tiles";
 interface Row { id: string; name: string; icon: string; kind: string; size?: number; modified?: number; node?: FsNode; virt?: boolean; folder: boolean; loc?: string; sub?: string; lib?: string }
@@ -48,6 +48,11 @@ export function Explorer({ win }: { win: Win }) {
   const [rename, setRename] = useState<string | null>(null);
   const [query, setQuery] = useState<string>(win.props.query || "");
   const [q2, setQ2] = useState(query);
+  /* Windows 7 Explorer's Help button opens this dialog, and the command bar's
+     last strip is where the search box and the paging live. */
+  const [helpDlg, setHelpDlg] = useState(false);
+  const [addrMode, setAddrMode] = useState<"breadcrumb" | "edit">("breadcrumb");
+  const [doubleClick, setDoubleClick] = useState(() => getState().settings.folder.openDouble !== false);
   const [addr, setAddr] = useState<string | null>(null);
   const [detailsPane, setDetailsPane] = useState(settings.folder.details);
   const [preview, setPreview] = useState(settings.folder.preview);
@@ -56,6 +61,9 @@ export function Explorer({ win }: { win: Win }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const typeAhead = useRef({ text: "", at: 0 });
 
+  useEffect(() => {
+    setSettings({ folder: { ...getState().settings.folder, openDouble: doubleClick } });
+  }, [doubleClick]);
   useEffect(() => {
     const t = setTimeout(() => setQ2(query), 160);
     return () => clearTimeout(t);
@@ -450,6 +458,10 @@ export function Explorer({ win }: { win: Win }) {
     setMode(order[(order.indexOf(mode) + direction + order.length) % order.length]);
   };
 
+  /* Windows Explorer's Help button: pick how folders open and whether the
+     Command Bar shows the old menu strip. */
+  const helpPrefs = () => setHelpDlg(true);
+
   const cmds: { label: string; fn: () => void; arrow?: boolean }[] = [];
   if (path === "recycle") {
     cmds.push({ label: "Empty the Recycle Bin", fn: emptyRecycle });
@@ -496,6 +508,7 @@ export function Explorer({ win }: { win: Win }) {
     onDragStart: (e: React.DragEvent) => dragStart(e, r),
     onClick: (e: React.MouseEvent) => { e.stopPropagation(); select(e, r.id); rootRef.current?.focus(); },
     onDoubleClick: (e: React.MouseEvent) => { e.stopPropagation(); openRow(r); },
+    ...(doubleClick ? {} : { onClick: (e: React.MouseEvent) => { e.stopPropagation(); select(e, r.id); openRow(r); rootRef.current?.focus(); } }),
     onContextMenu: (e: React.MouseEvent) => itemMenu(e, r),
     ...(r.folder && r.node && !inTrash ? dropProps(r.id) : {}),
   });
@@ -569,7 +582,14 @@ export function Explorer({ win }: { win: Win }) {
   const trashCount = trashed(fs).length;
 
   return (
-    <div className="explorer" ref={rootRef} tabIndex={0} onKeyDown={key} onWheel={(e) => { if (e.ctrlKey) { e.preventDefault(); cycleView(e.deltaY < 0 ? 1 : -1); } }} data-dropdir={path} {...(canWrite && fs[path] ? dropProps(path) : {})}>
+    <div className="explorer" ref={rootRef} tabIndex={0} onKeyDown={key} onWheel={(e) => {
+      if (e.ctrlKey) { e.preventDefault(); cycleView(e.deltaY < 0 ? 1 : -1); return; }
+      /* the Mouse control panel's wheel setting decides how far a notch scrolls */
+      const lines = getState().settings.wheelLines || 3;
+      const px = lines === 0 ? (rootRef.current?.clientHeight || 400) : lines * 21;
+      const box = (e.currentTarget as HTMLElement).querySelector(".ex-list") as HTMLElement | null;
+      if (box && box.scrollHeight > box.clientHeight) { box.scrollTop += (e.deltaY > 0 ? 1 : -1) * px; }
+    }} data-dropdir={path} {...(canWrite && fs[path] ? dropProps(path) : {})}>
       <GlassBar winId={win.id}>
         <div className="ex-navbar">
           <div className="ex-navbtns">
@@ -606,7 +626,7 @@ export function Explorer({ win }: { win: Win }) {
           <Icon name="folder" size={14} /> <i onClick={(e) => { e.stopPropagation(); viewsBtn(e); }}>▾</i>
         </button>
         <button className={"cmd sq" + (preview ? " on" : "")} title="Show the preview pane" onClick={() => setPreview(!preview)}><svg width="16" height="14" viewBox="0 0 16 14"><rect x="1" y="1" width="14" height="12" fill="#fff" stroke="#556" /><rect x="9" y="1" width="6" height="12" fill="#bcd2ee" stroke="#556" /></svg></button>
-        <button className="cmd sq" title="Get help" onClick={() => openApp("help")}><Icon name="help" size={16} /></button>
+        <button className="cmd sq" title="Get help" onClick={helpPrefs}><Icon name="help" size={16} /></button>
       </div>
       <div className="ex-body">
         {navPane && (
@@ -696,8 +716,32 @@ export function Explorer({ win }: { win: Win }) {
         {selRows.length > 0 && <span>{selRows.length} selected{selRows.some((r) => r.size) ? ` — ${fmtSize(selRows.reduce((a, b) => a + (b.size || 0), 0))}` : ""}</span>}
         {clip && <span style={{ marginLeft: "auto" }}>Clipboard: {clip.ids.length} item(s) ({clip.mode})</span>}
       </div>
+      {helpDlg && (
+        <div className="dlg ex-help" style={{ position: "absolute", inset: "auto auto 34px 18px", width: 420 }}>
+          <div className="dlg-main col" style={{ gap: 8 }}>
+            <b>Windows Explorer Help</b>
+            <p style={{ margin: 0 }}>Choose how you want to work with folders and files.</p>
+            <GroupBox title="Tasks">
+              <div><Check checked={preview} onChange={setPreview} label="Show the preview pane" /></div>
+              <div><Check checked={detailsPane} onChange={setDetailsPane} label="Show the details pane" /></div>
+              <div><Check checked={navPane} onChange={setNavPane} label="Show the navigation pane" /></div>
+              <div><Check checked={settings.folder.showExt} onChange={(v) => setSettings({ folder: { ...settings.folder, showExt: v } })} label="Show file name extensions" /></div>
+              <div><Check checked={settings.folder.showHidden} onChange={(v) => setSettings({ folder: { ...settings.folder, showHidden: v } })} label="Show hidden files and folders" /></div>
+            </GroupBox>
+            <GroupBox title="Open items with">
+              <div><Radio checked={!doubleClick} onChange={() => setDoubleClick(false)} label="Single-click (underline icon titles)" name="exopen" /></div>
+              <div><Radio checked={doubleClick} onChange={() => setDoubleClick(true)} label="Double-click to open an item" name="exopen" /></div>
+            </GroupBox>
+          </div>
+          <div className="dlg-foot">
+            <Btn def onClick={() => setHelpDlg(false)}>OK</Btn>
+            <Btn onClick={() => setHelpDlg(false)}>Cancel</Btn>
+          </div>
+        </div>
+      )}
       {void setSettings}
       {void openPath}
+      {void addrMode}
     </div>
   );
 }

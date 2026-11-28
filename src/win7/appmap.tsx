@@ -10,6 +10,7 @@ import { MediaPlayer, PhotoViewer, DvdMaker, SoundRecorder } from "./apps/Media"
 import { IE } from "./apps/IE";
 import { Chrome } from "./apps/Chrome";
 import { FrameViewer } from "./apps/FrameViewer";
+import { PrintManagement, ComponentServices, OdbcAdmin, FileSignature, RecoveryDisc, ColorManagement, DisplaySwitch, NetworkProjector } from "./apps/Inbox7";
 import { WindowsActivation, UpdateInstaller, ConnectToNetwork, WindowColor, HelpTopics, TouchCalibration, FaxCoverEditor, DiskDefragmenter, SyncCenterWizard } from "./apps/SystemTools7";
 import { Cmd, TaskManager, HelpApp, SnippingTool, Minesweeper } from "./apps/SystemApps";
 import { GadgetGallery, GadgetOptions } from "./gadgets";
@@ -55,6 +56,14 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   faxcover: FaxCoverEditor,
   defrag: DiskDefragmenter,
   syncw: SyncCenterWizard,
+  printmgmt: PrintManagement,
+  compsvc: ComponentServices,
+  odbcad: OdbcAdmin,
+  sigverif: FileSignature,
+  recdisc: RecoveryDisc,
+  colorcpl: ColorManagement,
+  displayswitch: DisplaySwitch,
+  netproj: NetworkProjector,
   notepad: Notepad,
   paint: Paint,
   calc: Calculator,

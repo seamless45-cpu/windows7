@@ -2223,3 +2223,99 @@ body.col-resize { cursor: col-resize; }
 .scheme-card > span { display: block; font-size: 11px; color: #5b6d80; line-height: 1.4; min-height: 30px; }
 .scheme-actions { display: flex; gap: 5px; margin-top: 6px; }
 .scheme-actions .w7btn { min-width: 0; height: 20px; padding: 0 7px; font-size: 11px; }
+
+/* ================= Inbox consoles (Print Management, Component Services,
+   ODBC, signature verification, repair disc, colour, projector) ======== */
+.inbox { display: flex; flex-direction: column; height: 100%; background: #fff; color: #000; font-size: 12px; }
+.inbox-hd { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: linear-gradient(#f7fafd, #e3ecf7); border-bottom: 1px solid #b8cadf; color: #123; }
+.inbox-hd b { font-size: 13px; }
+.inbox-sub { margin-left: auto; color: #5b7290; font-family: Consolas, monospace; font-size: 11px; }
+.inbox-body { flex: 1; display: flex; min-height: 0; }
+.inbox-nav { width: 210px; flex: none; overflow: auto; padding: 6px 0; background: #fff; border-right: 1px solid #dfe7f2; }
+.inbox-tree { display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: default; white-space: nowrap; }
+.inbox-tree:hover { background: #eef5fd; }
+.inbox-tree.on { background: #cfe4f7; }
+.inbox-main { flex: 1; overflow: auto; padding: 10px 14px; min-width: 0; user-select: text; }
+.inbox-toolbar { display: flex; align-items: center; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.inbox-grid { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.inbox-grid th { text-align: left; font-weight: 400; color: #35506c; background: linear-gradient(#fbfdff, #eef4fa); border: 1px solid #dbe4ef; padding: 3px 6px; }
+.inbox-grid td { padding: 3px 6px; border-bottom: 1px solid #f0f4f9; }
+.inbox-grid td > .ico { vertical-align: -3px; margin-right: 4px; }
+.inbox-grid tr.sel td { background: #cfe4f7; }
+.inbox-grid td.bad { color: #a11212; }
+.inbox-tag { margin-left: 6px; padding: 0 5px; border-radius: 8px; background: #dbeaf9; color: #14568f; font-size: 10.5px; }
+.inbox-empty { padding: 24px 8px; color: #667c93; text-align: center; }
+.inbox-about { max-width: 620px; line-height: 1.55; }
+.inbox-about h3 { margin: 0 0 6px; font-size: 13px; color: #1e3a8a; }
+.inbox-about li { margin: 3px 0; }
+.inbox-note { margin-top: 10px; padding: 8px 10px; background: #f4f8fd; border: 1px solid #dbe6f2; border-radius: 3px; color: #3d556e; }
+.inbox-status { flex: none; padding: 3px 10px; border-top: 1px solid #dbe4ef; background: #f5f8fc; color: #44607c; }
+.inbox-tabs { display: flex; gap: 2px; padding: 4px 6px 0; background: #f0f4fa; border-bottom: 1px solid #b8cadf; }
+.inbox-tab { padding: 3px 12px; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: #2b4a68; cursor: default; }
+.inbox-tab.on { background: #fff; border-color: #b8cadf; }
+.inbox-bar { height: 12px; margin-top: 8px; border: 1px solid #9db4cc; border-radius: 3px; background: #f2f6fb; overflow: hidden; }
+.inbox-bar i { display: block; height: 100%; background: linear-gradient(#d6f0a8, #7fc23c); transition: width .12s linear; }
+
+/* Win+P projector switcher: four big tiles, one selected */
+.displayswitch .inbox-main { display: flex; flex-direction: column; gap: 8px; }
+.ds-modes { display: grid; grid-template-columns: repeat(4, 88px); gap: 8px; }
+.ds-mode { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border: 1px solid #b9cde2; border-radius: 5px; background: linear-gradient(#fff, #eef5fc); color: #17324f; cursor: default; text-align: center; font-size: 11px; }
+.ds-mode:hover { border-color: #3c7fb1; box-shadow: 0 0 6px rgba(120,200,255,.6); }
+.ds-mode.on { border-color: #2b6f9e; background: linear-gradient(#e8f5ff, #cfe8fb); box-shadow: inset 0 0 0 1px #fff, 0 0 8px rgba(120,200,255,.7); }
+.ds-glyph { font-size: 20px; line-height: 1; letter-spacing: -1px; }
+
+/* WordPad View tab: zoom, ruler, wrap and units are real controls */
+.wp-zoom-row { display: flex; align-items: center; gap: 4px; }
+.wp-zoom-row .w7btn { min-width: 26px; height: 20px; padding: 0 5px; font-size: 11px; }
+.wp-zoom-pct { min-width: 44px; text-align: center; }
+.wp-page-wrap { flex-direction: column; align-items: center; gap: 0; padding: 0; }
+.wp-ruler {
+  flex: none; width: 100%; max-width: 760px; height: 18px; position: relative;
+  background: linear-gradient(#fdfefe, #e9eff7); border-bottom: 1px solid #b9c8da;
+}
+.wp-ruler span {
+  position: absolute; top: 1px; transform: translateX(-50%);
+  font-size: 9.5px;
+}
+.wp-ruler span { color: #5d7590; }
+.wp-ruler::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 5px;
+  background: repeating-linear-gradient(90deg, #9fb0c4 0 1px, transparent 1px 6px);
+}
+.wp-page-wrap.nowrap .wp-page { white-space: pre; overflow-x: auto; }
+
+/* Paint View tab: zoom presets, rulers, gridlines, thumbnails, full screen */
+.pt-zoom { display: flex; align-items: center; gap: 3px; }
+.pt-zoom .pt-btn { min-width: 40px; }
+.paint-work { position: relative; }
+.paint-work.rulers { padding: 18px 0 0 18px; }
+.paint-ruler-h {
+  position: absolute; left: 18px; right: 0; top: 0; height: 18px;
+  background: linear-gradient(#fdfefe, #e8eef6); border-bottom: 1px solid #b9c8da; pointer-events: none;
+  background-image: repeating-linear-gradient(90deg, #9fb0c4 0 1px, transparent 1px 10px);
+  background-size: 100% 5px; background-position: bottom left; background-repeat: repeat-x;
+}
+.paint-ruler-v {
+  position: absolute; left: 0; top: 18px; bottom: 0; width: 18px;
+  background: linear-gradient(90deg, #fdfefe, #e8eef6); border-right: 1px solid #b9c8da; pointer-events: none;
+  background-image: repeating-linear-gradient(0deg, #9fb0c4 0 1px, transparent 1px 10px);
+  background-size: 5px 100%; background-position: right top; background-repeat: repeat-y;
+}
+.paint-canvas-wrap.grid { box-shadow: 0 0 0 1px #7a8ea6; }
+.paint-canvas-wrap.grid .paint-canvas { background-image: linear-gradient(rgba(90,120,160,.28) 1px, transparent 1px), linear-gradient(90deg, rgba(90,120,160,.28) 1px, transparent 1px); background-size: 16px 16px; }
+.paint-work.full { background: #333; }
+.paint-thumbs { flex: none; display: flex; gap: 8px; padding: 6px 8px; overflow-x: auto; background: #eef3fa; border-top: 1px solid #c3cfe0; }
+.paint-thumb { width: 78px; flex: none; text-align: center; font-size: 10.5px; color: #35506c; cursor: default; }
+.paint-thumb img { width: 78px; height: 58px; object-fit: contain; background: #fff; border: 1px solid #9db4cc; }
+.paint-thumb:hover img { border-color: #2b6f9e; box-shadow: 0 0 5px rgba(90,170,240,.7); }
+.paint-thumb.add span:first-child { display: flex; align-items: center; justify-content: center; width: 78px; height: 58px; font-size: 26px; background: #fff; border: 1px dashed #9db4cc; color: #7f93a9; }
+.paint-thumb span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Quick Launch toolbar on the taskbar */
+.tb-qlaunch { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
+.tb-ql-btn {
+  display: grid; place-items: center; width: 24px; height: 22px; padding: 0;
+  border: 1px solid transparent; border-radius: 3px; background: transparent; cursor: default;
+}
+.tb-ql-btn:hover { background: rgba(255,255,255,.28); border-color: rgba(255,255,255,.5); }
+.tbpos-bottom .tb-ql-btn:hover, .tbpos-top .tb-ql-btn:hover { background: rgba(255,255,255,.22); }

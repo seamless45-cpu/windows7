@@ -122,5 +122,32 @@ check("Mahjong draws dot tiles as dot patterns", /mj-dots/.test(g7));
 check("Mahjong draws bamboo tiles as sticks", /mj-bam/.test(g7));
 check("Minesweeper uses Win 7 Aero tiles", /\.mc:hover \{ background: linear-gradient\(#ffffff/.test(await src("src/app/win7-apps.css")));
 
+/* ------------------------------------------- second completeness pass (inbox) */
+const inbox = await src("src/win7/apps/Inbox7.tsx");
+for (const id of ["printmgmt", "compsvc", "odbcad", "sigverif", "recdisc", "colorcpl", "displayswitch", "netproj"]) {
+  check(`${id} is registered and mounted`, new RegExp(`\\b${id}:`).test(registry) && new RegExp(`\\b${id}:`).test(appmap));
+}
+check("Print Management writes a real test page", /printDocument/.test(inbox) && /win7\.printers/.test(inbox));
+check("Display Switch persists the chosen mode", /win7\.display\.mode/.test(inbox));
+check("System Repair Disc writes an image file and logs Kernel-General 34", /\.iso\.txt/.test(inbox) && /Kernel-General/.test(inbox));
+check("ODBC stores its DSNs", /win7\.odbc/.test(inbox));
+check("Win+P opens Display Switch", /k === "p"[\s\S]{0,120}displayswitch/.test(shell));
+const cp = await src("src/win7/apps/ControlPanel.tsx");
+check("Mouse has five tabs including Wheel and Hardware", /\["Buttons", "Pointers", "Pointer Options", "Wheel", "Hardware"\]/.test(cp));
+check("Mouse pointer speed is persisted", /pointerSpeed/.test(store) && /pointerSpeed: v/.test(cp));
+check("Keyboard Hardware tab is real", /value=\{ktab\}/.test(cp));
+check("Date and Time has extra clocks and Internet Time", /extraClocks/.test(store) && /ntpServer/.test(store));
+check("Region renders all four tabs", /setRtab/.test(cp) && /rtab === "Location"/.test(cp));
+check("Folder Options renders all three tabs", /setFtab/.test(cp) && /ftab === "Search"/.test(cp));
+check("Sound Communications is a real setting", /commActivity/.test(store));
+check("system tray icons can be switched off", /showSys\("volume"\)/.test(await src("src/win7/Taskbar.tsx")));
+check("Quick Launch toolbar exists", /quicklaunch/.test(store) && /tb-qlaunch/.test(await src("src/win7/Taskbar.tsx")));
+const paint = await src("src/win7/apps/Paint.tsx");
+check("Paint View tab renders zoom, rulers, gridlines and thumbnails", /ptab === "View"/.test(paint) && /paint-thumbs/.test(paint));
+check("WordPad View tab renders zoom presets", /preset === p/.test(await src("src/win7/apps/Accessories.tsx")));
+check("Explorer Help dialog really changes folder options", /helpDlg/.test(await src("src/win7/apps/Explorer.tsx")));
+check("cmd echo supports echo. / @echo off / %VAR%", /ECHO is on/.test(await src("src/win7/apps/SystemApps.tsx")) && /echoOff/.test(await src("src/win7/apps/SystemApps.tsx")));
+check("Heart's New game button deals again", /New game<\/Btn>/.test(await src("src/win7/apps/Games.tsx")));
+
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
 process.exit(failures ? 1 : 0);

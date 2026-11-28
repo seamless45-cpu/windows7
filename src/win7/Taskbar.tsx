@@ -67,6 +67,14 @@ interface Group { key: string; app: string; wins: Win[]; pinned: boolean }
  * Desktop lists the desktop icons. Toolbars sit on their own strip at the near
  * edge of the taskbar, as they do in the real shell.
  */
+const QUICK_LAUNCH: { app: string; name: string; icon: string }[] = [
+  { app: "explorer", name: "Windows Explorer", icon: "computer" },
+  { app: "ie", name: "Internet Explorer", icon: "ie" },
+  { app: "wmp", name: "Windows Media Player", icon: "wmp" },
+  { app: "snip", name: "Snipping Tool", icon: "snip" },
+  { app: "paint", name: "Paint", icon: "paint" },
+];
+
 function TaskbarToolbars({ bars, vertical }: { bars: TaskbarBar[]; vertical: boolean }) {
   const fs = useStore((s) => s.fs);
   const [addr, setAddr] = useState("");
@@ -114,6 +122,20 @@ function TaskbarToolbars({ bars, vertical }: { bars: TaskbarBar[]; vertical: boo
                   </button>
                 );
               })}
+            </>
+          )}
+          {/* Windows 7's Quick Launch: the small-icon strip of pinned
+              shortcuts that lives at the near edge of the taskbar. */}
+          {b === "quicklaunch" && (
+            <>
+              <div className="tb-qlaunch">
+                {QUICK_LAUNCH.map((q) => (
+                  <button key={q.app} className="tb-ql-btn" title={q.name} onPointerDown={(e) => e.stopPropagation()} onClick={() => openApp(q.app)}>
+                    <Icon name={q.icon} size={16} />
+                  </button>
+                ))}
+                <button className="tb-ql-btn" title="Show Desktop" onPointerDown={(e) => e.stopPropagation()} onClick={() => setState({ peek: null })}><Icon name="desktop" size={16} /></button>
+              </div>
             </>
           )}
           {b === "desktop" && (
@@ -275,6 +297,7 @@ export function Taskbar() {
           { label: "Address", checked: tb.bars.includes("address"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("address") } }) },
           { label: "Links", checked: tb.bars.includes("links"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("links") } }) },
           { label: "Desktop", checked: tb.bars.includes("desktop"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("desktop") } }) },
+          { label: "Quick Launch", checked: tb.bars.includes("quicklaunch"), onClick: () => setSettings({ taskbar: { ...getState().settings.taskbar, bars: toggleBar("quicklaunch") } }) },
         ],
       },
       { sep: true },
@@ -309,6 +332,7 @@ export function Taskbar() {
   };
 
   const autoHidden = tb.autohide && !revealed && !startOpen && !flyout && !menu;
+  const showSys = (k: string) => !settings.hiddenTray.includes("sys:" + k);
   const unread = notifs.length;
 
   const popupStyle = (): React.CSSProperties => {
@@ -398,15 +422,21 @@ export function Taskbar() {
         </div>
         <div className="tb-tray" onPointerDown={(e) => e.stopPropagation()}>
           <div className="tray-ico tray-over" title="Show hidden icons" onClick={() => toggleFlyout("overflow")}><Icon name="chevron" size={12} /></div>
-          <div className="tray-ico" title={`Action Center${unread ? " — " + unread + " message(s)" : ""}`} onClick={() => toggleFlyout("action")}>
-            <Icon name="flagAC" size={16} />
-            {unread > 0 && <i className="tray-badge" />}
-          </div>
-          <div className="tray-ico" title={online ? "Network 2\nInternet access" : "Not connected — no connections available"} onClick={() => toggleFlyout("network")}><Icon name={online ? "netOn" : "netOff"} size={16} /></div>
-          <div className="tray-ico" title={settings.muted ? "Speakers: Muted" : `Speakers: ${settings.volume}%`} onClick={() => toggleFlyout("volume")}><Icon name={settings.muted || settings.volume === 0 ? "speakerMute" : "speaker"} size={16} /></div>
-          <div className="tray-ico" title={`${batteryLevel}% ${batteryCharging ? "available (plugged in, charging)" : "remaining"}`} onClick={() => toggleFlyout("battery")}>
-            <Icon name={batteryCharging ? "battery" : batteryLevel <= 10 ? "batteryLow" : "battery"} size={16} />
-          </div>
+          {/* The system icons can be turned off on the Taskbar tab of the
+              Taskbar and Start Menu properties, exactly like Windows 7. */}
+          {showSys("actioncenter") && (
+            <div className="tray-ico" title={`Action Center${unread ? " — " + unread + " message(s)" : ""}`} onClick={() => toggleFlyout("action")}>
+              <Icon name="flagAC" size={16} />
+              {unread > 0 && <i className="tray-badge" />}
+            </div>
+          )}
+          {showSys("network") && <div className="tray-ico" title={online ? "Network 2\nInternet access" : "Not connected — no connections available"} onClick={() => toggleFlyout("network")}><Icon name={online ? "netOn" : "netOff"} size={16} /></div>}
+          {showSys("volume") && <div className="tray-ico" title={settings.muted ? "Speakers: Muted" : `Speakers: ${settings.volume}%`} onClick={() => toggleFlyout("volume")}><Icon name={settings.muted || settings.volume === 0 ? "speakerMute" : "speaker"} size={16} /></div>}
+          {showSys("power") && (
+            <div className="tray-ico" title={`${batteryLevel}% ${batteryCharging ? "available (plugged in, charging)" : "remaining"}`} onClick={() => toggleFlyout("battery")}>
+              <Icon name={batteryCharging ? "battery" : batteryLevel <= 10 ? "batteryLow" : "battery"} size={16} />
+            </div>
+          )}
           <div className="tray-clock" onClick={() => toggleFlyout("clock")} title={fmtLongDate(now, settings)}>
             <div>{fmtTime(now, settings)}</div>
             {!vertical && <div>{fmtShortDate(now, settings)}</div>}
@@ -603,7 +633,12 @@ function Flyouts() {
         <div className="ovf-grid">
           <div className="tray-ico" title="Safely Remove Hardware and Eject Media" onClick={() => { close(); deviceRemoved("Generic USB Drive"); }}><Icon name="usb" size={18} /></div>
           <div className="tray-ico" title="Windows Update" onClick={() => { close(); openCP("wupdate"); }}><Icon name="update" size={18} /></div>
-          <div className="tray-ico" title="Windows Defender" onClick={() => { close(); openCP("actioncenter"); }}><Icon name="security" size={18} /></div>
+          <div className="tray-ico" title="Windows Defender" onClick={() => { close(); openCP("defender"); }}><Icon name="security" size={18} /></div>
+          {/* The tray also carries the two things Windows 7 hides by default:
+              the notification-area chevron itself and the Input Indicator. */}
+          <div className="tray-ico" title="Windows Solution Center" onClick={() => { close(); openCP("actioncenter"); }}><Icon name="flag" size={18} /></div>
+          <div className="tray-ico" title="Display" onClick={() => { close(); openApp("displayswitch"); }}><Icon name="display" size={18} /></div>
+          <div className="tray-ico" title="Print Management" onClick={() => { close(); openApp("printmgmt"); }}><Icon name="printer" size={18} /></div>
         </div>
         <div className="nf-foot"><a onClick={() => { close(); openCP("taskbar"); }}>Customize...</a></div>
       </div>

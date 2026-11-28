@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Win, useStore, getState, setWin, setGuard, closeWin, msgBox, printDocument, mkfile, writeFile, lsGet, lsSet, openApp, extOf, MenuItem, showMenu, view, jumpTouch } from "../store";
-import { Btn } from "../ui";
+import { Btn, Check } from "../ui";
 import { openFileDialog } from "../dialogs";
 
 type Tool = "pencil" | "brush" | "eraser" | "fill" | "picker" | "text" | "magnifier" | "select" | "line" | "rect" | "ellipse" | "roundrect" | "triangle" | "diamond" | "pentagon" | "hexagon" | "star" | "arrow";
@@ -42,6 +42,14 @@ export function Paint({ win }: { win: Win }) {
   const [textBox, setTextBox] = useState<{ x: number; y: number } | null>(null);
   const [fontSize, setFontSize] = useState(18);
   const [resizeDlg, setResizeDlg] = useState(false);
+  /* Windows 7 Paint's View tab: zoom presets, rulers, gridlines, the status
+     bar and full screen. They were static labels before. */
+  const [ptab, setPtab] = useState<"Home" | "View">("Home");
+  const [rulers, setRulers] = useState(false);
+  const [grid, setGrid] = useState(false);
+  const [showStatus, setShowStatus] = useState(true);
+  const [thumbs, setThumbs] = useState(false);
+  const [full, setFull] = useState(false);
   const [rs, setRs] = useState({ pct: 100, lock: true });
   const undo = useRef<ImageData[]>([]);
   const redo = useRef<ImageData[]>([]);
@@ -486,8 +494,30 @@ export function Paint({ win }: { win: Win }) {
 
   return (
     <div className="paint" tabIndex={0} onKeyDown={key}>
-      <div className="ribbon-tabs"><div className="rt-file paintbtn" onClick={fileMenu}>Paint ▾</div><div className="rt sel">Home</div><div className="rt">View</div>
+      <div className="ribbon-tabs"><div className="rt-file paintbtn" onClick={fileMenu}>Paint ▾</div>
+        <div className={"rt" + (ptab === "Home" ? " sel" : "")} onClick={() => setPtab("Home")}>Home</div>
+        <div className={"rt" + (ptab === "View" ? " sel" : "")} onClick={() => setPtab("View")}>View</div>
         <div className="rt-quick"><button title="Save" onClick={() => save()}>💾</button><button title="Undo" onClick={doUndo}>↶</button><button title="Redo" onClick={doRedo}>↷</button></div></div>
+      {ptab === "View" ? (
+      <div className="ribbon paint-view">
+        <div className="rg"><div className="rg-body col">
+          <div className="pt-zoom">
+            {([[0.5, "50%"], [1, "100%"], [2, "200%"], [4, "400%"], [8, "800%"]] as [number, string][]).map(([z, l]) => (
+              <button key={l} className={"pt-btn" + (zoom === z ? " on" : "")} onClick={() => setZoom(z)}>{l}</button>
+            ))}
+          </div>
+        </div><div className="rg-t">Zoom</div></div>
+        <div className="rg"><div className="rg-body col">
+          <div><Check checked={rulers} onChange={setRulers} label="Rulers" /></div>
+          <div><Check checked={grid} onChange={setGrid} label="Gridlines" /></div>
+          <div><Check checked={showStatus} onChange={setShowStatus} label="Status bar" /></div>
+        </div><div className="rg-t">Show or hide</div></div>
+        <div className="rg"><div className="rg-body">
+          <button className={"rb-btn" + (thumbs ? " on" : "")} onClick={() => setThumbs(!thumbs)} title="Show the picture thumbnails"><b>🖼</b><br />Thumbnail</button>
+          <button className={"rb-btn" + (full ? " on" : "")} onClick={() => { setFull(!full); if (!full) document.documentElement.requestFullscreen?.().catch(() => {}); else if (document.fullscreenElement) document.exitFullscreen(); }} title="View the picture full screen"><b>⛶</b><br />Full screen</button>
+        </div><div className="rg-t">Display</div></div>
+      </div>
+      ) : (
       <div className="ribbon">
         <div className="rg"><div className="rg-body"><button className="rb-btn" onClick={paste}><b>📋</b><br />Paste</button><div><button className="rb-btn" onClick={() => copySel(true)}>✂ Cut</button><button className="rb-btn" onClick={() => copySel(false)}>⎘ Copy</button></div></div><div className="rg-t">Clipboard</div></div>
         <div className="rg"><div className="rg-body"><div className="pt-grid"><T t="select" label="⬚" title="Select" /><button className="pt-btn" title="Crop" onClick={cropSel}>⌗</button><button className="pt-btn" title="Resize and skew" onClick={() => setResizeDlg(true)}>⤢</button>
@@ -504,14 +534,30 @@ export function Paint({ win }: { win: Win }) {
           <label className="rb-btn" title="Edit colors">🎨<br />Edit colors<input type="color" value={active === 1 ? c1 : c2} onChange={(e) => setColor(e.target.value)} style={{ opacity: 0, position: "absolute", width: 1, height: 1 }} /></label>
         </div><div className="rg-t">Colors</div></div>
       </div>
-      <div className="paint-work" onContextMenu={(e) => e.preventDefault()}>
-        <div className="paint-canvas-wrap" style={{ width: dims.w * zoom, height: dims.h * zoom }}>
+      )}
+      <div className={"paint-work" + (full ? " full" : "") + (rulers ? " rulers" : "")} onContextMenu={(e) => e.preventDefault()}>
+        {rulers && <div className="paint-ruler-h" />}
+        {rulers && <div className="paint-ruler-v" />}
+        <div className={"paint-canvas-wrap" + (grid ? " grid" : "")} style={{ width: dims.w * zoom, height: dims.h * zoom }}>
           <canvas ref={cv} className="paint-canvas" style={{ width: dims.w * zoom, height: dims.h * zoom, cursor: tool === "picker" ? "crosshair" : tool === "text" ? "text" : tool === "magnifier" ? "zoom-in" : "crosshair" }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={() => setPos(null)} />
           {sel && sel.w > 0 && <div className="paint-sel" style={{ left: sel.x * zoom, top: sel.y * zoom, width: sel.w * zoom, height: sel.h * zoom }} />}
           {textBox && <textarea autoFocus className="paint-text" style={{ left: textBox.x * zoom, top: textBox.y * zoom, fontSize: fontSize * zoom, color: c1 }} onBlur={(e) => commitText(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Escape") setTextBox(null); }} />}
         </div>
       </div>
-      <div className="paint-status"><span>✛ {pos ? `${pos.x}, ${pos.y}px` : ""}</span><span>{sel && sel.w > 0 ? `⬚ ${Math.round(sel.w)} × ${Math.round(sel.h)}px` : ""}</span><span>▭ {dims.w} × {dims.h}px</span><span style={{ flex: 1 }} /><span>{Math.round(zoom * 100)}%</span><input type="range" className="w7range" min={1} max={4} step={0.5} value={zoom} onChange={(e) => setZoom(+e.target.value)} style={{ width: 100 }} /></div>
+      {thumbs && (
+        <div className="paint-thumbs">
+          {Object.values(fs).filter((n) => !n.trash && n.type === "file" && /^(png|jpg|jpeg|bmp|gif)$/i.test(extOf(n.name)) && n.content?.startsWith("data:image")).slice(0, 12).map((n) => (
+            <div key={n.id} className="paint-thumb" title={n.name} onClick={() => { if (n.content) loadImage(n.content, n.id); }}>
+              {/* a local data: URL thumbnail, not a network image */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={n.content} alt="" />
+              <span>{n.name}</span>
+            </div>
+          ))}
+          <div className="paint-thumb add" title="Your Pictures folder" onClick={() => openApp("explorer", { path: "pics" })}><span>+</span><span>Pictures</span></div>
+        </div>
+      )}
+      {showStatus && <div className="paint-status"><span>✛ {pos ? `${pos.x}, ${pos.y}px` : ""}</span><span>{sel && sel.w > 0 ? `⬚ ${Math.round(sel.w)} × ${Math.round(sel.h)}px` : ""}</span><span>▭ {dims.w} × {dims.h}px</span><span style={{ flex: 1 }} /><span>{Math.round(zoom * 100)}%</span><input type="range" className="w7range" min={0.5} max={8} step={0.5} value={zoom} onChange={(e) => setZoom(+e.target.value)} style={{ width: 100 }} /></div>}
       {resizeDlg && (
         <div className="np-dlg" style={{ top: 80, left: 100 }}>
           <div className="np-dlg-t">Resize and Skew<span onClick={() => setResizeDlg(false)}>✕</span></div>

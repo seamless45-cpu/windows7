@@ -235,7 +235,7 @@ export function LocalSecurityPolicy({ win }: { win: Win }) {
 export function RemoteDesktop({ win }: { win: Win }) {
   const [computer, setComputer] = useState(() => lsGet("win7.rdp.last", ""));
   const [user, setUser] = useState("");
-  const [opts, setOpts] = useState({ screen: "1920x1080", colors: "32 bit", sound: "Bring to this computer", clipboard: true, drives: false, printers: false, fullscreen: false });
+  const [opts, setOpts] = useState({ screen: "1920x1080", colors: "32 bit", sound: "Bring to this computer", clipboard: true, drives: false, printers: false, fullscreen: false, experience: true, fontsmooth: true });
   const [state, setState] = useState<"idle" | "connecting" | "failed">("idle");
   const [log, setLog] = useState<string[]>([]);
 
@@ -273,8 +273,8 @@ export function RemoteDesktop({ win }: { win: Win }) {
           <Check checked={opts.drives} onChange={(v) => setOpts({ ...opts, drives: v })} label="Drives (C: on this PC)" />
           <Check checked={opts.printers} onChange={(v) => setOpts({ ...opts, printers: v })} label="Printers" />
           <div className="cp-sec">Experience</div>
-          <Check checked onChange={() => {}} label="Desktop background" />
-          <Check checked onChange={() => {}} label="Font smoothing" />
+          <Check checked={opts.experience} onChange={(v) => setOpts({ ...opts, experience: v })} label="Desktop background" />
+          <Check checked={opts.fontsmooth} onChange={(v) => setOpts({ ...opts, fontsmooth: v })} label="Font smoothing" />
         </div>
       </div>
       {state !== "idle" && (
@@ -402,7 +402,7 @@ export function EasyTransfer({ win }: { win: Win }) {
             <h3>Ready to transfer</h3>
             <p>Windows Easy Transfer will save {total} categories to <b>Documents\\EasyTransfer.MIG</b>.</p>
             <div className="mig-sum">
-              {labels.filter(([k]) => sel[k]).map(([k, l]) => <div key={k}><Check checked onChange={() => {}} label={l} /></div>)}
+              {labels.filter(([k]) => sel[k]).map(([k, l]) => <div key={k}><Check checked onChange={(v) => setSel({ ...sel, [k]: v })} label={l} /></div>)}
             </div>
           </>
         )}

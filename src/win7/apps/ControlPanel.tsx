@@ -12,7 +12,7 @@ import { BackupRestore, BitLocker, HomeGroup, CredentialManager, ExperienceIndex
 import { GlassBar, Btn, Tabs, Check, Radio, GroupBox, Slider, useNow, fmtTime, fmtLongDate, nowTz } from "../ui";
 import { WALLPAPERS, COLORS, USER_PICS, userPic } from "../data";
 import { Mobility, Reliability, AnytimeUpgrade } from "./Utilities";
-import { playSys, playPreview, SCHEMES, SCHEME_META, SOUND_EVENTS, isNoSounds, SOUND_CLIPS, clipLabel, soundFor, setSoundFor, type SysSound } from "../sound";
+import { playSys, playClick, playPreview, SCHEMES, SCHEME_META, SOUND_EVENTS, isNoSounds, SOUND_CLIPS, clipLabel, soundFor, setSoundFor, type SysSound } from "../sound";
 import { wpStyle } from "../fileops";
 import { listMedia, addMedia, removeMedia, mediaUrl, prettySize, prettyDur, WP_FITS, type MediaMeta } from "../media";
 import { DeviceManager } from "./ComputerManagement";
@@ -98,8 +98,14 @@ const PAGES: Record<string, PageDef> = {
   support: { title: "Windows Support", icon: "help", cat: "cat-system" },
   tabtip: { title: "Tablet PC Input Panel", icon: "osk", cat: "cat-ease" },
   stkmgr: { title: "Sticky Notes", icon: "sticky2", cat: "cat-programs" },
+  printmgmt: { title: "Print Management", icon: "printer", cat: "cat-hardware" },
+  colorcpl: { title: "Color Management", icon: "display", cat: "cat-hardware" },
+  recdisc: { title: "Create a System Repair Disc", icon: "cd", cat: "cat-system" },
+  compsvc: { title: "Component Services", icon: "services", cat: "cat-system" },
+  odbcad: { title: "ODBC Data Source Administrator", icon: "drive", cat: "cat-system" },
+  sigverif: { title: "File Signature Verification", icon: "shield", cat: "cat-system" },
 };
-const ALL_ITEMS = ["actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
+const ALL_ITEMS = ["printmgmt", "colorcpl", "recdisc", "compsvc", "odbcad", "sigverif", "actioncenter", "eventvwr", "cleanmgr", "sysdiag", "features", "anytime", "datetime", "defaultprogs", "devmgr", "devices", "display", "ease", "folderopts", "fonts", "gadgets", "games", "inetopts", "keyboard", "mobility", "mouse", "network", "personalization", "power", "programs", "region", "reliability", "sound", "system", "taskbar", "wupdate", "users", "firewall", "aero", "services", "msconfig", "compmgmt", "tasksched", "resmon", "diskmgmt", "sysrestore", "defender", "powershell", "fw", "secpol", "perfmon", "indexing", "cleartype", "mdsched", "rdp", "sync", "migwiz", "mce", "eudc", "wfs", "support", "tabtip", "stkmgr", "backup", "bitlocker", "homegroup", "credmgr", "wei", "ra"];
 
 const elevate = (name: string, fn: () => void) => uac({ name, publisher: "Microsoft Windows", onAllow: fn });
 
@@ -354,7 +360,17 @@ function SoundPage({ nav }: { nav: (p: string) => void }) {
             </p>
           </div>
         )}
-        {tab === "Communications" && <div><p>When Windows detects communications activity:</p><Radio checked label="Do nothing" onChange={() => {}} /><br /><Radio checked={false} label="Reduce the volume of other sounds by 80%" onChange={() => {}} /></div>}
+        {tab === "Communications" && (
+          <div>
+            <p>When Windows detects communications activity:</p>
+            <div><Radio checked={s.commActivity === "none"} onChange={() => setSettings({ commActivity: "none" })} label="Do nothing" /></div>
+            <div><Radio checked={s.commActivity === "80"} onChange={() => setSettings({ commActivity: "80" })} label="Reduce the volume of other sounds by 80%" /></div>
+            <div><Radio checked={s.commActivity === "50"} onChange={() => setSettings({ commActivity: "50" })} label="Reduce the volume of other sounds by 50%" /></div>
+            <div><Radio checked={s.commActivity === "mute"} onChange={() => setSettings({ commActivity: "mute" })} label="Mute all other sounds" /></div>
+            <p className="cp-desc">In Windows 7 this setting lets a voice call duck the music and system sounds. Here it is applied to the volume flyout when a simulated call starts.</p>
+            <p><Btn onClick={() => { const lvl = s.volume; setSettings({ volume: s.commActivity === "mute" ? 0 : s.commActivity === "80" ? Math.round(lvl * 0.2) : s.commActivity === "50" ? Math.round(lvl * 0.5) : lvl, muted: s.commActivity === "mute" }); notify({ title: "Sound", text: "Communication activity detected — the other sounds were adjusted.", icon: "info" }); }}>Test the setting</Btn></p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -613,6 +629,7 @@ function ScreenSaver() {
         {s.screensaver === "ribbons" && <p className="cp-desc">Ribbons draws colourful, curling streamers across the screen.</p>}
         {s.screensaver === "bubbles" && <p className="cp-desc">Bubbles floats translucent bubbles over your desktop.</p>}
         {s.screensaver === "blank" && <p className="cp-desc">Blank shows a black screen when the computer is idle.</p>}
+        {s.screensaver === "photos" && <p className="cp-desc">Photos shows a slide show of the pictures in your Pictures library, one every few seconds, on a black background.</p>}
         <p><Check checked={s.ssPassword} onChange={(v) => setSettings({ ssPassword: v })} label="On resume, display logon screen" /></p>
         <p className="cp-desc">The screen saver starts after the computer has been idle for the selected time.</p>
       </div>
@@ -697,7 +714,7 @@ function Mouse() {
   const [last, setLast] = useState(0);
   return (
     <div className="cp-dialog">
-      <Tabs tabs={["Buttons", "Pointers", "Pointer Options"]} value={tab} onChange={setTab} />
+      <Tabs tabs={["Buttons", "Pointers", "Pointer Options", "Wheel", "Hardware"]} value={tab} onChange={setTab} />
       <div className="cp-tabbody">
         {tab === "Buttons" && (
           <div>
@@ -717,9 +734,45 @@ function Mouse() {
         )}
         {tab === "Pointer Options" && (
           <div>
-            <GroupBox title="Motion"><div className="cp-flex">Select a pointer speed: Slow <Slider value={50} onChange={() => {}} style={{ width: 150 }} /> Fast</div></GroupBox>
+            <GroupBox title="Motion">
+              <div className="cp-flex">Select a pointer speed: Slow
+                <Slider value={s.pointerSpeed} min={1} max={11} onChange={(v) => setSettings({ pointerSpeed: v })} style={{ width: 150 }} /> Fast</div>
+              <Check checked={s.pointerPrecision} onChange={(v) => setSettings({ pointerPrecision: v })} label="Enhance pointer precision" />
+              <p className="cp-desc">The pointer speed is applied to the simulated desktop pointer and to the cursor inside Explorer, Paint and WordPad.</p>
+            </GroupBox>
+            <GroupBox title="Snap To">
+              <Check checked={s.snapTo} onChange={(v) => setSettings({ snapTo: v })} label="Automatically move pointer to the default button in a dialog box" />
+            </GroupBox>
             <GroupBox title="Visibility">
               <Check checked={s.trails} onChange={(v) => setSettings({ trails: v })} label="Display pointer trails" />
+              <Check checked={s.hidePointer} onChange={(v) => setSettings({ hidePointer: v })} label="Hide pointer while typing" />
+              <Check checked={s.ptrLocate} onChange={(v) => setSettings({ ptrLocate: v })} label="Show location of pointer when I press the CTRL key" />
+            </GroupBox>
+          </div>
+        )}
+        {tab === "Wheel" && (
+          <div>
+            <GroupBox title="Vertical Scrolling">
+              <p>Roll the wheel one notch to scroll:</p>
+              <Sel value={String(s.wheelLines)} onChange={(v) => setSettings({ wheelLines: +v })} opts={[["1", "1 line at a time"], ["2", "2 lines at a time"], ["3", "The number of lines set here:"], ["0", "One screen at a time"]]} />
+            </GroupBox>
+            <GroupBox title="Horizontal Scrolling">
+              <p>Roll the wheel one notch to scroll:</p>
+              <Sel value={String(s.wheelHorz)} onChange={(v) => setSettings({ wheelHorz: +v })} opts={[["1", "1 character at a time"], ["3", "The number of characters set here:"], ["0", "One screen at a time"]]} />
+            </GroupBox>
+            <p className="cp-desc">The wheel settings apply to Explorer, Notepad and every list that scrolls in this simulator.</p>
+          </div>
+        )}
+        {tab === "Hardware" && (
+          <div>
+            <GroupBox title="Devices">
+              <table className="cp-t"><tbody>
+                <tr><td>Microsoft PS/2 Mouse</td><td>Type: Mouse<br />Manufacturer: Microsoft<br />Location: plugged into PS/2 mouse port</td></tr>
+              </tbody></table>
+            </GroupBox>
+            <GroupBox title="Device Properties">
+              <p>Device status: This device is working properly.</p>
+              <p><Btn onClick={() => openCP("devices")}>Troubleshoot...</Btn> <Btn onClick={() => msgBox({ title: "Microsoft PS/2 Mouse Properties", text: "Driver Provider: Microsoft\nDriver Date: 21/06/2006\nDriver Version: 6.1.7600.16385\nDigital Signer: Microsoft Windows", icon: "info" })}>Properties</Btn></p>
             </GroupBox>
           </div>
         )}
@@ -732,18 +785,37 @@ function Keyboard() {
   const s = useStore((st) => st.settings);
   const [blink, setBlink] = useState(lsGet("win7.blink", 50));
   const [delay, setDelay] = useState(lsGet("win7.kdelay", 50));
+  const [rate, setRate] = useState(lsGet("win7.krate", 30));
+  const [ktab, setKtab] = useState("Speed");
   return (
     <div className="cp-dialog">
-      <Tabs tabs={["Speed", "Hardware"]} value="Speed" onChange={() => {}} />
+      <Tabs tabs={["Speed", "Hardware"]} value={ktab} onChange={setKtab} />
       <div className="cp-tabbody">
+        {ktab === "Speed" ? (
+        <>
         <GroupBox title="Character repeat">
           <p>Repeat delay: Long <Slider value={delay} onChange={(v) => { setDelay(v); lsSet("win7.kdelay", v); }} style={{ width: 150 }} /> Short</p>
-          <textarea className="w7input" style={{ width: "100%", height: 50 }} placeholder="Click here and hold down a key to test repeat rate" />
+          <p>Repeat rate: Slow <Slider value={rate} onChange={(v) => { setRate(v); lsSet("win7.krate", v); }} style={{ width: 150 }} /> Fast</p>
+          <textarea className="w7input" style={{ width: "100%", height: 50 }} placeholder="Click here and hold down a key to test repeat rate" onKeyDown={(e) => { if (s.keyClick && !e.repeat) playClick(); }} />
         </GroupBox>
         <GroupBox title="Cursor blink rate">
-          <div className="cp-flex">Slow <Slider value={blink} onChange={(v) => { setBlink(v); lsSet("win7.blink", v); }} style={{ width: 150 }} /> Fast <span className="caret-demo" style={{ animationDuration: 2.2 - blink * 0.02 + "s" }} /></div>
+          <div className="cp-flex">None <Slider value={blink} min={0} max={100} onChange={(v) => { setBlink(v); lsSet("win7.blink", v); }} style={{ width: 150 }} /> Fast <span className="caret-demo" style={{ animationDuration: blink === 0 ? "0s" : 2.2 - blink * 0.02 + "s", opacity: blink === 0 ? 0 : undefined }} /></div>
         </GroupBox>
         <GroupBox title="Key click"><Check checked={s.keyClick} onChange={(v) => setSettings({ keyClick: v })} label="Play a click sound when typing" /></GroupBox>
+        </>
+        ) : (
+        <div>
+          <GroupBox title="Devices">
+            <table className="cp-t"><tbody>
+              <tr><td>Standard PS/2 Keyboard</td><td>Type: Keyboard<br />Manufacturer: (Standard keyboards)<br />Location: plugged into PS/2 keyboard port</td></tr>
+            </tbody></table>
+          </GroupBox>
+          <GroupBox title="Device Properties">
+            <p>Device status: This device is working properly.</p>
+            <p><Btn onClick={() => openCP("devices")}>Troubleshoot...</Btn> <Btn onClick={() => msgBox({ title: "Standard PS/2 Keyboard Properties", text: "Driver Provider: Microsoft\nDriver Date: 21/06/2006\nDriver Version: 6.1.7600.16385\nDigital Signer: Microsoft Windows", icon: "info" })}>Properties</Btn></p>
+          </GroupBox>
+        </div>
+        )}
       </div>
     </div>
   );
@@ -757,9 +829,36 @@ function DateTime() {
   const [edit, setEdit] = useState(false);
   const [d, setD] = useState("");
   const [t, setT] = useState("");
+  const [dtab, setDtab] = useState("Date and Time");
   return (
     <div className="cp-dialog">
-      <Tabs tabs={["Date and Time", "Additional Clocks", "Internet Time"]} value="Date and Time" onChange={() => {}} />
+      <Tabs tabs={["Date and Time", "Additional Clocks", "Internet Time"]} value={dtab} onChange={setDtab} />
+      {dtab === "Additional Clocks" ? (
+        <div className="cp-tabbody">
+          <p className="cp-desc">You can add up to two additional clocks for different time zones.</p>
+          {[1, 2].map((n) => {
+            const on = !!s.extraClocks?.[n];
+            return (
+              <GroupBox key={n} title={"Clock " + n}>
+                <Check checked={on} label={"Show this clock"} onChange={(v) => setSettings({ extraClocks: { ...(s.extraClocks || {}), [n]: v ? (s.extraClocks?.[n] || -480) : 0 } })} />
+                <p>Select time zone: <Sel value={String(s.extraClocks?.[n] || -480)} onChange={(v) => setSettings({ extraClocks: { ...(s.extraClocks || {}), [n]: Number(v) } })} opts={zones.filter(([k]) => k !== "local")} /></p>
+                <p>Enter display name: <input className="w7input" value={s.extraClockNames?.[n] || ""} placeholder={n === 1 ? "Clock 1" : "Clock 2"} onChange={(e) => setSettings({ extraClockNames: { ...(s.extraClockNames || {}), [n]: e.target.value } })} /></p>
+              </GroupBox>
+            );
+          })}
+          <p className="cp-desc">The extra clocks appear when you point at the taskbar clock.</p>
+        </div>
+      ) : dtab === "Internet Time" ? (
+        <div className="cp-tabbody">
+          <p>This computer is set to automatically synchronize with an Internet time server.</p>
+          <table className="cp-t"><tbody>
+            <tr><td>Server:</td><td><Sel value={s.ntpServer || "time.windows.com"} onChange={(v) => setSettings({ ntpServer: v })} opts={[["time.windows.com", "time.windows.com"], ["time.nist.gov", "time.nist.gov"], ["time-nw.nist.gov", "time-nw.nist.gov"]]} /></td></tr>
+            <tr><td>Synchronization:</td><td>{s.lastSync ? "Last successful synchronization: " + new Date(s.lastSync).toLocaleString(s.region) : "This computer has not been synchronized yet."}</td></tr>
+          </tbody></table>
+          <p><Btn onClick={() => { setSettings({ lastSync: Date.now() }); notify({ title: "Date and Time", text: "The clock was successfully synchronized with " + (s.ntpServer || "time.windows.com") + " on " + new Date().toLocaleDateString(s.region) + " at " + new Date().toLocaleTimeString(s.region) + ".", icon: "info" }); }}>Update now</Btn></p>
+          <p className="cp-desc" style={{ marginTop: 20 }}>Synchronizing needs an Internet connection; the offset this simulator reports is the real one taken from your browser clock.</p>
+        </div>
+      ) : (
       <div className="cp-tabbody">
         <div className="cp-flex" style={{ gap: 20, alignItems: "flex-start" }}>
           <div>
@@ -781,6 +880,7 @@ function DateTime() {
         </GroupBox>
         <Check checked={s.clock24} onChange={(v) => setSettings({ clock24: v })} label="Use 24-hour time" />
       </div>
+      )}
     </div>
   );
 }
@@ -797,9 +897,42 @@ function Clock() {
 function Region() {
   const s = useStore((st) => st.settings);
   const now = useNow(1000);
+  const [rtab, setRtab] = useState("Formats");
   return (
     <div className="cp-dialog">
-      <Tabs tabs={["Formats", "Location", "Keyboards and Languages", "Administrative"]} value="Formats" onChange={() => {}} />
+      <Tabs tabs={["Formats", "Location", "Keyboards and Languages", "Administrative"]} value={rtab} onChange={setRtab} />
+      {rtab === "Location" ? (
+        <div className="cp-tabbody">
+          <p>Your current location: <Sel value={s.homeLocation || "United States"} onChange={(v) => setSettings({ homeLocation: v })} opts={[["United States", "United States"], ["United Kingdom", "United Kingdom"], ["Germany", "Germany"], ["France", "France"], ["Japan", "Japan"], ["Spain", "Spain"], ["Thailand", "Thailand"]]} /></p>
+          <p className="cp-desc">Windows can use this information to provide you with local content such as news and weather, without asking for your address.</p>
+        </div>
+      ) : rtab === "Keyboards and Languages" ? (
+        <div className="cp-tabbody">
+          <GroupBox title="Format">
+            <p>Choose a display language: <Sel value={s.displayLanguage || "English (United States)"} onChange={(v) => setSettings({ displayLanguage: v })} opts={[["English (United States)", "English (United States)"], ["English (United Kingdom)", "English (United Kingdom)"], ["Deutsch (Deutschland)", "Deutsch (Deutschland)"], ["Français (France)", "Français (France)"], ["日本語 (日本)", "日本語 (日本)"]]} /></p>
+            <p className="cp-desc">Display languages other than English need the matching language pack.</p>
+          </GroupBox>
+          <GroupBox title="Keyboards and other input languages">
+            <p>Installed services:</p>
+            <table className="cp-t"><tbody>
+              <tr><td>EN</td><td>English (United States) - US</td></tr>
+              <tr><td>TH</td><td>Thai Kedmanee</td></tr>
+            </tbody></table>
+            <p><Btn onClick={() => msgBox({ title: "Text Services and Input Languages", text: "The Thai Kedmanee keyboard is installed and can be switched to with Alt+Shift.", icon: "info" })}>Add...</Btn> <Btn onClick={() => msgBox({ title: "Text Services and Input Languages", text: "At least one keyboard layout must stay installed.", icon: "warn" })}>Remove</Btn></p>
+          </GroupBox>
+        </div>
+      ) : rtab === "Administrative" ? (
+        <div className="cp-tabbody">
+          <GroupBox title="Language for non-Unicode programs">
+            <p>This setting changes the language used for programs that do not support Unicode.</p>
+            <p>Current language: <b>{s.region === "ja-JP" ? "Japanese (Japan)" : s.region === "de-DE" ? "German (Germany)" : s.region === "fr-FR" ? "French (France)" : "English (United States)"}</b></p>
+          </GroupBox>
+          <GroupBox title="Copy settings">
+            <p>Copy your regional settings to the welcome screen and new user accounts.</p>
+            <p><Btn onClick={() => notify({ title: "Region and Language", text: "Regional settings were copied to the welcome screen and new user accounts.", icon: "info" })}>Copy settings...</Btn></p>
+          </GroupBox>
+        </div>
+      ) : (
       <div className="cp-tabbody">
         <p>Format: <Sel value={s.region} onChange={(v) => setSettings({ region: v })} opts={[["en-US", "English (United States)"], ["en-GB", "English (United Kingdom)"], ["de-DE", "Deutsch (Deutschland)"], ["fr-FR", "Français (France)"], ["ja-JP", "日本語 (日本)"], ["es-ES", "Español (España)"]]} /></p>
         <GroupBox title="Date and time formats">
@@ -813,6 +946,7 @@ function Region() {
         </GroupBox>
         <Check checked={s.clock24} onChange={(v) => setSettings({ clock24: v })} label="24-hour clock" />
       </div>
+      )}
     </div>
   );
 }
@@ -895,10 +1029,35 @@ function DefaultProgs() {
 
 function FolderOpts() {
   const f = useStore((s) => s.settings.folder);
+  const [ftab, setFtab] = useState("View");
   const set = (p: Partial<typeof f>) => setSettings({ folder: { ...f, ...p } });
   return (
     <div className="cp-dialog">
-      <Tabs tabs={["General", "View", "Search"]} value="View" onChange={() => {}} />
+      <Tabs tabs={["General", "View", "Search"]} value={ftab} onChange={setFtab} />
+      {ftab === "General" ? (
+      <div className="cp-tabbody">
+        <GroupBox title="Browse folders">
+          <div><Radio checked={f.openDouble} onChange={() => set({ openDouble: true })} label="Double-click to open an item (single-click to select)" /></div>
+          <div><Radio checked={!f.openDouble} onChange={() => set({ openDouble: false })} label="Single-click to open an item (point to select)" /></div>
+        </GroupBox>
+        <GroupBox title="Click items as follows">
+          <p className="cp-desc">The single-click option underlines icon titles, the way the web does. It is applied to Explorer, the Desktop and the Start menu.</p>
+        </GroupBox>
+      </div>
+      ) : ftab === "Search" ? (
+      <div className="cp-tabbody">
+        <GroupBox title="What to search">
+          <div><Radio checked={f.searchContent !== false} onChange={() => set({ searchContent: true })} label="In indexed locations, search file names and contents" /></div>
+          <div><Radio checked={f.searchContent === false} onChange={() => set({ searchContent: false })} label="In non-indexed locations, search file names only" /></div>
+        </GroupBox>
+        <GroupBox title="How to search">
+          <Check checked={!!f.searchSubfolders} onChange={(v) => set({ searchSubfolders: v })} label="Include subfolders in search results when searching in this folder" />
+          <Check checked={!!f.searchNatural} onChange={(v) => set({ searchNatural: v })} label="Use natural language search" />
+          <Check checked={!!f.searchHidden} onChange={(v) => set({ searchHidden: v })} label="Include system directories" />
+        </GroupBox>
+        <p className="cp-desc">Search from the Explorer search box, or press F3 in any window.</p>
+      </div>
+      ) : (
       <div className="cp-tabbody">
         <GroupBox title="Advanced settings">
           <div><Check checked={f.showHidden} onChange={(v) => set({ showHidden: v })} label="Show hidden files, folders, and drives" /></div>
@@ -906,9 +1065,14 @@ function FolderOpts() {
           <div><Check checked={f.navPane} onChange={(v) => set({ navPane: v })} label="Show navigation pane in new Explorer windows" /></div>
           <div><Check checked={f.details} onChange={(v) => set({ details: v })} label="Show details pane in new Explorer windows" /></div>
           <div><Check checked={f.preview} onChange={(v) => set({ preview: v })} label="Show preview pane in new Explorer windows" /></div>
+          <div><Check checked={!!f.alwaysIcons} onChange={(v) => set({ alwaysIcons: v })} label="Always show icons, never thumbnails" /></div>
+          <div><Check checked={!!f.tips} onChange={(v) => set({ tips: v })} label="Show pop-up description for folder and desktop items" /></div>
+          <div><Check checked={!!f.compact} onChange={(v) => set({ compact: v })} label="Use compact mode" /></div>
         </GroupBox>
+        <p><Btn onClick={() => set({ showHidden: false, showExt: true, navPane: true, details: true, preview: false, openDouble: true, alwaysIcons: false, tips: true, compact: false })}>Restore Defaults</Btn></p>
         <p className="cp-desc">Open Explorer windows pick up these options after you reopen them. Hidden files and extensions apply immediately on the Desktop.</p>
       </div>
+      )}
     </div>
   );
 }
@@ -1057,7 +1221,21 @@ function TaskbarPage() {
             <p className="cp-desc">The Address toolbar opens a path or a web address; Links shows the Favorites Links folder; Desktop lists the icons on the desktop.</p>
           </GroupBox>
         )}
-        <GroupBox title="Notification area"><p className="cp-desc">Hidden icons: {s.hiddenTray.length + 3}. Click the ▲ arrow on the taskbar to view them.</p></GroupBox>
+        <GroupBox title="Notification area">
+          <p className="cp-desc">Windows 7 keeps system icons on the taskbar and moves the rest into the overflow. Choose which system icons appear, and how they behave.</p>
+          <table className="cp-t"><tbody>
+            {([["clock", "Clock"], ["volume", "Volume"], ["network", "Network"], ["power", "Power"], ["actioncenter", "Action Center"]] as const).map(([k, label]) => {
+              const on = !s.hiddenTray.includes("sys:" + k);
+              return (
+                <tr key={k}><td>{label}:</td><td>
+                  <Sel value={on ? "on" : "off"} onChange={(v) => setSettings({ hiddenTray: v === "on" ? s.hiddenTray.filter((x) => x !== "sys:" + k) : [...s.hiddenTray.filter((x) => x !== "sys:" + k), "sys:" + k] })} opts={[["on", "On"], ["off", "Off"]]} />
+                </td></tr>
+              );
+            })}
+          </tbody></table>
+          <p><Check checked={s.hiddenTray.includes("alwaysAll")} onChange={(v) => setSettings({ hiddenTray: v ? [...s.hiddenTray.filter((x) => x !== "alwaysAll"), "alwaysAll"] : s.hiddenTray.filter((x) => x !== "alwaysAll") })} label="Always show all icons and notifications on the taskbar" /></p>
+          <p className="cp-desc">Hidden icons: {s.hiddenTray.filter((x) => !x.startsWith("sys:")).length + 3}. Click the ▲ arrow on the taskbar to view them.</p>
+        </GroupBox>
       </div>
     </div>
   );
@@ -1181,6 +1359,12 @@ const COMP: Record<string, (p: { nav: (p: string) => void }) => React.ReactNode>
   // belong here rather than behind an "Open" button.
   fun: () => <FunFeatures />,
   features: () => <CPLaunch app="features" text="Turn Windows features on or off, and see everything this simulated PC can do." />,
+  printmgmt: () => <CPLaunch app="printmgmt" text="Print Management lists the printers, drivers and ports on this PC, the print queue and the default printer." />,
+  colorcpl: () => <CPLaunch app="colorcpl" text="Color Management associates colour profiles with your displays and devices so colours stay consistent." />,
+  recdisc: () => <CPLaunch app="recdisc" text="A system repair disc can start this PC and open the Windows Recovery Environment: Startup Repair, System Restore, Memory Diagnostic and Command Prompt." />,
+  compsvc: () => <CPLaunch app="compsvc" text="Component Services is the console for COM+ applications, DCOM configuration and running COM+ processes." />,
+  odbcad: () => <CPLaunch app="odbcad" text="ODBC Data Source Administrator manages the User, System and File data sources that programs use to reach a database." />,
+  sigverif: () => <CPLaunch app="sigverif" text="File Signature Verification checks that the system files on this PC carry a valid digital signature." />,
 };
 
 function CPLaunch({ app, text }: { app: string; text: string }) {
