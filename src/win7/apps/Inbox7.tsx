@@ -19,7 +19,8 @@
  * disc really appears as a file, and the projector mode survives a reload.
  */
 import React, { useEffect, useMemo, useState } from "react";
-import { Win, useStore, getState, lsGet, lsSet, mkfile, notify, msgBox, printDocument, openCP, closeWin, children, fmtSize } from "../store";
+import { Win, useStore, getState, lsGet, lsSet, notify, msgBox, printDocument, openCP, closeWin, children, fmtSize, openApp, showMenu, uac, mkfile, view } from "../store";
+import { APPS } from "../registry";
 import { Icon } from "../icons";
 import { Btn, Check, GroupBox, Radio, Spinner } from "../ui";
 import { logEvent } from "../kernel";
@@ -652,6 +653,324 @@ export function NetworkProjector({ win }: { win: Win }) {
         )}
       </div>
       <div className="inbox-status">{state === "connected" ? "Connected" : scanning ? "Searching…" : `${PROJECTORS.length} projector(s) found`}</div>
+    </div>
+  );
+}
+
+/* ================================= Administrative Tools (the folder) */
+/**
+ * Windows 7 has no single "Administrative Tools" program: the Start menu entry
+ * is the shell folder %ProgramData%\Microsoft\Windows\Start Menu\Programs\
+ * Administrative Tools, which Explorer renders like any other folder. Control
+ * Panel's "Administrative Tools" item opens that same folder. This renders the
+ * folder the way Explorer does (details view, command bar, double-click to open
+ * the .msc) and each row launches the real console, so the folder is not a dead
+ * shortcut any more.
+ */
+interface AdmItem { name: string; app: string; desc: string; admin?: boolean }
+const ADMIN_TOOLS: AdmItem[] = [
+  { name: "Component Services", app: "compsvc", desc: "COM+ applications and DCOM configuration" },
+  { name: "Computer Management", app: "compmgmt", desc: "System tools, storage and services" },
+  { name: "Data Sources (ODBC)", app: "odbcad", desc: "ODBC Data Source Administrator" },
+  { name: "Event Viewer", app: "eventvwr", desc: "Application, security and system logs" },
+  { name: "iSCSI Initiator", app: "iscsi", desc: "Connect this computer to an iSCSI target", admin: true },
+  { name: "Local Security Policy", app: "secpol", desc: "Security settings for this computer" },
+  { name: "Performance Monitor", app: "perfmon", desc: "Real-time performance counters" },
+  { name: "Print Management", app: "printmgmt", desc: "Printers, drivers, ports and queues" },
+  { name: "Resource Monitor", app: "resmon", desc: "CPU, disk, network and memory use" },
+  { name: "Security Configuration Management", app: "secpol", desc: "Security templates and analysis", admin: true },
+  { name: "Services", app: "services", desc: "Start, stop and configure Windows services" },
+  { name: "System Configuration", app: "msconfig", desc: "Startup, boot and service selection" },
+  { name: "Task Scheduler", app: "tasksched", desc: "Scheduled tasks and triggers" },
+  { name: "Windows Firewall with Advanced Security", app: "fw", desc: "Inbound and outbound rules" },
+  { name: "Windows Memory Diagnostic", app: "mdsched", desc: "Test the RAM at the next restart" },
+  { name: "Windows PowerShell Modules", app: "powershell", desc: "Windows PowerShell" },
+];
+const ADM_VIEW_KEY = "win7.admintools.view";
+const ADM_WIN_KEY = "win7.admintools.windows";
+
+export function AdminTools({ win }: { win: Win }) {
+  const [sel, setSel] = useState<string[]>(["Component Services"]);
+  const [q, setQ] = useState("");
+  const [showHidden, setShowHidden] = useState(() => lsGet<boolean>(ADM_WIN_KEY, false));
+  const [mode, setMode] = useState<"details" | "tiles">(() => lsGet<"details" | "tiles">(ADM_VIEW_KEY, "details"));
+  const [hist, setHist] = useState<string[]>(["Administrative Tools"]);
+  useEffect(() => { lsSet(ADM_VIEW_KEY, mode); }, [mode]);
+  useEffect(() => { lsSet(ADM_WIN_KEY, showHidden); }, [showHidden]);
+
+  const items = useMemo(
+    () => ADMIN_TOOLS.filter((i) => (showHidden || !i.admin) && (!q.trim() || i.name.toLowerCase().includes(q.toLowerCase()) || i.desc.toLowerCase().includes(q.toLowerCase()))),
+    [q, showHidden]
+  );
+
+  const open = (it: AdmItem) => {
+    if (it.admin) uac({ name: it.name, publisher: "Microsoft Windows", onAllow: () => openApp(it.app) });
+    else openApp(it.app);
+  };
+
+  const bar = (e: React.MouseEvent) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    showMenu({ x: r.left / view.scale, y: r.bottom / view.scale }, [
+      { label: "View", sub: [
+        { label: "Tiles", checked: mode === "tiles", radio: true, onClick: () => setMode("tiles") },
+        { label: "Details", checked: mode === "details", radio: true, onClick: () => setMode("details") },
+      ] },
+      { label: "Show hidden items", checked: showHidden, onClick: () => { setShowHidden(!showHidden); notify({ title: "Administrative Tools", text: showHidden ? "Hidden consoles are no longer shown." : "Hidden consoles (iSCSI Initiator, Security Configuration Management) are now shown.", icon: "info" }); } },
+      { sep: true },
+      { label: "Refresh", onClick: () => notify({ title: "Administrative Tools", text: "The folder was refreshed: " + ADMIN_TOOLS.length + " console(s).", icon: "info" }) },
+      { label: "Open a console you can type", onClick: () => openApp("run") },
+    ]);
+  };
+
+  return (
+    <div className="admintools">
+      <div className="at-bar">
+        {hist.length > 1 && <Btn onClick={() => setHist(hist.slice(0, -1))}>◀ Back</Btn>}
+        <button className="w7btn" onClick={bar}>Organize ▾</button>
+        <span className="at-crumb"><Icon name="controlpanel" size={16} /> Control Panel ▸ <b>Administrative Tools</b></span>
+        <input className="w7input at-search" placeholder="Search Administrative Tools" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      <div className="at-body">
+        {mode === "tiles" ? (
+          <div className="at-tiles">
+            {items.map((i) => (
+              <div key={i.name} className={"at-tile" + (sel.includes(i.name) ? " sel" : "")} onClick={() => setSel([i.name])} onDoubleClick={() => open(i)} title={i.desc}>
+                <Icon name={appIcon(i.app)} size={44} />
+                <span>{i.name}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <table className="inbox-grid at-grid">
+            <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+            <tbody>
+              {items.map((i) => (
+                <tr key={i.name} className={sel.includes(i.name) ? "sel" : ""} onClick={() => setSel([i.name])} onDoubleClick={() => open(i)}>
+                  <td><Icon name={appIcon(i.app)} size={16} /> {i.name}</td>
+                  <td>Microsoft Common Console Document</td>
+                  <td>{i.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {!items.length && <div className="inbox-empty">No items match your search.</div>}
+      </div>
+      <div className="at-status">
+        <span>{items.length} item(s){sel.length ? " — 1 item selected" : ""}</span>
+        <span>{showHidden ? "Hidden consoles shown" : "Hidden consoles hidden (Organize ▸ Show hidden items)"}</span>
+        <Btn def onClick={() => { const it = ADMIN_TOOLS.find((x) => x.name === sel[0]); if (it) { setHist([...hist, it.name]); open(it); } }} disabled={!sel.length}>Open</Btn>
+      </div>
+    </div>
+  );
+}
+function appIcon(app: string) {
+  return APPS[app]?.icon || "cmg";
+}
+
+/* ==================================================== iSCSI Initiator */
+interface IscsiTarget { name: string; address: string; status: "Connected" | "Disconnected" | "Discovered"; portal: string }
+const ISCSI_KEY = "win7.iscsi";
+
+export function IscsiInitiator({ win }: { win: Win }) {
+  const [tab, setTab] = useState("Targets");
+  const [targets, setTargets] = useState<IscsiTarget[]>(() => lsGet<IscsiTarget[]>(ISCSI_KEY, [
+    { name: "iqn.1991-05.com.microsoft:nas-target", address: "192.168.1.50:3260", status: "Discovered", portal: "192.168.1.50" },
+  ]));
+  const [sel, setSel] = useState<string>("");
+  const [host, setHost] = useState("192.168.1.50");
+  const [busy, setBusy] = useState(false);
+  const [prop, setProp] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
+  useEffect(() => { lsSet(ISCSI_KEY, targets); }, [targets]);
+  const cur = targets.find((t) => t.name === sel);
+  const discover = () => {
+    if (!/^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(host.trim())) return msgBox({ title: "iSCSI Initiator", text: `${host} is not a valid target portal address. Type an IPv4 address, for example 192.168.1.50.`, icon: "warn" });
+    setBusy(true);
+    setTimeout(() => {
+      setBusy(false);
+      const clean = host.trim().split(":")[0];
+      if (targets.some((t) => t.portal === clean)) return notify({ title: "iSCSI Initiator", text: `The target portal ${clean} is already in the list.`, icon: "info" });
+      const t: IscsiTarget = { name: `iqn.2000-01.com.example:disk-${targets.length + 1}`, address: `${clean}:3260`, status: "Discovered", portal: clean };
+      setTargets((x) => [...x, t]);
+      setSel(t.name);
+      logEvent("Information", "Microsoft-Windows-iSCSITarget-Service", 1, `Target ${t.name} was discovered on portal ${clean}.`, "System");
+      notify({ title: "iSCSI Initiator", text: `Discovery complete: 1 target found on ${clean}.`, icon: "info" });
+    }, 1200);
+  };
+  const connect = () => {
+    if (!cur) return;
+    if (cur.status === "Connected") return msgBox({ title: "iSCSI Initiator", text: `The target ${cur.name} is already connected.`, icon: "info" });
+    setBusy(true);
+    setTimeout(() => {
+      setBusy(false);
+      setTargets((x) => x.map((t) => (t.name === cur.name ? { ...t, status: "Connected" } : t)));
+      logEvent("Information", "Microsoft-Windows-iSCSITarget-Service", 12, `Initiator connected to target ${cur.name} and a disk was added to Computer.`, "System");
+      notify({ title: "iSCSI Initiator", text: `${cur.name} connected. The disk appears under Computer.`, icon: "info" });
+    }, 1400);
+  };
+  const disconnect = () => {
+    if (!cur) return;
+    setTargets((x) => x.map((t) => (t.name === cur.name ? { ...t, status: "Disconnected" } : t)));
+    logEvent("Information", "Microsoft-Windows-iSCSITarget-Service", 13, `Initiator disconnected from target ${cur.name}.`, "System");
+  };
+  const tabs = ["General", "Discovery", "Targets", "Volumes and Devices", "RADIUS"];
+  return (
+    <div className="inbox iscsi">
+      <div className="inbox-hd"><Icon name="drive" size={22} /><b>iSCSI Initiator Properties</b><span className="inbox-sub">iscsicpl.exe</span></div>
+      <div className="inbox-tabs">{tabs.map((t) => <div key={t} className={"inbox-tab" + (t === tab ? " on" : "")} onClick={() => setTab(t)}>{t}</div>)}</div>
+      <div className="inbox-main" style={{ padding: 12, overflow: "auto" }}>
+        {tab === "General" && (
+          <>
+            <p>iSCSI lets this computer connect to a storage device over the network as if it were a local disk.</p>
+            <GroupBox title="Identifier">
+              <p>Initiator Name: <code>iqn.1991-05.com.microsoft:pc-{getState().settings.currentUser.toLowerCase()}</code></p>
+              <p>Status: {targets.some((t) => t.status === "Connected") ? "Connected to " + targets.filter((t) => t.status === "Connected").length + " target(s)" : "Not connected"}</p>
+            </GroupBox>
+            <p><Btn onClick={() => setProp(!prop)}>Properties...</Btn> <Btn onClick={() => setTab("Discovery")}>Discover a target</Btn></p>
+            {prop && <GroupBox title="Initiator Properties"><p><Check checked onChange={() => {}} label="CHAP secret is configured" /><br /><Check checked={false} onChange={() => {}} label="IPsec tunnel mode" /></p><p className="inbox-note">The initiator name is fixed for this simulated machine.</p></GroupBox>}
+          </>
+        )}
+        {tab === "Discovery" && (
+          <>
+            <p>Enter the IP address of a target portal, then click Quick Connect.</p>
+            <p><input className="w7input" style={{ width: 200 }} value={host} onChange={(e) => setHost(e.target.value)} /> <Btn def onClick={discover} disabled={busy}>{busy ? "Discovering…" : "Quick Connect"}</Btn></p>
+            <GroupBox title="Target portals">
+              <table className="inbox-grid">
+                <thead><tr><th>Address</th><th>Port</th><th>Built-in</th></tr></thead>
+                <tbody>
+                  <tr><td>192.168.1.50</td><td>3260</td><td>No</td></tr>
+                  {targets.filter((t) => t.portal !== "192.168.1.50").map((t) => <tr key={t.name}><td>{t.portal}</td><td>3260</td><td>No</td></tr>)}
+                </tbody>
+              </table>
+            </GroupBox>
+          </>
+        )}
+        {tab === "Targets" && (
+          <>
+            <p>Discovered targets:</p>
+            <table className="inbox-grid">
+              <thead><tr><th>Name</th><th>Address</th><th>Status</th></tr></thead>
+              <tbody>{targets.map((t) => <tr key={t.name} className={sel === t.name ? "sel" : ""} onClick={() => setSel(t.name)}><td>{t.name}</td><td>{t.address}</td><td>{t.status}</td></tr>)}</tbody>
+            </table>
+            <Toolbar>
+              <Btn def onClick={connect} disabled={!cur || busy || cur.status === "Connected"}>Connect</Btn>
+              <Btn onClick={disconnect} disabled={!cur || cur.status !== "Connected"}>Disconnect</Btn>
+              <Btn onClick={connect} disabled={!cur}>Connect (target)</Btn>
+              <Btn onClick={() => setTab("Discovery")}>Discover</Btn>
+              <Btn onClick={() => { setTargets((x) => x.filter((t) => t.name !== sel)); setSel(""); }} disabled={!cur}>Remove</Btn>
+            </Toolbar>
+            <div className="inbox-note">{busy ? "Working…" : "Connecting a target adds its disk to Computer and logs an iSCSI event."}</div>
+          </>
+        )}
+        {tab === "Volumes and Devices" && (
+          <>
+            <p>Use the drop-down lists to bind the volumes of connected targets to disk devices.</p>
+            <table className="inbox-grid">
+              <thead><tr><th>Volume</th><th>Target</th><th>Device</th></tr></thead>
+              <tbody>
+                {targets.filter((t) => t.status === "Connected").map((t) => <tr key={t.name}><td>0</td><td>{t.name}</td><td>Disk 1</td></tr>)}
+              </tbody>
+            </table>
+            {!targets.some((t) => t.status === "Connected") && <div className="inbox-empty">Connect a target first; no volumes are available.</div>}
+            <p><Btn onClick={() => setTab("Targets")}>Manage volumes...</Btn> <Btn onClick={() => notify({ title: "iSCSI Initiator", text: "The volume bindings were refreshed.", icon: "info" })}>Refresh</Btn></p>
+          </>
+        )}
+        {tab === "RADIUS" && (
+          <>
+            <p>RADIUS authentication is not used by this initiator. The settings below record what the two check boxes would mean.</p>
+            <GroupBox title="RADIUS authentication">
+              <div><Check checked={advanced} onChange={setAdvanced} label="Enable RADIUS authentication" /></div>
+              <p className="inbox-note">{advanced ? "A server and secret would be requested; this PC has no RADIUS server configured." : "RADIUS is off, so CHAP is negotiated directly with the target."}</p>
+            </GroupBox>
+            <p><Btn def onClick={() => notify({ title: "iSCSI Initiator", text: advanced ? "RADIUS settings saved for the next connection." : "RADIUS authentication stays off.", icon: "info" })}>OK</Btn> <Btn onClick={() => closeWin(win.id)}>Cancel</Btn></p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================================= Authorization Manager (azman.msc) */
+interface AzRole { name: string; desc: string }
+interface AzTask { name: string }
+
+export function AuthorizationManager({ win }: { win: Win }) {
+  const store = "Authorization Store";
+  const [role, setRole] = useState("Administrators");
+  const [node, setNode] = useState("roles");
+  const roles: AzRole[] = [
+    { name: "Administrators", desc: "Full control of the authorization store" },
+    { name: "Readers", desc: "Can read the store and its definitions" },
+    { name: "Help Desk", desc: "Can reset passwords and unlock accounts" },
+    { name: "Auditors", desc: "Can read the security log" },
+  ];
+  const tasks: AzTask[] = [
+    { name: "ResetPassword" }, { name: "UnlockAccount" }, { name: "ReadSecurityLog" },
+    { name: "DefineAuthorizationPolicy" }, { name: "AssignRoles" },
+  ];
+  const [members, setMembers] = useState<Record<string, string[]>>(() => lsGet("win7.azman", {
+    Administrators: ["PC\\Administrator"], Readers: ["PC\\Susan"], "Help Desk": [], Auditors: [],
+  }));
+  const [assigned, setAssigned] = useState<Record<string, string[]>>(() => lsGet("win7.azman.tasks", { Administrators: ["DefineAuthorizationPolicy", "AssignRoles"], Readers: [], "Help Desk": ["ResetPassword", "UnlockAccount"], Auditors: ["ReadSecurityLog"] }));
+  useEffect(() => { lsSet("win7.azman", members); }, [members]);
+  useEffect(() => { lsSet("win7.azman.tasks", assigned); }, [assigned]);
+  const users = getState().settings.users.map((u) => `PC\\${u.name}`);
+  const toggle = (kind: "members" | "tasks", value: string) => {
+    if (kind === "members") setMembers((m) => ({ ...m, [role]: m[role]?.includes(value) ? m[role].filter((x) => x !== value) : [...(m[role] || []), value] }));
+    else setAssigned((m) => ({ ...m, [role]: m[role]?.includes(value) ? m[role].filter((x) => x !== value) : [...(m[role] || []), value] }));
+  };
+  return (
+    <div className="inbox azman">
+      <div className="inbox-hd"><Icon name="shield" size={22} /><b>Authorization Manager</b><span className="inbox-sub">azman.msc</span></div>
+      <div className="inbox-body">
+        <div className="inbox-nav">
+          <Tree label={store} icon="cmg" />
+          <Tree label="Applications" icon="folder" depth={1} on={node === "apps"} onClick={() => setNode("apps")} />
+          <Tree label="User Roles" icon="users" depth={1} on={node === "roles"} onClick={() => setNode("roles")} />
+          {roles.map((r) => <Tree key={r.name} label={r.name} icon="user" depth={2} on={role === r.name && node === "roles"} onClick={() => { setRole(r.name); setNode("roles"); }} />)}
+          <Tree label="Task Definitions" icon="folder" depth={1} on={node === "tasks"} onClick={() => setNode("tasks")} />
+        </div>
+        <div className="inbox-main">
+          {node === "apps" ? (
+            <>
+              <p>Applications defined in this store:</p>
+              <table className="inbox-grid">
+                <thead><tr><th>Application</th><th>Operations</th><th>Roles</th></tr></thead>
+                <tbody>
+                  <tr><td>Windows Explorer</td><td>Read, Write, Delete</td><td>Administrators, Readers</td></tr>
+                  <tr><td>User Accounts</td><td>ResetPassword, UnlockAccount</td><td>Administrators, Help Desk</td></tr>
+                  <tr><td>Event Log</td><td>ReadSecurityLog</td><td>Administrators, Auditors</td></tr>
+                </tbody>
+              </table>
+              <p><Btn onClick={() => notify({ title: "Authorization Manager", text: "This simulator ships one read-only authorization store.", icon: "info" })}>New Application...</Btn></p>
+            </>
+          ) : node === "tasks" ? (
+            <>
+              <p>Task definitions:</p>
+              <table className="inbox-grid">
+                <thead><tr><th>Task</th><th>Roles that include it</th></tr></thead>
+                <tbody>{tasks.map((t) => <tr key={t.name}><td>{t.name}</td><td>{roles.filter((r) => assigned[r.name]?.includes(t.name)).map((r) => r.name).join(", ") || "—"}</td></tr>)}</tbody>
+              </table>
+            </>
+          ) : (
+            <>
+              <GroupBox title={`Role: ${role}`}>
+                <p>{roles.find((r) => r.name === role)?.desc}</p>
+              </GroupBox>
+              <GroupBox title="Members">
+                {users.map((u) => <div key={u}><Check checked={members[role]?.includes(u) || false} onChange={() => toggle("members", u)} label={u} /></div>)}
+              </GroupBox>
+              <GroupBox title="Tasks assigned to this role">
+                {tasks.map((t) => <div key={t.name}><Check checked={assigned[role]?.includes(t.name) || false} onChange={() => toggle("tasks", t.name)} label={t.name} /></div>)}
+              </GroupBox>
+              <div className="inbox-note">Membership and task assignment are stored in <code>win7.azman</code> / <code>win7.azman.tasks</code> and survive a reload.</div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="inbox-status">Store: {store} · {roles.length} role(s), {tasks.length} task(s)</div>
+      {void closeWin}{void win}
     </div>
   );
 }

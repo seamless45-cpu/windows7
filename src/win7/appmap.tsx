@@ -10,7 +10,7 @@ import { MediaPlayer, PhotoViewer, DvdMaker, SoundRecorder } from "./apps/Media"
 import { IE } from "./apps/IE";
 import { Chrome } from "./apps/Chrome";
 import { FrameViewer } from "./apps/FrameViewer";
-import { PrintManagement, ComponentServices, OdbcAdmin, FileSignature, RecoveryDisc, ColorManagement, DisplaySwitch, NetworkProjector } from "./apps/Inbox7";
+import { PrintManagement, ComponentServices, OdbcAdmin, FileSignature, RecoveryDisc, ColorManagement, DisplaySwitch, NetworkProjector, AdminTools, IscsiInitiator, AuthorizationManager } from "./apps/Inbox7";
 import { WindowsActivation, UpdateInstaller, ConnectToNetwork, WindowColor, HelpTopics, TouchCalibration, FaxCoverEditor, DiskDefragmenter, SyncCenterWizard } from "./apps/SystemTools7";
 import { Cmd, TaskManager, HelpApp, SnippingTool, Minesweeper } from "./apps/SystemApps";
 import { GadgetGallery, GadgetOptions } from "./gadgets";
@@ -57,6 +57,9 @@ export const COMPONENTS: Record<string, React.ComponentType<{ win: Win }>> = {
   defrag: DiskDefragmenter,
   syncw: SyncCenterWizard,
   printmgmt: PrintManagement,
+  admintools: AdminTools,
+  iscsi: IscsiInitiator,
+  azman: AuthorizationManager,
   compsvc: ComponentServices,
   odbcad: OdbcAdmin,
   sigverif: FileSignature,

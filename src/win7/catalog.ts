@@ -26,6 +26,11 @@ export const CATALOG: Cat[] = [
       { name: "XPS Viewer", icon: "xps", apps: ["xps"] },
     ],
   },
+  {
+    name: "Administrative Tools",
+    icon: "services",
+    apps: ["admintools", "compsvc", "compmgmt", "devmgr", "diskmgmt", "eventvwr", "secpol", "perfmon", "services", "msconfig", "tasksched", "fw", "mdsched", "resmon", "printmgmt", "odbcad", "sigverif", "recdisc", "iscsi", "azman"],
+  },
   { name: "Media Center", icon: "wmp", apps: ["mce", "wmp", "dvdmaker", "photos"] },
   { name: "Games", icon: "gamecenter", apps: ["gamecenter", "solitaire", "spider", "hearts", "minesweeper", "freecell", "mahjong", "chess", "purble"] },
   { name: "Maintenance", icon: "folder", apps: ["reliability", "wupdate", "help", "eventvwr", "cleanmgr", "sysdiag", "regedit", "secpol", "perfmon", "mdsched", "support", "wfs", "eudc", "backup", "bitlocker", "wei", "ra", "homegroup", "credmgr", "mce", "cardspace", "playto", "gettingstarted", "dccw", "ise", "contacts"] },

@@ -2319,3 +2319,18 @@ body.col-resize { cursor: col-resize; }
 }
 .tb-ql-btn:hover { background: rgba(255,255,255,.28); border-color: rgba(255,255,255,.5); }
 .tbpos-bottom .tb-ql-btn:hover, .tbpos-top .tb-ql-btn:hover { background: rgba(255,255,255,.22); }
+
+/* Administrative Tools folder window (Control Panel item + Start menu entry) */
+.admintools { display: flex; flex-direction: column; height: 100%; background: #fff; font: 12px "Segoe UI", Tahoma, sans-serif; }
+.at-bar { display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: linear-gradient(#fdfefe, #eef3f9); border-bottom: 1px solid #c3cfe0; }
+.at-crumb { display: flex; align-items: center; gap: 5px; color: #24486e; padding: 0 6px; }
+.at-search { width: 190px; margin-left: auto; }
+.at-body { flex: 1; overflow: auto; padding: 8px; }
+.at-grid td { white-space: nowrap; }
+.at-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+.at-tile { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid transparent; border-radius: 3px; cursor: default; }
+.at-tile:hover { background: #eaf3fc; border-color: #b8d6f2; }
+.at-tile.sel { background: #cfe6fb; border-color: #7fb2e5; }
+.at-tile span { color: #1a3350; }
+.at-status { display: flex; align-items: center; gap: 14px; padding: 4px 8px; border-top: 1px solid #d4dfec; background: #f4f8fc; color: #3d5a78; }
+.at-status span:first-child { margin-right: auto; }

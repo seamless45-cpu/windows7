@@ -79,6 +79,7 @@ const PROGRAMS: PItem[] = [
           app("reliability", "Reliability Monitor"),
           app("secpol", "Local Security Policy"),
           app("services"),
+          app("admintools", "Administrative Tools"),
           app("sysdiag", "System Information"),
           app("sysrestore", "System Restore"),
           app("recdisc", "Create a System Repair Disc"),
@@ -135,7 +136,9 @@ const PROGRAMS: PItem[] = [
       app("moregames", "More Games…"),
     ],
   },
-  { label: "Administrative Tools", icon: "controlpanel", kids: [
+  { label: "Administrative Tools", icon: "services", kids: [
+    /* the folder itself, so the entry is not just a list of leaves */
+    { label: "Administrative Tools (folder)", icon: "controlpanel", run: () => openApp("admintools") },
     { label: "Component Services", icon: "services", run: () => openApp("compsvc") },
     app("compmgmt", "Computer Management"),
     app("devmgr", "Device Manager"),
@@ -154,6 +157,8 @@ const PROGRAMS: PItem[] = [
     app("sigverif", "File Signature Verification"),
     app("compsvc", "Component Services"),
     app("recdisc", "Create a System Repair Disc"),
+    { label: "iSCSI Initiator", icon: "drive", run: () => openApp("iscsi") },
+    app("azman", "Authorization Manager"),
   ] },
   { label: "Maintenance", icon: "folder", kids: [
     app("backup", "Backup and Restore"),
